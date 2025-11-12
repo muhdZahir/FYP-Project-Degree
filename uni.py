@@ -18,8 +18,8 @@ if uploaded_files:
         # Example of processing a CSV file
         if file.type == "text/csv":
             df = pd.read_csv(file)
-            st.subheader(f"Content of {file.name}:")
-            st.dataframe(df.head())
+            st.subheader(f"Table {file.name}:")
+            st.dataframe(df)
         
         # Example of processing a text file
         elif file.type == "text/plain":
