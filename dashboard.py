@@ -19,10 +19,22 @@ if uploaded_files:
     for file in uploaded_files:
         st.write(f"- {file.name}")
 
+        df = None
         if file.type == "text/csv": # Processing for CSV file
             df = pd.read_csv(file)
         elif file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": # Processing for Excel file
             df = pd.read_excel(file)
+        else:
+            # Fallback based on filename extension when MIME type isn't present
+            fname = file.name.lower()
+            if fname.endswith(".csv"):
+                df = pd.read_csv(file)
+            elif fname.endswith(".xls") or fname.endswith(".xlsx"):
+                df = pd.read_excel(file)
+
+        if df is None:
+            st.error(f"Could not read file `{file.name}`. Unsupported format.")
+            continue
 
         class_col = ["Classroom_ID","Floor","Capacity","Actual_Occupancy","Day","Time_Slot","Week"]
         energy_col = ["Floor","Month","Energy_kWh","Energy_Cost"]
@@ -53,7 +65,7 @@ if uploaded_files:
 if "class_df" in locals() and "energy_df" in locals():
 
     class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
-    total_energy_cost = df.groupby("Floor")["Energy_Cost"].sum().reset_index()
+    total_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
 
 # classroom usage
     #class_df = class_df.dropna()
@@ -87,7 +99,7 @@ if "energy_df" in locals():
     st.subheader("Monthly Energy Cost per Floor")
 
     line_fig = px.line(
-        df,
+        energy_df,
         x="Month",
         y="Energy_Cost",
         color="Floor",
