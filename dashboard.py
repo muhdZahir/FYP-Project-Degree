@@ -120,3 +120,4 @@ if "energy_df" in locals():
     st.plotly_chart(pie_fig, width='stretch')
 elif "energy_df" not in locals():
     st.info("Upload a CSV file to see the data and generate a line chart.")
+    
