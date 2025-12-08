@@ -1,6 +1,7 @@
 import streamlit as st # to open streamlit, run python -m streamlit run dashboard.py | to close, ctrl + c at terminal
 import pandas as pd
 import numpy as np
+import os
 import plotly.express as px
 from sklearn.preprocessing import MinMaxScaler # pip install -U scikit-learn
 from sklearn.linear_model import LinearRegression
@@ -10,7 +11,7 @@ st.title("University Resource Optimization")
 # Create a file uploader widget that accepts multiple files
 uploaded_files = st.file_uploader(
     "Upload your files here",
-    type=["csv", "xlsx"], # Specify accepted file types, csv/xlsx
+    #type=["csv", "xlsx"], # Specify accepted file types, csv/xlsx
     accept_multiple_files=True
 )
 
@@ -19,6 +20,9 @@ if uploaded_files:
     for file in uploaded_files:
         st.write(f"- {file.name}")
 
+        # Get the file extension
+        file_extension = os.path.splitext(file.name)[1]
+        
         df = None
         if file.type == "text/csv": # Processing for CSV file
             df = pd.read_csv(file)
@@ -33,7 +37,7 @@ if uploaded_files:
                 df = pd.read_excel(file)
 
         if df is None:
-            st.error(f"Could not read file `{file.name}`. Unsupported format.")
+            st.error(f"Error: Unsupported file type. Please upload a .csv or .xlsx file. You uploaded a {file_extension} file.")
             continue
 
         class_col = ["Classroom_ID","Floor","Capacity","Actual_Occupancy","Day","Time_Slot","Week"]
