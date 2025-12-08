@@ -124,4 +124,57 @@ if "energy_df" in locals():
     st.plotly_chart(pie_fig, width='stretch')
 elif "energy_df" not in locals():
     st.info("Upload a CSV file to see the data and generate a line chart.")
+
+# ==========================================
+# ADDED SECTION: CLASSROOM ANALYSIS
+# ==========================================
+if "class_df" in locals():
+    st.header("1. Classroom Utilization Analysis")
+
+    # Ensure utilization percentage is calculated
+    # The existing code calculated 'Utilization' as a ratio (0-1)
+    if "Utilization" in class_df.columns:
+        class_df["Utilization_Pct"] = class_df["Utilization"] * 100
+    else:
+        # Fallback if the previous block didn't run (e.g. only one file uploaded)
+        class_df["Utilization_Pct"] = (class_df["Actual_Occupancy"] / class_df["Capacity"]) * 100
+        
+    # Display Average Utilization
+    avg_util = class_df["Utilization_Pct"].mean()
+    st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
+
+    # 1. Bar Chart: Top 5 Underutilized Rooms
+    st.subheader("Top 5 Underutilized Rooms")
+    # Group by Room to get average utilization
+    room_stats = class_df.groupby("Classroom_ID")["Utilization_Pct"].mean().reset_index()
+    # Sort lowest first
+    top_underutilized = room_stats.sort_values("Utilization_Pct", ascending=True).head(5)
     
+    fig_bar = px.bar(
+        top_underutilized,
+        x="Classroom_ID",
+        y="Utilization_Pct",
+        color="Utilization_Pct",
+        color_continuous_scale="Reds_r", # Red = Low utilization
+        title="Rooms with Lowest Utilization Rate (%)",
+        text_auto='.1f',
+        labels={"Utilization_Pct": "Utilization (%)"}
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # 2. Heatmap: Floor vs Time Slot
+    st.subheader("Utilization Heatmap (Floor vs Time)")
+    if set(["Floor", "Time_Slot"]).issubset(class_df.columns):
+        # Pivot data for heatmap
+        heatmap_data = class_df.groupby(["Floor", "Time_Slot"])["Utilization_Pct"].mean().reset_index()
+        heatmap_pivot = heatmap_data.pivot(index="Floor", columns="Time_Slot", values="Utilization_Pct")
+        
+        fig_heat = px.imshow(
+            heatmap_pivot,
+            labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
+            color_continuous_scale="RdYlGn", 
+            title="Avg Utilization Rate (%) by Floor and Time"
+        )
+        st.plotly_chart(fig_heat, use_container_width=True)
+    else:
+        st.warning("Heatmap requires 'Floor' and 'Time_Slot' columns.")    
