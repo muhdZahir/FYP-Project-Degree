@@ -1,4 +1,4 @@
-import streamlit as st # to open streamlit, run python -m streamlit run dashboard.py | to close, ctrl + c at terminal
+import streamlit as st # to open streamlit, run 'python -m streamlit run dashboard.py' | to close, ctrl + c at terminal
 import pandas as pd
 import numpy as np
 import os
@@ -8,15 +8,50 @@ from sklearn.linear_model import LinearRegression
 
 st.title("University Resource Optimization")
 
-# Create a file uploader widget that accepts multiple files
+#Introduction of the system
+st.write(
+    f"University Resource Optimization is a system designed to analyze classroom usage and energy cost and provide optimization recommendation.\n"
+    f"\n2 files are needed to continue; 1 contains the nessecary columns for classroom and 1 for energy.\n"
+    f"\nBelow are examples of classroom and energy data; each with their respective columns.\n"
+)
+
+class_example = {
+    "Classroom_ID": ["1901", "802"],
+    "Floor": [19, 8],
+    "Capacity": [30, 40],
+    "Actual_Occupancy": [17, 34],
+    "Day": ["Mon", "Thursday"],
+    "Time_Slot": ["10.00-12.00", "14.00-16.00"],
+    "Week": [4, 7]
+}
+_class = pd.DataFrame(class_example)
+st.dataframe(_class)
+
+energy_example = {
+    "Floor": [1, 4],
+    "Month": ["Feb", "March"],
+    "Energy_kWh": [1023, 894],
+    "Energy_Cost": [657, 454]
+}
+_energy = pd.DataFrame(energy_example)
+st.dataframe(_energy)
+
+# File uploader widget that accepts multiple files
 uploaded_files = st.file_uploader(
     "Upload your files here",
-    #type=["csv", "xlsx"], # Specify accepted file types, csv/xlsx
     accept_multiple_files=True
 )
 
 if uploaded_files:
     st.write("Uploaded Files:")
+
+    #reqiured columns for class and energy
+    class_col = ["Classroom_ID","Floor","Capacity","Actual_Occupancy","Day","Time_Slot","Week"]
+    energy_col = ["Floor","Month","Energy_kWh","Energy_Cost"]
+
+    def check_columns(df, required_cols): #function to check column
+        return [col for col in required_cols if col not in df.columns]
+    
     for file in uploaded_files:
         st.write(f"- {file.name}")
 
@@ -39,31 +74,31 @@ if uploaded_files:
         if df is None:
             st.error(f"Error: Unsupported file type. Please upload a .csv or .xlsx file. You uploaded a {file_extension} file.")
             continue
-
-        class_col = ["Classroom_ID","Floor","Capacity","Actual_Occupancy","Day","Time_Slot","Week"]
-        energy_col = ["Floor","Month","Energy_kWh","Energy_Cost"]
-
-        def check_columns(df, required_cols):
-            return [col for col in required_cols if col not in df.columns]
         
-        if "classroom" in file.name.lower(): #for table classroom
-            missing_class = check_columns(df, class_col)
-            if missing_class:
-                st.error(f"Classroom file is missing column: {missing_class}. Please ensure the file contains all of the required column.")
-            else:
-                class_df = df
-                st.subheader(f"Table of classroom usage:")
-                st.dataframe(class_df)
-        elif "energy" in file.name.lower(): # for table energy
-            missing_energy = check_columns(df, energy_col)
-            if missing_energy:
-                st.error(f"Energy file is missing column: {missing_energy}. Please ensure the file contains all of the required column.")
-            else:
-                energy_df = df
-                st.subheader(f"Table of energy cost:")
-                st.dataframe(energy_df)
+        #check missing columns for class and energy
+        missing_class = check_columns(df, class_col)
+        missing_energy = check_columns(df, energy_col)
+
+        # For matching classroom dataset
+        if len(missing_class) == 0:
+            class_df = df
+            st.success(f"Identified as Classroom Dataset")
+            st.subheader("Classroom Usage Data:")
+            st.dataframe(class_df)
+        # For matching energy dataset
+        elif len(missing_energy) == 0:
+            energy_df = df
+            st.success(f"Identified as Energy Dataset")
+            st.subheader("Energy Cost Data:")
+            st.dataframe(energy_df)
+        # Neither matches
         else:
-            st.error("File is missing 'classroom' or 'energy' text. Please ensure the file name is correct.")
+            st.error(
+                f"Could not identify this file.\n"
+                f"- Missing classroom columns: {missing_class}\n"
+                f"- Missing energy columns: {missing_energy}\n"
+                f"\nPlease upload the correct dataset."
+            )
 
 # Only run preprocessing if both classroom and energy exist
 if "class_df" in locals() and "energy_df" in locals():
@@ -97,85 +132,90 @@ if "class_df" in locals() and "energy_df" in locals():
 
     #st.subheader("Preprocessed Energy Cost Data")
     #st.dataframe(energy_df)
+        
 
-# ==========================================
-# CLASSROOM ANALYSIS
-# ==========================================
-if "class_df" in locals():
-    st.header("1. Classroom Utilization Analysis")
+if "class_df" in locals() or "energy_df" in locals():
+    if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:"):
+        # ==========================================
+        # CLASSROOM ANALYSIS
+        # ==========================================
+        if "class_df" in locals():
+            st.header("1. Classroom Utilization Analysis")
 
-    st.spinner("Loading...")
+            st.spinner("Loading...")
 
-    # Display Average Utilization
-    avg_util = class_df["Utilization"].mean()
-    st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
+            # Display Average Utilization
+            avg_util = class_df["Utilization"].mean()
+            st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
 
-    # Bar Chart: Top 5 Underutilized Rooms
-    st.subheader("Top 5 Underutilized Rooms")
-    # Group by Room to get average utilization
-    room_stats = class_df.groupby("Classroom_ID")["Utilization"].mean().reset_index()
-    # Sort lowest first
-    top_underutilized = room_stats.sort_values("Utilization", ascending=True).head(5)
-    
-    fig_bar = px.bar(
-        top_underutilized,
-        x="Classroom_ID",
-        y="Utilization",
-        color="Utilization",
-        color_continuous_scale="Reds_r", # Red = Low utilization
-        title="Rooms with Lowest Utilization Rate (%)",
-        text_auto='.1f',
-        labels={"Utilization": "Utilization (%)"}
-    )
-    
-    st.plotly_chart(fig_bar, width='stretch')
+            # Bar Chart: Top 5 Underutilized Rooms
+            st.subheader("Top 5 Underutilized Rooms")
+            # Group by Room to get average utilization
+            room_stats = class_df.groupby("Classroom_ID")["Utilization"].mean().reset_index()
+            # Sort lowest first
+            top_underutilized = room_stats.sort_values("Utilization", ascending=True).head(5)
+            
+            fig_bar = px.bar(
+                top_underutilized,
+                x="Classroom_ID",
+                y="Utilization",
+                color="Utilization",
+                color_continuous_scale="Reds_r", # Red = Low utilization
+                title="Rooms with Lowest Utilization Rate (%)",
+                text_auto='.1f',
+                labels={"Utilization": "Utilization (%)"}
+            )
+            
+            st.plotly_chart(fig_bar, width='stretch')
 
-    # Heatmap: Floor vs Time Slot
-    st.subheader("Utilization Heatmap (Floor vs Time)")
-    # Pivot data for heatmap
-    heatmap_data = class_df.groupby(["Floor", "Time_Slot"])["Utilization"].mean().reset_index()
-    heatmap_pivot = heatmap_data.pivot(index="Floor", columns="Time_Slot", values="Utilization")
-    
-    fig_heat = px.imshow(
-        heatmap_pivot,
-        labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
-        color_continuous_scale="RdYlGn", 
-        title="Avg Utilization Rate (%) by Floor and Time"
-    )
+            # Heatmap: Floor vs Time Slot
+            st.subheader("Utilization Heatmap (Floor vs Time)")
+            # Pivot data for heatmap
+            heatmap_data = class_df.groupby(["Floor", "Time_Slot"])["Utilization"].mean().reset_index()
+            heatmap_pivot = heatmap_data.pivot(index="Floor", columns="Time_Slot", values="Utilization")
+            
+            fig_heat = px.imshow(
+                heatmap_pivot,
+                labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
+                color_continuous_scale="RdYlGn", 
+                title="Avg Utilization Rate (%) by Floor and Time"
+            )
 
-    st.plotly_chart(fig_heat, width='stretch')
+            st.plotly_chart(fig_heat, width='stretch')
+        elif "class_df" not in locals():
+            st.info("Upload class file to see the charts.")
 
-# ==========================================
-# ENERGY ANALYSIS
-# ==========================================
-if "energy_df" in locals():
-    st.header("2. Energy Cost Analysis")
+        # ==========================================
+        # ENERGY ANALYSIS
+        # ==========================================
+        if "energy_df" in locals():
+            st.header("2. Energy Cost Analysis")
 
-    st.spinner("Loading...")
+            st.spinner("Loading...")
 
-    # Line chart: monthly energy cost per floor
-    st.subheader("Monthly Energy Cost per Floor")
+            # Line chart: monthly energy cost per floor
+            st.subheader("Monthly Energy Cost per Floor")
 
-    line_fig = px.line(
-        energy_df,
-        x="Month",
-        y="Energy_Cost",
-        color="Floor",
-        markers=True
-    )
+            line_fig = px.line(
+                energy_df,
+                x="Month",
+                y="Energy_Cost",
+                color="Floor",
+                markers=True
+            )
 
-    st.plotly_chart(line_fig, width='stretch')
+            st.plotly_chart(line_fig, width='stretch')
 
-    # Pie chart: percentage contribution
-    st.subheader("Floor Contribution to Total Energy Cost")
+            # Pie chart: percentage contribution
+            st.subheader("Floor Contribution to Total Energy Cost")
 
-    pie_fig = px.pie(
-        total_energy_cost,
-        names="Floor",
-        values="Energy_Cost"
-    )
+            pie_fig = px.pie(
+                total_energy_cost,
+                names="Floor",
+                values="Energy_Cost"
+            )
 
-    st.plotly_chart(pie_fig, width='stretch')
-elif "energy_df" not in locals():
-    st.info("Upload a CSV file to see the data and generate a line chart.")
+            st.plotly_chart(pie_fig, width='stretch')
+        elif "energy_df" not in locals():
+            st.info("Upload energy file to see the charts.")
 

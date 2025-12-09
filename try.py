@@ -1,41 +1,73 @@
-import streamlit as st # to open streamlit, run python -m streamlit run try.py | to close, ctrl + c
+import streamlit as st # to open streamlit, run 'python -m streamlit run try.py' | to close, ctrl + c
 import pandas as pd
 import numpy as np
+import os
 import plotly.express as px
 from sklearn.preprocessing import MinMaxScaler # pip install -U scikit-learn
 from sklearn.linear_model import LinearRegression
 
 st.title("University Resource Optimization")
 
-# Create a file uploader widget that accepts multiple files
 uploaded_files = st.file_uploader(
     "Upload your files here",
-    type=["csv", "xlsx"], # Optional: specify accepted file types
     accept_multiple_files=True
 )
 
 if uploaded_files:
     st.write("Uploaded Files:")
+
+    # Required columns for each dataset
+    class_col = ["Classroom_ID", "Floor", "Capacity", "Actual_Occupancy", "Day", "Time_Slot", "Week"]
+    energy_col = ["Floor", "Month", "Energy_kWh", "Energy_Cost"]
+
+    def check_columns(df, required_cols):
+        return [c for c in required_cols if c not in df.columns]
+
     for file in uploaded_files:
         st.write(f"- {file.name}")
 
-        # Example of processing a CSV file
-        if file.type == "text/csv":
+        # Get the file extension
+        file_extension = os.path.splitext(file.name)[1]
+        
+        df = None
+        if file.type == "text/csv": # Processing for CSV file
             df = pd.read_csv(file)
-            if file.name == "classroom_usage.csv": #for table classroom
+        elif file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": # Processing for Excel file
+            df = pd.read_excel(file)
+        else:
+            # Fallback based on filename extension when MIME type isn't present
+            fname = file.name.lower()
+            if fname.endswith(".csv"):
+                df = pd.read_csv(file)
+            elif fname.endswith(".xls") or fname.endswith(".xlsx"):
+                df = pd.read_excel(file)
+
+        if df is None:
+            st.error(f"Error: Unsupported file type. Please upload a .csv or .xlsx file. You uploaded a {file_extension} file.")
+            continue
+
+        # ---- Detect file type using column pattern ----
+        missing_class = check_columns(df, class_col)
+        missing_energy = check_columns(df, energy_col)
+
+        if "classroom" in file.name.lower(): #for table classroom
+            missing_class = check_columns(df, class_col)
+            if missing_class:
+                st.error(f"Classroom file is missing column: {missing_class}. Please ensure the file contains all of the required column.")
+            else:
                 class_df = df
                 st.subheader(f"Table of classroom usage:")
                 st.dataframe(class_df)
-            else: # for table energy
+        elif "energy" in file.name.lower(): # for table energy
+            missing_energy = check_columns(df, energy_col)
+            if missing_energy:
+                st.error(f"Energy file is missing column: {missing_energy}. Please ensure the file contains all of the required column.")
+            else:
                 energy_df = df
                 st.subheader(f"Table of energy cost:")
                 st.dataframe(energy_df)
-        
-        # Example of processing an Excel file
-        elif file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-            df = pd.read_excel(file)
-            st.subheader(f"Table {file.name}:")
-            st.dataframe(df)
+        else:
+            st.error("File is missing 'classroom' or 'energy' text. Please ensure the file name is correct.")
 
 # Only run preprocessing if both classroom and energy exist
 if "class_df" in locals() and "energy_df" in locals():
