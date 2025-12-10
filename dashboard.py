@@ -1,12 +1,12 @@
-import streamlit as st # to open streamlit, run 'python -m streamlit run dashboard.py' | to close, ctrl + c at terminal
-import pandas as pd
-import numpy as np
+import streamlit as st # pip install streamlit | streamlit is use to create the dashboard. to open streamlit, run 'python -m streamlit run dashboard.py'. to close, press 'ctrl + c' at terminal
+import pandas as pd # pip install pandas
+import numpy as np # pip install numpy
 import os
-import plotly.express as px
+import plotly.express as px # pip install plotly
 from sklearn.preprocessing import MinMaxScaler # pip install -U scikit-learn
 from sklearn.linear_model import LinearRegression
 
-st.title("University Resource Optimization")
+st.title("URO: University Resource Optimization")
 
 #Introduction of the system
 st.write(
@@ -103,6 +103,7 @@ if uploaded_files:
 # Only run preprocessing if both classroom and energy exist
 if "class_df" in locals() and "energy_df" in locals():
 
+    # add error checking for formula
     class_df["Utilization"] = (class_df["Actual_Occupancy"] / class_df["Capacity"]) * 100
     total_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
 
