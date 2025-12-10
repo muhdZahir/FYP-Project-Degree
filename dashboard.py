@@ -1,9 +1,10 @@
 import streamlit as st # pip install streamlit | streamlit is use to create the dashboard. to open streamlit, run 'python -m streamlit run dashboard.py'. to close, press 'ctrl + c' at terminal
-import pandas as pd # pip install pandas
-import numpy as np # pip install numpy
+import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
+import numpy as np # pip install numpy |
 import os
-import plotly.express as px # pip install plotly
-from sklearn.preprocessing import MinMaxScaler # pip install -U scikit-learn
+import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
+# pip install -U scikit-learn
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
 
 st.title("URO: University Resource Optimization")
@@ -11,7 +12,7 @@ st.title("URO: University Resource Optimization")
 #Introduction of the system
 st.write(
     f"University Resource Optimization is a system designed to analyze classroom usage and energy cost and provide optimization recommendation.\n"
-    f"\n2 files are needed to continue; 1 contains the nessecary columns for classroom and 1 for energy.\n"
+    f"\n2 files are needed to analyze; 1 contains the nessecary columns for classroom and 1 for energy.\n"
     f"\nBelow are examples of classroom and energy data; each with their respective columns.\n"
 )
 
@@ -25,6 +26,7 @@ class_example = {
     "Week": [4, 7]
 }
 _class = pd.DataFrame(class_example)
+st.write("Example of classroom data table")
 st.dataframe(_class)
 
 energy_example = {
@@ -34,6 +36,7 @@ energy_example = {
     "Energy_Cost": [657, 454]
 }
 _energy = pd.DataFrame(energy_example)
+st.write("Example of energy data table")
 st.dataframe(_energy)
 
 # File uploader widget that accepts multiple files
@@ -46,7 +49,7 @@ if uploaded_files:
     st.write("Uploaded Files:")
 
     #reqiured columns for class and energy
-    class_col = ["Classroom_ID","Floor","Capacity","Actual_Occupancy","Day","Time_Slot","Week"]
+    class_col = ["Classroom_ID","Floor","Capacity","Scheduled_Hours","Actual_Occupancy","Day","Time_Slot","Week"]
     energy_col = ["Floor","Month","Energy_kWh","Energy_Cost"]
 
     def check_columns(df, required_cols): #function to check column
@@ -81,13 +84,13 @@ if uploaded_files:
 
         # For matching classroom dataset
         if len(missing_class) == 0:
-            class_df = df
+            class_df = df.copy()
             st.success(f"Identified as Classroom Dataset")
             st.subheader("Classroom Usage Data:")
             st.dataframe(class_df)
         # For matching energy dataset
         elif len(missing_energy) == 0:
-            energy_df = df
+            energy_df = df.copy()
             st.success(f"Identified as Energy Dataset")
             st.subheader("Energy Cost Data:")
             st.dataframe(energy_df)
@@ -100,15 +103,28 @@ if uploaded_files:
                 f"\nPlease upload the correct dataset."
             )
 
-# Only run preprocessing if both classroom and energy exist
-if "class_df" in locals() and "energy_df" in locals():
+# Preprocessing classroom data
+if "class_df" in locals():
+    class_df = class_df.dropna() # drop missing values in a row
 
-    # add error checking for formula
+    # Convert string data in Capacity, Scheduled_Hours, & Actual_Occupancy to numeric, coercing errors to NaN
+    class_df['Capacity_clean'] = pd.to_numeric(class_df['Capacity'], errors='coerce')
+    class_df['Scheduled_clean'] = pd.to_numeric(class_df['Scheduled_Hours'], errors='coerce')
+    class_df['ActOccu_clean'] = pd.to_numeric(class_df['Actual_Occupancy'], errors='coerce')
+
+    # Drop rows where data is NaN (meaning original value was not numeric)
+    class_df = class_df.dropna(subset=['Capacity_clean'])
+    class_df = class_df.dropna(subset=['Scheduled_clean'])
+    class_df = class_df.dropna(subset=['ActOccu_clean'])
+
+    # Remove the temporary cleaned column
+    class_df = class_df.drop(columns=['Capacity_clean'])
+    class_df = class_df.drop(columns=['Scheduled_clean'])
+    class_df = class_df.drop(columns=['ActOccu_clean'])
+
+    # Calculate utilization rate per room
     class_df["Utilization"] = (class_df["Actual_Occupancy"] / class_df["Capacity"]) * 100
-    total_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
-
-# classroom usage
-    #class_df = class_df.dropna()
+    
     #class_df["Day"] = class_df["Day"].astype("category").cat.codes
     #class_df["Classroom_ID"] = class_df["Classroom_ID"].astype("category").cat.codes
     #class_df["Floor"] = class_df["Floor"].astype("category").cat.codes
@@ -123,17 +139,34 @@ if "class_df" in locals() and "energy_df" in locals():
     #st.subheader("Preprocessed Classroom Usage Data")
     #st.dataframe(class_df)
 
-    # energy cost
-    #energy_df = energy_df.dropna()
+# Preprocessing energy data
+if "energy_df" in locals():
+    energy_df = energy_df.dropna() # drop missing values in a row
+
+    # Convert string data in Energy_kWh & Energy_Cost to numeric, coercing errors to NaN
+    energy_df['Energy_clean'] = pd.to_numeric(energy_df['Energy_kWh'], errors='coerce')
+    energy_df['Cost_clean'] = pd.to_numeric(energy_df['Energy_Cost'], errors='coerce')
+
+    # Drop rows where data is NaN (meaning original value was not numeric)
+    energy_df = energy_df.dropna(subset=['Energy_clean'])
+    energy_df = energy_df.dropna(subset=['Cost_clean'])
+
+    # Remove the temporary cleaned column
+    energy_df = energy_df.drop(columns=['Energy_clean'])
+    energy_df = energy_df.drop(columns=['Cost_clean'])
+
     #energy_df["Month"] = pd.to_datetime(energy_df["Month"], format="%B").dt.month
     #energy_df["Floor"] = energy_df["Floor"].astype("category").cat.codes
 
-    #energy_cols = ["Energy_kWh","Energy_Cost","Month"]
+    #scaler = MinMaxScaler()
+    #energy_cols = ["Energy_kWh","Energy_Cost"]
     #energy_df[energy_cols] = scaler.fit_transform(energy_df[energy_cols])
+
+    # Calculate total energy cost of the whole floor
+    total_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
 
     #st.subheader("Preprocessed Energy Cost Data")
     #st.dataframe(energy_df)
-        
 
 if "class_df" in locals() or "energy_df" in locals():
     if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:"):
@@ -184,14 +217,53 @@ if "class_df" in locals() or "energy_df" in locals():
 
             st.plotly_chart(fig_heat, width='stretch')
         elif "class_df" not in locals():
-            st.info("Upload class file to see the charts.")
+            st.info("Upload class file to view the classroom analysis.")
 
         # ==========================================
-        # ADDED SECTION: CORRELATION ANALYSIS
+        # ENERGY ANALYSIS
+        # ==========================================
+        if "energy_df" in locals():
+            st.header("2. Energy Cost Analysis")
+
+            st.spinner("Loading...")
+
+            # Line chart: monthly energy cost per floor
+            st.subheader("Monthly Energy Cost per Floor")
+
+            line_fig = px.line(
+                energy_df,
+                x="Month",
+                y="Energy_Cost",
+                color="Floor",
+                labels={"Energy_Cost": "Energy Cost (RM)"},
+                title="Floor Energy Cost by Month",
+                markers=True
+            )
+
+            st.plotly_chart(line_fig, width='stretch')
+
+            # Pie chart: percentage contribution
+            st.subheader("Floor Contribution to Total Energy Cost")
+
+            pie_fig = px.pie(
+                total_energy_cost,
+                names="Floor",
+                values="Energy_Cost",
+                title="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)"
+            )
+
+            st.plotly_chart(pie_fig, width='stretch')
+        elif "energy_df" not in locals():
+            st.info("Upload energy file to view the energy analysis.")
+
+        # ==========================================
+        # CORRELATION ANALYSIS
         # ==========================================
         if "class_df" in locals() and "energy_df" in locals():
-            st.header("2. Correlation Analysis")
+            st.header("3. Correlation Analysis")
             st.write("Analyzing the relationship between Total Occupancy (from Classrooms) and Total Energy Cost.")
+
+            st.spinner("Loading...")
 
             # 1. Prepare Data: Map Weeks to Months to align datasets
             # Logic: Weeks 1-4 = Jan, 5-8 = Feb, 9-12 = Mar, 13-16 = Apr
@@ -247,46 +319,12 @@ if "class_df" in locals() or "energy_df" in locals():
                     fig_corr.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
                     
                     # Update line color to be distinct (e.g., black dashed)
-                    fig_corr.data[-1].update(line=dict(color='black', dash='dash'), name='Trendline')
+                    fig_corr.data[-1].update(line=dict(color='white', dash='dash'), name='Trendline')
 
-                    st.plotly_chart(fig_corr, use_container_width=True)
+                    st.plotly_chart(fig_corr, width="stretch")
                 else:
                     st.warning("Insufficient overlapping data (Months) to plot correlation.")
             else:
-                st.warning("Classroom file missing 'Week' column required for correlation mapping.")    
-
-
-        # ==========================================
-        # ENERGY ANALYSIS
-        # ==========================================
-        if "energy_df" in locals():
-            st.header("2. Energy Cost Analysis")
-
-            st.spinner("Loading...")
-
-            # Line chart: monthly energy cost per floor
-            st.subheader("Monthly Energy Cost per Floor")
-
-            line_fig = px.line(
-                energy_df,
-                x="Month",
-                y="Energy_Cost",
-                color="Floor",
-                markers=True
-            )
-
-            st.plotly_chart(line_fig, width='stretch')
-
-            # Pie chart: percentage contribution
-            st.subheader("Floor Contribution to Total Energy Cost")
-
-            pie_fig = px.pie(
-                total_energy_cost,
-                names="Floor",
-                values="Energy_Cost"
-            )
-
-            st.plotly_chart(pie_fig, width='stretch')
-        elif "energy_df" not in locals():
-            st.info("Upload energy file to see the charts.")
-
+                st.warning("Classroom file missing 'Week' column required for correlation mapping.")
+        elif "class_df" not in locals() or "energy_df" not in locals():
+            st.info("Upload both classroom and energy file to view the correlation analysis.")
