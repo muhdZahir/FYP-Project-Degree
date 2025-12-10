@@ -316,10 +316,10 @@ if "class_df" in locals() or "energy_df" in locals():
                     
                     # Sort by X to make line plotting correct
                     line_data = correlation_df.sort_values("Actual_Occupancy")
-                    fig_corr.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
                     
                     # Update line color to be distinct (e.g., black dashed)
-                    fig_corr.data[-1].update(line=dict(color='white', dash='dash'), name='Trendline')
+                    fig_corr.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+                    fig_corr.data[-1].update(line=dict(color='red', width=3, dash='dash'), name='Trendline')
 
                     st.plotly_chart(fig_corr, width="stretch")
                 else:
