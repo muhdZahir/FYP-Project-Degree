@@ -9,6 +9,20 @@ from sklearn.linear_model import LinearRegression
 
 # to read excel, install 'pip install openpyxl'
 
+def inject_custom_css(css_file_path):
+    """Injects custom CSS from a local file into the Streamlit app."""
+    try:
+        with open(css_file_path) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error(f"Error: CSS file not found at {css_file_path}")
+
+# Define the relative path to your CSS file
+css_path = os.path.join("assets", "style.css")
+
+# Inject the CSS
+inject_custom_css(css_path)
+
 st.title("URO: University Resource Optimization")
 
 #Introduction of the system
@@ -125,21 +139,14 @@ if "class_df" in locals():
     class_df = class_df.drop(columns=['ActOccu_clean'])
 
     # Calculate utilization rate per room
-    class_df["Utilization"] = (class_df["Actual_Occupancy"] / class_df["Capacity"]) * 100
-    
-    class_df["Day"] = class_df["Day"].astype("category").cat.codes
-    class_df["Classroom_ID"] = class_df["Classroom_ID"].astype("category").cat.codes
-    class_df["Floor"] = class_df["Floor"].astype("category").cat.codes
-    class_df["Start_Time"] = class_df["Time_Slot"].str.split("–").str[0]
-    class_df["Start_Time"] = pd.to_datetime(class_df["Start_Time"])
-    class_df["Start_Hour"] = class_df["Start_Time"].dt.hour
+    class_df["Utilization"] = (class_df["Actual_Occupancy"] / class_df["Capacity"])
 
-    scaler = MinMaxScaler()
-    class_cols = ["Capacity","Scheduled_Hours","Actual_Occupancy","Utilization"]
-    class_df[class_cols] = scaler.fit_transform(class_df[class_cols])
+    #scaler = MinMaxScaler()
+    #class_cols = ["Scheduled_Hours","Utilization"]
+    #class_df[class_cols] = scaler.fit_transform(class_df[class_cols])
 
-    st.subheader("Preprocessed Classroom Usage Data")
-    st.dataframe(class_df)
+    #st.subheader("Preprocessed Classroom Usage Data")
+    #st.dataframe(class_df)
 
 # Preprocessing energy data
 if "energy_df" in locals():
@@ -157,21 +164,18 @@ if "energy_df" in locals():
     energy_df = energy_df.drop(columns=['Energy_clean'])
     energy_df = energy_df.drop(columns=['Cost_clean'])
 
-    energy_df["Month"] = pd.to_datetime(energy_df["Month"], format="%B").dt.month
-    energy_df["Floor"] = energy_df["Floor"].astype("category").cat.codes
-
-    scaler = MinMaxScaler()
-    energy_cols = ["Energy_kWh","Energy_Cost"]
-    energy_df[energy_cols] = scaler.fit_transform(energy_df[energy_cols])
+    #scaler = MinMaxScaler()
+    #energy_cols = ["Energy_kWh","Energy_Cost"]
+    #energy_df[energy_cols] = scaler.fit_transform(energy_df[energy_cols])
 
     # Calculate total energy cost of the whole floor
-    total_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
+    floor_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
 
-    st.subheader("Preprocessed Energy Cost Data")
-    st.dataframe(energy_df)
+    #st.subheader("Preprocessed Energy Cost Data")
+    #st.dataframe(energy_df)
 
 if "class_df" in locals() or "energy_df" in locals():
-    if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:"):
+    if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="green"):
         # ==========================================
         # CLASSROOM ANALYSIS
         # ==========================================
@@ -181,7 +185,7 @@ if "class_df" in locals() or "energy_df" in locals():
             st.spinner("Loading...")
 
             # Display Average Utilization
-            avg_util = class_df["Utilization"].mean()
+            avg_util = class_df["Utilization"].mean() * 100
             st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
 
             # Bar Chart: Top 5 Underutilized Rooms
@@ -191,7 +195,7 @@ if "class_df" in locals() or "energy_df" in locals():
             # Sort lowest first
             top_underutilized = room_stats.sort_values("Utilization", ascending=True).head(5)
             
-            fig_bar = px.bar(
+            bar_fig = px.bar(
                 top_underutilized,
                 x="Classroom_ID",
                 y="Utilization",
@@ -201,8 +205,18 @@ if "class_df" in locals() or "energy_df" in locals():
                 text_auto='.1f',
                 labels={"Utilization": "Utilization (%)"}
             )
+
+            # update chart
+            bar_fig.update_layout(title=dict(text="Rooms with Lowest Utilization Rate (%)",
+                    font=dict(size=20),   # ← change size here
+                    x=0.2                 # ← position the title
+                ),
+                xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font size
+            )
             
-            st.plotly_chart(fig_bar, width='stretch')
+            st.plotly_chart(bar_fig, width='stretch')
 
             # Heatmap: Floor vs Time Slot
             st.subheader("Utilization Heatmap (Floor vs Time)")
@@ -210,14 +224,24 @@ if "class_df" in locals() or "energy_df" in locals():
             heatmap_data = class_df.groupby(["Floor", "Time_Slot"])["Utilization"].mean().reset_index()
             heatmap_pivot = heatmap_data.pivot(index="Floor", columns="Time_Slot", values="Utilization")
             
-            fig_heat = px.imshow(
+            heat_fig = px.imshow(
                 heatmap_pivot,
                 labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
                 color_continuous_scale="RdYlGn", 
                 title="Avg Utilization Rate (%) by Floor and Time"
             )
 
-            st.plotly_chart(fig_heat, width='stretch')
+            # update chart
+            heat_fig.update_layout(title=dict(text="Avg Utilization Rate (%) by Floor and Time",
+                    font=dict(size=20),   # ← change size here
+                    x=0.2                 # ← position the title
+                ),
+                xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font (title and tick) size
+            )
+
+            st.plotly_chart(heat_fig, width='stretch')
         elif "class_df" not in locals():
             st.info("Upload class file to view the classroom analysis.")
 
@@ -242,16 +266,39 @@ if "class_df" in locals() or "energy_df" in locals():
                 markers=True
             )
 
+            # update chart
+            line_fig.update_layout(title=dict(text="Floor Energy Cost by Month",
+                    font=dict(size=20),   # ← change font size here
+                    x=0.2                 # ← position the title
+                ),
+                xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
+            )
+
             st.plotly_chart(line_fig, width='stretch')
 
             # Pie chart: percentage contribution
             st.subheader("Floor Contribution to Total Energy Cost")
 
+            total_energy_cost = energy_df["Energy_Cost"].sum()
+            st.metric("Total Energy Cost: RM", f"{total_energy_cost:.2f}")
+
             pie_fig = px.pie(
-                total_energy_cost,
+                floor_energy_cost,
                 names="Floor",
                 values="Energy_Cost",
                 title="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)"
+            )
+
+            # update title font size
+            pie_fig.update_layout(title=dict(text="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)",
+                    font=dict(size=20),   # ← change size here
+                    x=0.1                 # ← position the title
+                ),
+                xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
             )
 
             st.plotly_chart(pie_fig, width='stretch')
@@ -303,7 +350,7 @@ if "class_df" in locals() or "energy_df" in locals():
                     correlation_df["Predicted_Cost"] = model.predict(X)
 
                     # 3. Plot Scatter with Trendline
-                    fig_corr = px.scatter(
+                    corr_fig = px.scatter(
                         correlation_df,
                         x="Actual_Occupancy",
                         y="Energy_Cost",
@@ -313,6 +360,16 @@ if "class_df" in locals() or "energy_df" in locals():
                         labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
                         hover_data=["Month"]
                     )
+
+                    # update title font size
+                    corr_fig.update_layout(title=dict(text="Correlation: Occupancy vs Energy Cost (Monthly per Floor)",
+                            font=dict(size=20),   # ← change size here
+                            x=0.1                 # ← position the title
+                        ),
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
+                    )
             
                     # Add trendline trace
                     
@@ -320,10 +377,10 @@ if "class_df" in locals() or "energy_df" in locals():
                     line_data = correlation_df.sort_values("Actual_Occupancy")
                     
                     # Update line color to be distinct
-                    fig_corr.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
-                    fig_corr.data[-1].update(line=dict(color='red', width=3, dash='dash'), name='Trendline')
+                    corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+                    corr_fig.data[-1].update(line=dict(color='red', width=3, dash='dash'), name='Trendline')
 
-                    st.plotly_chart(fig_corr, width="stretch")
+                    st.plotly_chart(corr_fig, width="stretch")
                 else:
                     st.warning("Insufficient overlapping data (Months) to plot correlation.")
             else:
