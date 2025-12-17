@@ -1,0 +1,9 @@
+[theme]
+# Inherit from Streamlit's default light or dark theme ("light" or "dark")
+base = "light" 
+textColor = "#000000ff"
+font = "sans serif"
+
+
+[client]
+showSidebarNavigation = false

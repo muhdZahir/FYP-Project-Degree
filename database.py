@@ -22,7 +22,6 @@ def init_db():
             Day TEXT,
             Time_Slot TEXT,
             Week INTEGER,
-            Utilization REAL,
             Upload_Batch TEXT,
             Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -61,13 +60,13 @@ def save_to_db(df, table_name, batch_name):
     finally:
         conn.close()
 
-def load_from_db(table_name, batch_name=None):
+def load_from_db(table_name, batch_name):
     """Loads data from the database. Optionally filters by batch."""
     conn = sqlite3.connect(DB_NAME)
     query = f"SELECT * FROM {table_name}"
     
     # If a specific batch is selected (and it's not "All History"), filter by it
-    if batch_name and batch_name != "All History":
+    if batch_name != "All History":
         query += f" WHERE Upload_Batch = '{batch_name}'"
     
     df = pd.read_sql(query, conn)
@@ -79,7 +78,7 @@ def get_unique_batches():
     conn = sqlite3.connect(DB_NAME)
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT DISTINCT Upload_Batch FROM classroom_data", conn)
+        batches = pd.read_sql("SELECT DISTINCT Upload_Batch FROM classroom_data UNION SELECT DISTINCT Upload_Batch FROM energy_data", conn)
         return batches["Upload_Batch"].tolist()
     except:
         return []
