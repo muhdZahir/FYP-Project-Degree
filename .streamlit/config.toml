@@ -3,7 +3,7 @@
 base = "light" 
 textColor = "#000000ff"
 font = "sans serif"
-
+baseFontSize = 18 # Sets the root font size in pixels
 
 [client]
-showSidebarNavigation = false
+showSidebarNavigation = true

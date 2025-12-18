@@ -73,6 +73,27 @@ def load_from_db(table_name, batch_name):
     conn.close()
     return df
 
+def class_batch_unique(batch_name):
+    """Checks whether an Upload_Batch already exists in classroom_data table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        query = """SELECT 1 FROM classroom_data WHERE LOWER(Upload_Batch) = LOWER(?)"""
+
+        result = conn.execute(query, (batch_name,)).fetchone()
+        return result is None  # True if unique
+    finally:
+        conn.close()
+
+def energy_batch_unique(batch_name):
+    """Checks whether an Upload_Batch already exists in energy_data table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        query = """SELECT 1 FROM energy_data WHERE LOWER(Upload_Batch) = LOWER(?)"""
+        result = conn.execute(query, (batch_name,)).fetchone()
+        return result is None  # True if unique
+    finally:
+        conn.close()
+
 def get_unique_batches():
     """Fetches list of unique upload batches for the dropdown."""
     conn = sqlite3.connect(DB_NAME)
