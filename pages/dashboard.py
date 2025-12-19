@@ -1,4 +1,4 @@
-# pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run dashboard.py'. to close, press 'ctrl + c' at terminal
+# pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 import streamlit as st
 
 st.title("URO: University Resource Optimization")

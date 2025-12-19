@@ -25,8 +25,9 @@ def logout():
 login_page = st.Page(choose_role, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 
-dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/dashboard:")
+dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
+manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
 analysis_page = st.Page("pages/analysis.py", title="Analysis", icon=":material/analytics:")
 
 if st.session_state['user_role'] == "IT Staff":
@@ -34,6 +35,7 @@ if st.session_state['user_role'] == "IT Staff":
         [
             dashboard_page,
             upload_page,
+            manage_page,
             logout_page,
         ],
     )

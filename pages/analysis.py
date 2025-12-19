@@ -1,4 +1,4 @@
-import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run dashboard.py'. to close, press 'ctrl + c' at terminal
+import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
 import numpy as np # pip install numpy |
 import os
@@ -13,15 +13,18 @@ from sklearn.linear_model import LinearRegression
 db.init_db()
 
 # Initialize session state for persistence across reruns
-if 'class_df' not in st.session_state:
-    st.session_state['class_df'] = pd.DataFrame()
-if 'energy_df' not in st.session_state:
-    st.session_state['energy_df'] = pd.DataFrame()
+if 'class_df_analysis' not in st.session_state:
+    st.session_state['class_df_analysis'] = pd.DataFrame()
+if 'energy_df_analysis' not in st.session_state:
+    st.session_state['energy_df_analysis'] = pd.DataFrame()
 if 'selected_batch' not in st.session_state:
     st.session_state['selected_batch'] = None
 
-with st.spinner("Loading page...", show_time=True):
-    def inject_custom_css(css_file_path):
+# Initialize data containers (Empty at start)
+class_df = pd.DataFrame()
+energy_df = pd.DataFrame()
+
+def inject_custom_css(css_file_path):
         #Injects custom CSS from a local file into the Streamlit app.
         try:
             with open(css_file_path) as f:
@@ -29,19 +32,16 @@ with st.spinner("Loading page...", show_time=True):
         except FileNotFoundError:
             st.error(f"Error: CSS file not found at {css_file_path}")
 
+with st.spinner("Loading page...", show_time=True):
     # Define the relative path to your CSS file
     css_path = os.path.join("assets", "style.css")
 
     # Inject the CSS
     inject_custom_css(css_path)
 
-    st.title("URO: University Resource Optimization")
+    st.title("ANALYSIS")
 
-    st.info("Choose the semester data batch stored in the system for analysis.")
-
-    # Initialize data containers (Empty at start)
-    class_df = pd.DataFrame()
-    energy_df = pd.DataFrame()
+    st.write(f"Choose the semester data batch stored in the system for analysis.")
 
     available_batches = db.get_unique_batches()
 
@@ -51,16 +51,27 @@ with st.spinner("Loading page...", show_time=True):
         if "selected_batch" not in st.session_state:
             st.session_state.selected_batch = "All History"
 
-        selected_batch = st.selectbox("Select Data Batch:", ["All History"] + available_batches, key="selected_batch")
+        selected_batch = st.selectbox(
+            "Select Data Batch:",
+            ["All History"] + available_batches,
+            key="selected_batch"
+        )
 
         if st.button("Load Data", key="load_db_btn"):
-            with st.spinner("Fetching data from SQL Engine..."):
-                # store loaded dataframes in session_state so they persist across interactions
-                st.session_state['class_df'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
-                st.session_state['energy_df'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
+            if st.session_state["selected_batch"] is None:
+                st.info("Click 'Load Data' button to fetch data from database.")
+                st.session_state['class_df'] = pd.DataFrame()
+                st.session_state['energy_df'] = pd.DataFrame()
 
-                st.success(f"Loaded {len(st.session_state['class_df'])} classroom records and {len(st.session_state['energy_df'])} energy records.")
-
+            else:
+                with st.spinner("Fetching data from SQL Engine..."):
+                    # store loaded dataframes in session_state so they persist across interactions
+                    st.session_state['class_df'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
+                    st.session_state['energy_df'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
+            
+        if not st.session_state['class_df'].empty or not st.session_state['energy_df'].empty:
+            st.toast(f"Loaded {len(st.session_state['class_df'])} classroom records and {len(st.session_state['energy_df'])} energy records.", icon="✅")
+            
     class_df = st.session_state.get('class_df', pd.DataFrame())
     # Preprocessing classroom data for normalization
     if not class_df.empty:
@@ -160,7 +171,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     st.plotly_chart(heat_fig, width="stretch")
             elif class_df.empty:
-                st.info("No classroom data available for batch" + selected_batch + ".")
+                st.info("No classroom data available for batch " + selected_batch + ".")
 
             # ==========================================
             # ENERGY ANALYSIS
@@ -222,7 +233,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     st.plotly_chart(pie_fig, width="stretch")
             elif energy_df.empty:
-                st.info("No energy data available for batch" + selected_batch + ".")
+                st.info("No energy data available for batch " + selected_batch + ".")
 
             # ==========================================
             # CORRELATION ANALYSIS
@@ -303,6 +314,4 @@ with st.spinner("Loading page...", show_time=True):
                     else:
                         st.warning("Classroom file missing 'Week' column required for correlation mapping.")
             elif class_df.empty or energy_df.empty:
-                st.info("No data available for batch" + selected_batch + ".")
-        else:
-            st.info("Click the button to start the analyzation.")
+                st.info("No data available for batch " + selected_batch + ".")

@@ -105,3 +105,21 @@ def get_unique_batches():
         return []
     finally:
         conn.close()
+
+def clear_classroom_data(batch_name):
+    """Clears all records from classroom_data table for a specific batch."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("DELETE FROM classroom_data WHERE Upload_Batch = ?", (batch_name,))
+        conn.commit()
+    finally:
+        conn.close()
+
+def clear_energy_data(batch_name):
+    """Clears all records from energy_data table for a specific batch."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("DELETE FROM energy_data WHERE Upload_Batch = ?", (batch_name,))
+        conn.commit()
+    finally:
+        conn.close()

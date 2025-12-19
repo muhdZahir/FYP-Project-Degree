@@ -1,9 +1,7 @@
-import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run dashboard.py'. to close, press 'ctrl + c' at terminal
+import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
 import os # to handle file path
-import hashlib # to create file hash to avoid duplicate upload
 import time # to handle time delay
-import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
 import database as db  # Importing your database.py
 
 # to read excel, install 'pip install openpyxl'
@@ -11,10 +9,10 @@ import database as db  # Importing your database.py
 db.init_db()
 
 if "class_df" not in st.session_state:
-    st.session_state.class_df = None
+    st.session_state.class_df_upload = None
 
 if "energy_df" not in st.session_state:
-    st.session_state.energy_df = None
+    st.session_state.energy_df_upload = None
 
 def check_columns(df, required_cols): #function to check column
     return [col for col in required_cols if col not in df.columns]
@@ -24,11 +22,13 @@ def clear_files():
     st.session_state["uploader_key"] += 1
 
 with st.spinner("Loading page...", show_time=True):
-    st.title("URO: University Resource Optimization")
+    st.title("UPLOAD FILES")
 
     #Introduction of the system
     st.write(
         f"2 files are needed to analyze; 1 contains the necessary columns for classroom and 1 for energy.\n"
+        f"\nSystem will identify only 1 dataset for each classroom and energy. Other files will be ignored.\n"
+        f"\nIf you need to clear the uploaded files, click the 'Clear Files' button below.\n"
         f"\nBelow are examples of classroom and energy data; each with their respective columns.\n"
     )
 
@@ -55,7 +55,7 @@ with st.spinner("Loading page...", show_time=True):
     st.write("Example of energy data table")
     st.dataframe(_energy)
 
-    st.info("Upload raw Excel/CSV files to analyze and save them to the database.")
+    st.write(f"Upload raw Excel/CSV files to analyze and save them to the database.")
 
     # Initialize uploader key in session state
     if "uploader_key" not in st.session_state:
@@ -108,15 +108,15 @@ with st.spinner("Loading page...", show_time=True):
                 st.error("This file matches BOTH classroom and energy schemas. Please split the dataset.")
             # For matching classroom dataset
             elif len(missing_class) == 0:
-                if st.session_state.class_df is None:
-                    st.session_state.class_df = df.copy()
+                if st.session_state.class_df_upload is None:
+                    st.session_state.class_df_upload = df.copy()
                     st.success(f"Identified as Classroom Dataset")
                 else:
                     st.warning("Classroom dataset already loaded. Additional classroom files are ignored.")
             # For matching energy dataset
             elif len(missing_energy) == 0:
-                if st.session_state.energy_df is None:
-                    st.session_state.energy_df = df.copy()
+                if st.session_state.energy_df_upload is None:
+                    st.session_state.energy_df_upload = df.copy()
                     st.success(f"Identified as Energy Dataset")
                 else:
                     st.warning("Energy dataset already loaded. Additional energy files are ignored.")
@@ -130,8 +130,8 @@ with st.spinner("Loading page...", show_time=True):
                 )
 
     # Preprocessing classroom data
-    if st.session_state.class_df is not None:
-        class_df = st.session_state.class_df
+    if st.session_state.class_df_upload is not None:
+        class_df = st.session_state.class_df_upload
         st.subheader("Classroom Usage Data:")
         st.dataframe(class_df)
         
@@ -153,8 +153,8 @@ with st.spinner("Loading page...", show_time=True):
         class_df = class_df.drop(columns=['ActOccu_clean'])
 
     # Preprocessing energy data
-    if st.session_state.energy_df is not None:
-        energy_df = st.session_state.energy_df
+    if st.session_state.energy_df_upload is not None:
+        energy_df = st.session_state.energy_df_upload
         st.subheader("Energy Cost Data:")
         st.dataframe(energy_df)
 
@@ -172,7 +172,7 @@ with st.spinner("Loading page...", show_time=True):
         energy_df = energy_df.drop(columns=['Energy_clean'])
         energy_df = energy_df.drop(columns=['Cost_clean'])
 
-    if st.session_state.class_df is not None or st.session_state.energy_df is not None:
+    if st.session_state.class_df_upload is not None or st.session_state.energy_df_upload is not None:
         st.markdown("---")
         st.write("💾 Save to System Memory")
         col1, col2 = st.columns([3, 1])
@@ -187,16 +187,16 @@ with st.spinner("Loading page...", show_time=True):
             saved_c = False
             saved_e = False
             
-            if st.session_state.class_df is not None:
-                class_df = st.session_state.class_df
+            if st.session_state.class_df_upload is not None:
+                class_df = st.session_state.class_df_upload
                 if not db.class_batch_unique(batch_name.lower()):
                     st.error("❌ This batch name already exists in classroom. Please use a unique batch name.")
                 else:
                     if db.save_to_db(class_df, "classroom_data", batch_name):
                         saved_c = True
-            
-            if st.session_state.energy_df is not None:
-                energy_df = st.session_state.energy_df
+
+            if st.session_state.energy_df_upload is not None:
+                energy_df = st.session_state.energy_df_upload
                 if not db.energy_batch_unique(batch_name.lower()):
                     st.error("❌ This batch name already exists in energy. Please use a unique batch name.")
                 else:
@@ -213,10 +213,10 @@ with st.spinner("Loading page...", show_time=True):
             st.error("Please enter a Batch Name before saving.")
 
     # clear the uploader and session state for a fresh start
-    if st.button("Clear Uploaded Files List"):
+    if st.button("Clear Files"):
         clear_files()
-        st.session_state.class_df = None
-        st.session_state.energy_df = None
+        st.session_state.class_df_upload = None
+        st.session_state.energy_df_upload = None
         st.toast("Files cleared successfully!", icon="✅")
-        time.sleep(0.5)
+        time.sleep(1)  # brief pause to ensure toast is seen
         st.rerun()
