@@ -39,7 +39,7 @@ with st.spinner("Loading page...", show_time=True):
 
         if st.button("Load Data", key="load_db_btn"):
             if st.session_state["selected_batch_manage"] is None:
-                st.info("Click 'Load Data' button to fetch data from database.")
+                st.info("Choose a data batch and click 'Load Data' to fetch data from database.")
                 st.session_state["class_df_manage"] = pd.DataFrame()
                 st.session_state["energy_df_manage"] = pd.DataFrame()
 
