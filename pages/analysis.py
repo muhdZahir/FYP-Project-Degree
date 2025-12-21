@@ -306,7 +306,7 @@ with st.spinner("Loading page...", show_time=True):
                             
                             # Update line color to be distinct
                             corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
-                            corr_fig.data[-1].update(line=dict(color='red', width=3, dash='dash'), name='Trendline')
+                            corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
 
                             st.plotly_chart(corr_fig, width="stretch")
                         else:
