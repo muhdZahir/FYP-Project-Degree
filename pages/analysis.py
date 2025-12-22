@@ -89,9 +89,12 @@ with st.spinner("Loading page...", show_time=True):
                 class_df['Capacity'] = class_df['Capacity'].replace(0, np.nan)
                 class_df['Utilization'] = class_df['Actual_Occupancy'] / class_df['Capacity']
                 class_df['Utilization'] = class_df['Utilization'].fillna(0)
+                # Compute Percent_Utilize for display and grouping (0-100 scale)
+                class_df['Percent_Utilize'] = (class_df['Utilization'] * 100).clip(0, 100)
             else:
                 # Fallback if neither column exists
-                class_df['Utilization'] = 0.0 #end of added column check
+                class_df['Utilization'] = 0.0
+                class_df['Percent_Utilize'] = 0.0 #end of added column check
 
         scaler = MinMaxScaler()
         class_df['norm_Scheduled_Hours'] = class_df['Scheduled_Hours']

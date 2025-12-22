@@ -11,9 +11,9 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     
-    # Classroom table
+    # Classroom table (use lowercase table name to match rest of app)
     c.execute('''
-        CREATE TABLE IF NOT EXISTS Classroom (
+        CREATE TABLE IF NOT EXISTS classroom_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Classroom_ID TEXT,
             Floor INTEGER,
@@ -28,9 +28,9 @@ def init_db():
         )
     ''')
     
-    # Energy table
+    # Energy table (use lowercase table name to match rest of app)
     c.execute('''
-        CREATE TABLE IF NOT EXISTS Energy (
+        CREATE TABLE IF NOT EXISTS energy_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Floor INTEGER,
             Month TEXT,
@@ -50,6 +50,21 @@ def init_db():
         )
     ''')
     
+    # Ensure older tables have the Batch_Name column (migration)
+    def _ensure_column_exists(conn, table_name, column_name, column_type='TEXT'):
+        cur = conn.execute(f"PRAGMA table_info({table_name})")
+        cols = [r[1] for r in cur.fetchall()]
+        if column_name not in cols:
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+            conn.commit()
+
+    try:
+        _ensure_column_exists(conn, 'classroom_data', 'Batch_Name')
+        _ensure_column_exists(conn, 'energy_data', 'Batch_Name')
+    except Exception:
+        # If table doesn't exist yet or PRAGMA fails, ignore (tables were just created above)
+        pass
+
     conn.commit()
     conn.close()
 
@@ -85,23 +100,23 @@ def save_batch_to_db(batch_name):
         conn.close()
 
 def load_from_db(table_name, batch_name):
-    """Loads data from the database. Optionally filters by batch."""
-    conn = sqlite3.connect(DB_NAME)
-    query = f"SELECT * FROM {table_name}"
-    
-    # If a specific batch is selected (and it's not "All History"), filter by it
-    if batch_name != "All History":
-        query += f" WHERE Batch_Name = '{batch_name}'"
-    
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
-
-def class_batch_unique(batch_name):
-    """Checks whether an Batch_Name already exists in Classroom table."""
+    """Loads data from the database. Optionally filters by batch. Uses parameterized queries to avoid quoting/SQL-injection issues."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM Classroom WHERE LOWER(Batch_Name) = LOWER(?)"""
+        if batch_name != "All History":
+            # use parameterized query to safely substitute batch_name
+            df = pd.read_sql_query(f"SELECT * FROM {table_name} WHERE Batch_Name = ?", conn, params=(batch_name,))
+        else:
+            df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
+        return df
+    finally:
+        conn.close()
+
+def class_batch_unique(batch_name):
+    """Checks whether a Batch_Name already exists in classroom_data table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        query = """SELECT 1 FROM classroom_data WHERE LOWER(Batch_Name) = LOWER(?)"""
 
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
@@ -109,10 +124,10 @@ def class_batch_unique(batch_name):
         conn.close()
 
 def energy_batch_unique(batch_name):
-    """Checks whether an Batch_Name already exists in Energy table."""
+    """Checks whether a Batch_Name already exists in energy_data table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM Energy WHERE LOWER(Batch_Name) = LOWER(?)"""
+        query = """SELECT 1 FROM energy_data WHERE LOWER(Batch_Name) = LOWER(?)"""
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
@@ -131,20 +146,20 @@ def get_unique_batches():
         conn.close()
 
 def clear_classroom_data(batch_name):
-    """Clears all records from Classroom table for a specific batch."""
+    """Clears all records from classroom_data table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM Classroom WHERE Batch_Name = ?", (batch_name,))
+        conn.execute("DELETE FROM classroom_data WHERE Batch_Name = ?", (batch_name,))
         conn.commit()
         return True
     finally:
         conn.close()
 
 def clear_energy_data(batch_name):
-    """Clears all records from Energy table for a specific batch."""
+    """Clears all records from energy_data table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM Energy WHERE Batch_Name = ?", (batch_name,))
+        conn.execute("DELETE FROM energy_data WHERE Batch_Name = ?", (batch_name,))
         conn.commit()
         return True
     finally:
