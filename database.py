@@ -1,8 +1,9 @@
 import sqlite3  # For database operations, using SQLite for simplicity 
 import pandas as pd  # sqlite checking; python -c "import sqlite3; print(sqlite3.sqlite_version)"
+import time
 import streamlit as st
 
-# name of the database, can change as needed
+# name of the database
 DB_NAME = "uro_system.db"
 
 def init_db():
@@ -10,9 +11,9 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     
-    # classroom_data table
+    # Classroom table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS classroom_data (
+        CREATE TABLE IF NOT EXISTS Classroom (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Classroom_ID TEXT,
             Floor INTEGER,
@@ -22,21 +23,30 @@ def init_db():
             Day TEXT,
             Time_Slot TEXT,
             Week INTEGER,
-            Upload_Batch TEXT,
+            Batch_Name TEXT,
             Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
-    # energy_data table
+    # Energy table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS energy_data (
+        CREATE TABLE IF NOT EXISTS Energy (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Floor INTEGER,
             Month TEXT,
             Energy_kWh REAL,
             Energy_Cost REAL,
-            Upload_Batch TEXT,
+            Batch_Name TEXT,
             Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Batch table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS Batch (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Batch_Name TEXT UNIQUE,
+            Upload_Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
@@ -49,13 +59,27 @@ def save_to_db(df, table_name, batch_name):
     try:
         # Create a copy to avoid modifying the original view
         save_df = df.copy()
-        save_df["Upload_Batch"] = batch_name
+        save_df["Batch_Name"] = batch_name
         
         # Write to SQL (append mode)
         save_df.to_sql(table_name, conn, if_exists='append', index=False)
         return True
     except Exception as e:
         st.error(f"Database Error: {e}")
+        return False
+    finally:
+        conn.close()
+
+def save_batch_to_db(batch_name):
+    """Saves a new batch name to the Batch table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("INSERT INTO Batch (Batch_Name) VALUES (?)", (batch_name,))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        st.toast("Batch name already exists.", icon="⚠️")
+        time.sleep(1)  # brief pause to ensure toast is seen
         return False
     finally:
         conn.close()
@@ -67,17 +91,17 @@ def load_from_db(table_name, batch_name):
     
     # If a specific batch is selected (and it's not "All History"), filter by it
     if batch_name != "All History":
-        query += f" WHERE Upload_Batch = '{batch_name}'"
+        query += f" WHERE Batch_Name = '{batch_name}'"
     
     df = pd.read_sql(query, conn)
     conn.close()
     return df
 
 def class_batch_unique(batch_name):
-    """Checks whether an Upload_Batch already exists in classroom_data table."""
+    """Checks whether an Batch_Name already exists in Classroom table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM classroom_data WHERE LOWER(Upload_Batch) = LOWER(?)"""
+        query = """SELECT 1 FROM Classroom WHERE LOWER(Batch_Name) = LOWER(?)"""
 
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
@@ -85,10 +109,10 @@ def class_batch_unique(batch_name):
         conn.close()
 
 def energy_batch_unique(batch_name):
-    """Checks whether an Upload_Batch already exists in energy_data table."""
+    """Checks whether an Batch_Name already exists in Energy table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM energy_data WHERE LOWER(Upload_Batch) = LOWER(?)"""
+        query = """SELECT 1 FROM Energy WHERE LOWER(Batch_Name) = LOWER(?)"""
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
@@ -99,27 +123,39 @@ def get_unique_batches():
     conn = sqlite3.connect(DB_NAME)
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT DISTINCT Upload_Batch FROM classroom_data UNION SELECT DISTINCT Upload_Batch FROM energy_data", conn)
-        return batches["Upload_Batch"].tolist()
+        batches = pd.read_sql("SELECT Batch_Name FROM Batch", conn)
+        return batches["Batch_Name"].tolist()
     except:
         return []
     finally:
         conn.close()
 
 def clear_classroom_data(batch_name):
-    """Clears all records from classroom_data table for a specific batch."""
+    """Clears all records from Classroom table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM classroom_data WHERE Upload_Batch = ?", (batch_name,))
+        conn.execute("DELETE FROM Classroom WHERE Batch_Name = ?", (batch_name,))
         conn.commit()
+        return True
     finally:
         conn.close()
 
 def clear_energy_data(batch_name):
-    """Clears all records from energy_data table for a specific batch."""
+    """Clears all records from Energy table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM energy_data WHERE Upload_Batch = ?", (batch_name,))
+        conn.execute("DELETE FROM Energy WHERE Batch_Name = ?", (batch_name,))
         conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def clear_batch(batch_name):
+    """Clears batch record from Batch table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("DELETE FROM Batch WHERE Batch_Name = ?", (batch_name,))
+        conn.commit()
+        return True
     finally:
         conn.close()

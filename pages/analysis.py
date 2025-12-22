@@ -65,19 +65,19 @@ with st.spinner("Loading page...", show_time=True):
         if st.button("Load Data", key="load_db_btn"):
             if st.session_state["selected_batch"] is None:
                 st.info("Choose a data batch and click 'Load Data' to fetch data from database.")
-                st.session_state['class_df'] = pd.DataFrame()
-                st.session_state['energy_df'] = pd.DataFrame()
+                st.session_state['class_df_analysis'] = pd.DataFrame()
+                st.session_state['energy_df_analysis'] = pd.DataFrame()
 
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
                     # store loaded dataframes in session_state so they persist across interactions
-                    st.session_state['class_df'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
-                    st.session_state['energy_df'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
+                    st.session_state['class_df_analysis'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
+                    st.session_state['energy_df_analysis'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
             
         if not st.session_state.get('class_df', pd.DataFrame()).empty or not st.session_state.get('energy_df', pd.DataFrame()).empty:
             st.toast(f"Loaded {len(st.session_state.get('class_df', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df', pd.DataFrame()))} energy records.", icon="✅")
             
-    class_df = st.session_state.get('class_df', pd.DataFrame())
+    class_df = st.session_state.get('class_df_analysis', pd.DataFrame())
     # Preprocessing classroom data for normalization
     if not class_df.empty:
         # Ensure 'Utilization' column exists (compute safely if missing) start of added column check
@@ -102,7 +102,7 @@ with st.spinner("Loading page...", show_time=True):
         #st.subheader("Preprocessed Classroom Usage Data")
         #st.dataframe(class_df)
 
-    energy_df = st.session_state.get('energy_df', pd.DataFrame())
+    energy_df = st.session_state.get('energy_df_analysis', pd.DataFrame())
     # Preprocessing energy data for normalization
     if not energy_df.empty:
         scaler = MinMaxScaler()
@@ -121,13 +121,6 @@ with st.spinner("Loading page...", show_time=True):
             # ==========================================
             if not class_df.empty:
                 st.header("Classroom Utilization Analysis")
-
-                # Calculate utilization rate per room
-                #if class_df["Actual_Occupancy"] == 0:
-                    #class_df["Utilization"] = 0
-                #else:
-                    #class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
-                class_df["Percent_Utilize"] = class_df["Utilization"] * 100
 
                 with st.spinner("Analyzing data...", show_time=True):
                     # Display Average Utilization
