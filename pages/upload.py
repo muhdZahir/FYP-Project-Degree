@@ -193,7 +193,7 @@ with st.spinner("Loading page...", show_time=True):
                 if not db.class_batch_unique(batch_name):
                     st.error("❌ This batch name already exists in classroom. Please use a unique batch name.")
                 else:
-                    if db.save_to_db(class_df, "classroom_data", batch_name):
+                    if db.save_to_db(class_df, "Classroom", batch_name):
                         saved_c = True
 
             if st.session_state.energy_df_upload is not None:
@@ -201,7 +201,7 @@ with st.spinner("Loading page...", show_time=True):
                 if not db.energy_batch_unique(batch_name):
                     st.error("❌ This batch name already exists in energy. Please use a unique batch name.")
                 else:
-                    if db.save_to_db(energy_df, "energy_data", batch_name):
+                    if db.save_to_db(energy_df, "Energy", batch_name):
                         saved_e = True
 
             if saved_c or saved_e:

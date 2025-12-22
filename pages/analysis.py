@@ -54,11 +54,12 @@ with st.spinner("Loading page...", show_time=True):
         st.warning("No data found in database. Please upload and save files first.")
     else:
         if "selected_batch" not in st.session_state:
-            st.session_state.selected_batch = "All History"
+            st.session_state.selected_batch = None
 
         selected_batch = st.selectbox(
             "Select Data Batch:",
-            ["All History"] + available_batches,
+            available_batches,
+            index=0,
             key="selected_batch"
         )
 
@@ -71,8 +72,8 @@ with st.spinner("Loading page...", show_time=True):
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
                     # store loaded dataframes in session_state so they persist across interactions
-                    st.session_state['class_df_analysis'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
-                    st.session_state['energy_df_analysis'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
+                    st.session_state['class_df_analysis'] = db.load_from_db("Classroom", st.session_state['selected_batch'])
+                    st.session_state['energy_df_analysis'] = db.load_from_db("Energy", st.session_state['selected_batch'])
             
         if not st.session_state.get('class_df_analysis', pd.DataFrame()).empty or not st.session_state.get('energy_df_analysis', pd.DataFrame()).empty:
             st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
