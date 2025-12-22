@@ -5,6 +5,8 @@ import streamlit as st
 
 # name of the database
 DB_NAME = "uro_system.db"
+# allowed tables for read/write to avoid accidental SQL injection via table names
+ALLOWED_TABLES = {"classroom_data", "energy_data"}
 
 def init_db():
     """Initializes the local database and creates tables if they don't exist."""
@@ -70,12 +72,15 @@ def init_db():
 
 def save_to_db(df, table_name, batch_name):
     """Saves a dataframe to the database with a specific batch tag."""
+    if table_name not in ALLOWED_TABLES:
+        raise ValueError(f"Invalid table name: {table_name}")
+
     conn = sqlite3.connect(DB_NAME)
     try:
         # Create a copy to avoid modifying the original view
         save_df = df.copy()
         save_df["Batch_Name"] = batch_name
-        
+
         # Write to SQL (append mode)
         save_df.to_sql(table_name, conn, if_exists='append', index=False)
         return True
@@ -101,6 +106,9 @@ def save_batch_to_db(batch_name):
 
 def load_from_db(table_name, batch_name):
     """Loads data from the database. Optionally filters by batch. Uses parameterized queries to avoid quoting/SQL-injection issues."""
+    if table_name not in ALLOWED_TABLES and table_name != 'Batch':
+        raise ValueError(f"Invalid table name: {table_name}")
+
     conn = sqlite3.connect(DB_NAME)
     try:
         if batch_name != "All History":

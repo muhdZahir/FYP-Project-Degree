@@ -74,8 +74,8 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state['class_df_analysis'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
                     st.session_state['energy_df_analysis'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
             
-        if not st.session_state.get('class_df', pd.DataFrame()).empty or not st.session_state.get('energy_df', pd.DataFrame()).empty:
-            st.toast(f"Loaded {len(st.session_state.get('class_df', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df', pd.DataFrame()))} energy records.", icon="✅")
+        if not st.session_state.get('class_df_analysis', pd.DataFrame()).empty or not st.session_state.get('energy_df_analysis', pd.DataFrame()).empty:
+            st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
             
     class_df = st.session_state.get('class_df_analysis', pd.DataFrame())
     # Preprocessing classroom data for normalization
@@ -96,6 +96,10 @@ with st.spinner("Loading page...", show_time=True):
                 class_df['Utilization'] = 0.0
                 class_df['Percent_Utilize'] = 0.0 #end of added column check
 
+        # Ensure required columns exist before scaling
+        if 'Scheduled_Hours' not in class_df.columns:
+            class_df['Scheduled_Hours'] = 0.0
+
         scaler = MinMaxScaler()
         class_df['norm_Scheduled_Hours'] = class_df['Scheduled_Hours']
         class_df['norm_Utilization'] = class_df['Utilization']
@@ -108,6 +112,11 @@ with st.spinner("Loading page...", show_time=True):
     energy_df = st.session_state.get('energy_df_analysis', pd.DataFrame())
     # Preprocessing energy data for normalization
     if not energy_df.empty:
+        # Ensure required columns exist before scaling
+        for col in ["Energy_kWh", "Energy_Cost"]:
+            if col not in energy_df.columns:
+                energy_df[col] = 0.0
+
         scaler = MinMaxScaler()
         energy_df["norm_Energy_kWh"] = energy_df["Energy_kWh"]
         energy_df["norm_Energy_Cost"] = energy_df["Energy_Cost"]

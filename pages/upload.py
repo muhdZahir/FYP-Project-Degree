@@ -8,10 +8,11 @@ import database as db  # Importing your database.py
 
 db.init_db()
 
-if "class_df" not in st.session_state:
+# Initialize upload-specific session keys
+if "class_df_upload" not in st.session_state:
     st.session_state.class_df_upload = None
 
-if "energy_df" not in st.session_state:
+if "energy_df_upload" not in st.session_state:
     st.session_state.energy_df_upload = None
 
 def check_columns(df, required_cols): #function to check column
