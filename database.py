@@ -51,55 +51,6 @@ def init_db():
             Upload_Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    # Ensure older tables have the Batch_Name column (migration)
-    def _ensure_column_exists(conn, table_name, column_name, column_type='TEXT'):
-        cur = conn.execute(f"PRAGMA table_info({table_name})")
-        cols = [r[1] for r in cur.fetchall()]
-        if column_name not in cols:
-            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
-            conn.commit()
-        return cols
-
-    try:
-        # For backward compatibility handle older table/column names
-        for tbl in ['Classroom', 'Energy']:
-            cols = _ensure_column_exists(conn, tbl, 'Batch_Name')
-
-            # If an older column named 'Upload_Batch' exists, prefer to rename it to 'Batch_Name' when possible.
-            if 'Upload_Batch' in cols and 'Batch_Name' not in cols:
-                try:
-                    # Try using RENAME COLUMN if supported by sqlite
-                    conn.execute(f"ALTER TABLE {tbl} RENAME COLUMN Upload_Batch TO Batch_Name")
-                    conn.commit()
-                except Exception:
-                    # Fallback: add Batch_Name and copy values from Upload_Batch
-                    _ensure_column_exists(conn, tbl, 'Batch_Name')
-                    conn.execute(f"UPDATE {tbl} SET Batch_Name = Upload_Batch WHERE (Batch_Name IS NULL OR Batch_Name = '') AND (Upload_Batch IS NOT NULL AND Upload_Batch != '')")
-                    conn.commit()
-
-        # If legacy tables exist with names 'classroom_data' or 'energy_data', copy their rows into the new tables
-        def _table_exists(conn, table_name):
-            try:
-                cur = conn.execute(f"PRAGMA table_info({table_name})")
-                return len(cur.fetchall()) > 0
-            except Exception:
-                return False
-
-        for old, new in [('classroom_data', 'Classroom'), ('energy_data', 'Energy')]:
-            if _table_exists(conn, old):
-                # Determine common columns (excluding id to allow autoincrement in new table)
-                old_cols = [r[1] for r in conn.execute(f"PRAGMA table_info({old})").fetchall()]
-                new_cols = [r[1] for r in conn.execute(f"PRAGMA table_info({new})").fetchall()]
-                common = [c for c in old_cols if c in new_cols and c != 'id']
-                if common:
-                    cols_sql = ','.join(common)
-                    conn.execute(f"INSERT INTO {new} ({cols_sql}) SELECT {cols_sql} FROM {old}")
-                    conn.commit()
-
-    except Exception:
-        # If table doesn't exist yet or PRAGMA fails, ignore (tables were just created above)
-        pass
 
     conn.commit()
     conn.close()

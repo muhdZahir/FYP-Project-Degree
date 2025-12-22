@@ -17,11 +17,6 @@ if 'class_df_analysis' not in st.session_state:
     st.session_state['class_df_analysis'] = pd.DataFrame()
 if 'energy_df_analysis' not in st.session_state:
     st.session_state['energy_df_analysis'] = pd.DataFrame()
-# Ensure the core session keys used throughout the page are present to avoid KeyErrors start
-if 'class_df' not in st.session_state:
-    st.session_state['class_df'] = pd.DataFrame()
-if 'energy_df' not in st.session_state:
-    st.session_state['energy_df'] = pd.DataFrame() #end
 if 'selected_batch' not in st.session_state:
     st.session_state['selected_batch'] = None
 
@@ -75,31 +70,17 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state['class_df_analysis'] = db.load_from_db("Classroom", st.session_state['selected_batch'])
                     st.session_state['energy_df_analysis'] = db.load_from_db("Energy", st.session_state['selected_batch'])
             
-        if not st.session_state.get('class_df_analysis', pd.DataFrame()).empty or not st.session_state.get('energy_df_analysis', pd.DataFrame()).empty:
-            st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
+                    st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
             
     class_df = st.session_state.get('class_df_analysis', pd.DataFrame())
     # Preprocessing classroom data for normalization
     if not class_df.empty:
-        # Ensure 'Utilization' column exists (compute safely if missing) start of added column check
-        if 'Utilization' not in class_df.columns:
-            if 'utilization' in class_df.columns:
-                class_df['Utilization'] = class_df['utilization']
-            elif 'Actual_Occupancy' in class_df.columns and 'Capacity' in class_df.columns:
-                # Avoid division by zero and fill missing capacity with NaN, then fill utilization with 0
-                class_df['Capacity'] = class_df['Capacity'].replace(0, np.nan)
-                class_df['Utilization'] = class_df['Actual_Occupancy'] / class_df['Capacity']
-                class_df['Utilization'] = class_df['Utilization'].fillna(0)
-                # Compute Percent_Utilize for display and grouping (0-100 scale)
-                class_df['Percent_Utilize'] = (class_df['Utilization'] * 100).clip(0, 100)
-            else:
-                # Fallback if neither column exists
-                class_df['Utilization'] = 0.0
-                class_df['Percent_Utilize'] = 0.0 #end of added column check
-
-        # Ensure required columns exist before scaling
-        if 'Scheduled_Hours' not in class_df.columns:
-            class_df['Scheduled_Hours'] = 0.0
+        # Calculate utilization rate per room
+        if (class_df["Actual_Occupancy"] == 0).any():
+            class_df["Utilization"] = 0
+        else:
+            class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
+        class_df["Percent_Utilize"] = class_df["Utilization"] * 100
 
         scaler = MinMaxScaler()
         class_df['norm_Scheduled_Hours'] = class_df['Scheduled_Hours']
@@ -113,10 +94,6 @@ with st.spinner("Loading page...", show_time=True):
     energy_df = st.session_state.get('energy_df_analysis', pd.DataFrame())
     # Preprocessing energy data for normalization
     if not energy_df.empty:
-        # Ensure required columns exist before scaling
-        for col in ["Energy_kWh", "Energy_Cost"]:
-            if col not in energy_df.columns:
-                energy_df[col] = 0.0
 
         scaler = MinMaxScaler()
         energy_df["norm_Energy_kWh"] = energy_df["Energy_kWh"]
@@ -195,7 +172,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     st.plotly_chart(heat_fig, width="stretch")
             elif class_df.empty:
-                st.info("No classroom data available for batch " + selected_batch + ".")
+                st.info(f"No classroom data available for batch {selected_batch}.")
 
             # ==========================================
             # ENERGY ANALYSIS
@@ -257,7 +234,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     st.plotly_chart(pie_fig, width="stretch")
             elif energy_df.empty:
-                st.info("No energy data available for batch " + selected_batch + ".")
+                st.info(f"No energy data available for batch {selected_batch}.")
 
             # ==========================================
             # CORRELATION ANALYSIS
@@ -268,12 +245,12 @@ with st.spinner("Loading page...", show_time=True):
 
                 with st.spinner("Analyzing data...", show_time=True):
                     # 1. Prepare Data: Map Weeks to Months to align datasets
-                    # Logic: Weeks 1-4 = Jan, 5-8 = Feb, 9-12 = Mar, 13-16 = Apr
+                    # Logic: Weeks 1-4 = First Month, 5-8 = Second Month, 9-12 = Third Month, 13-16 = Fourth Month
                     def map_week_to_month(week):
-                        if week <= 4: return "January"
-                        elif week <= 8: return "February"
-                        elif week <= 12: return "March"
-                        elif week <= 16: return "April"
+                        if week <= 4: return "1"
+                        elif week <= 8: return "2"
+                        elif week <= 12: return "3"
+                        elif week <= 16: return "4"
                         return "Other"
 
                     # Create working copies
@@ -338,4 +315,4 @@ with st.spinner("Loading page...", show_time=True):
                     else:
                         st.warning("Classroom file missing 'Week' column required for correlation mapping.")
             elif class_df.empty or energy_df.empty:
-                st.info("No data available for batch " + selected_batch + ".")
+                st.info(f"No data available for batch {selected_batch}.")
