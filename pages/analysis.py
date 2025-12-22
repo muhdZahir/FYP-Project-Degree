@@ -1,7 +1,7 @@
 import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
 import numpy as np # pip install numpy |
-import os
+import os # line20-24 tambah untuk error biasa, line 83 - 95 untuk utilization
 import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
 import database as db  # Importing your database.py
 # pip install -U scikit-learn
@@ -17,6 +17,11 @@ if 'class_df_analysis' not in st.session_state:
     st.session_state['class_df_analysis'] = pd.DataFrame()
 if 'energy_df_analysis' not in st.session_state:
     st.session_state['energy_df_analysis'] = pd.DataFrame()
+# Ensure the core session keys used throughout the page are present to avoid KeyErrors start
+if 'class_df' not in st.session_state:
+    st.session_state['class_df'] = pd.DataFrame()
+if 'energy_df' not in st.session_state:
+    st.session_state['energy_df'] = pd.DataFrame() #end
 if 'selected_batch' not in st.session_state:
     st.session_state['selected_batch'] = None
 
@@ -69,12 +74,25 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state['class_df'] = db.load_from_db("classroom_data", st.session_state['selected_batch'])
                     st.session_state['energy_df'] = db.load_from_db("energy_data", st.session_state['selected_batch'])
             
-        if not st.session_state['class_df'].empty or not st.session_state['energy_df'].empty:
-            st.toast(f"Loaded {len(st.session_state['class_df'])} classroom records and {len(st.session_state['energy_df'])} energy records.", icon="✅")
+        if not st.session_state.get('class_df', pd.DataFrame()).empty or not st.session_state.get('energy_df', pd.DataFrame()).empty:
+            st.toast(f"Loaded {len(st.session_state.get('class_df', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df', pd.DataFrame()))} energy records.", icon="✅")
             
     class_df = st.session_state.get('class_df', pd.DataFrame())
     # Preprocessing classroom data for normalization
     if not class_df.empty:
+        # Ensure 'Utilization' column exists (compute safely if missing) start of added column check
+        if 'Utilization' not in class_df.columns:
+            if 'utilization' in class_df.columns:
+                class_df['Utilization'] = class_df['utilization']
+            elif 'Actual_Occupancy' in class_df.columns and 'Capacity' in class_df.columns:
+                # Avoid division by zero and fill missing capacity with NaN, then fill utilization with 0
+                class_df['Capacity'] = class_df['Capacity'].replace(0, np.nan)
+                class_df['Utilization'] = class_df['Actual_Occupancy'] / class_df['Capacity']
+                class_df['Utilization'] = class_df['Utilization'].fillna(0)
+            else:
+                # Fallback if neither column exists
+                class_df['Utilization'] = 0.0 #end of added column check
+
         scaler = MinMaxScaler()
         class_df['norm_Scheduled_Hours'] = class_df['Scheduled_Hours']
         class_df['norm_Utilization'] = class_df['Utilization']
