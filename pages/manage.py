@@ -52,31 +52,38 @@ with st.spinner("Loading page...", show_time=True):
 
     class_df = st.session_state.get('class_df_manage', pd.DataFrame())
     energy_df = st.session_state.get('energy_df_manage', pd.DataFrame())
+    batch_name = st.session_state.get('selected_batch_manage', None)
 
     if not class_df.empty:
-        st.subheader(f"Classroom Data Records for {st.session_state['selected_batch_manage']}")
+        st.subheader(f"Classroom Data Records for {batch_name}")
         st.dataframe(class_df)
 
         if st.button("Clear Classroom Data for This Batch", type="primary", key="clear_class_btn"):
             with st.spinner("Clearing classroom data..."):
-                db.clear_classroom_data(st.session_state['selected_batch_manage'])
-                st.toast(f"Classroom data for batch '{st.session_state['selected_batch_manage']}' has been cleared.", icon="✅")
-                time.sleep(1)  # brief pause to ensure toast is seen
-                # Refresh the displayed data
-                st.session_state['class_df_manage'] = db.load_from_db("classroom_data", st.session_state['selected_batch_manage'])
-                class_df = st.session_state['class_df_manage']
-                st.rerun()
+                if db.clear_classroom_data(batch_name):
+                    st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
+                    time.sleep(1)  # brief pause to ensure toast is seen
+                    st.session_state.class_df_manage = pd.DataFrame()
+                    class_df = pd.DataFrame()
+
+                    if db.energy_batch_unique(batch_name):
+                        db.clear_batch(batch_name)
+
+                    st.rerun()
 
     if not energy_df.empty:
-        st.subheader(f"Energy Data Records for {st.session_state['selected_batch_manage']}")
+        st.subheader(f"Energy Data Records for {batch_name}")
         st.dataframe(energy_df)
 
         if st.button("Clear Energy Data for This Batch", type="primary", key="clear_energy_btn"):
             with st.spinner("Clearing energy data..."):
-                db.clear_energy_data(st.session_state['selected_batch_manage'])
-                st.toast(f"Energy data for batch '{st.session_state['selected_batch_manage']}' has been cleared.", icon="✅")
-                time.sleep(1)  # brief pause to ensure toast is seen
-                # Refresh the displayed data
-                st.session_state['energy_df_manage'] = db.load_from_db("energy_data", st.session_state['selected_batch_manage'])
-                energy_df = st.session_state['energy_df_manage']
-                st.rerun()
+                if db.clear_energy_data(batch_name):
+                    st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
+                    time.sleep(1)  # brief pause to ensure toast is seen
+                    st.session_state.energy_df_manage = pd.DataFrame()
+                    energy_df = pd.DataFrame()
+                    
+                    if db.class_batch_unique(batch_name):
+                        db.clear_batch(batch_name)
+
+                    st.rerun()
