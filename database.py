@@ -25,8 +25,9 @@ def init_db():
             Day TEXT,
             Time_Slot TEXT,
             Week INTEGER,
-            Batch_Name TEXT,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            Batch_id INTEGER,
+            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
         )
     ''')
     
@@ -38,17 +39,18 @@ def init_db():
             Month TEXT,
             Energy_kWh REAL,
             Energy_Cost REAL,
-            Batch_Name TEXT,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            Batch_id INTEGER,
+            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
         )
     ''')
 
     # Batch table
     c.execute('''
         CREATE TABLE IF NOT EXISTS Batch (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Batch_id INTEGER PRIMARY KEY AUTOINCREMENT,
             Batch_Name TEXT UNIQUE,
-            Upload_Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
@@ -62,13 +64,32 @@ def save_to_db(df, table_name, batch_name):
 
     conn = sqlite3.connect(DB_NAME)
     try:
-        # Create a copy to avoid modifying the original view
-        save_df = df.copy()
-        save_df["Batch_Name"] = batch_name
+        if save_batch_to_db(batch_name):
+            st.toast(f"Batch '{batch_name}' registered successfully!", icon="✅")
+            time.sleep(1)  # brief pause to ensure toast is seen
 
-        # Write to SQL (append mode)
-        save_df.to_sql(table_name, conn, if_exists='append', index=False)
-        return True
+            query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
+            result = conn.execute(query, (batch_name,)).fetchone()
+
+            # Create a copy to avoid modifying the original view
+            save_df = df.copy()
+            save_df["Batch_id"] = result[0]
+
+            # Write to SQL (append mode)
+            save_df.to_sql(table_name, conn, if_exists='append', index=False)
+            return True
+        else:
+            query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
+            result = conn.execute(query, (batch_name,)).fetchone()
+
+            # Create a copy to avoid modifying the original view
+            save_df = df.copy()
+            save_df["Batch_id"] = result[0]
+
+            # Write to SQL (append mode)
+            save_df.to_sql(table_name, conn, if_exists='append', index=False)
+            return True
+
     except Exception as e:
         st.error(f"Database Error: {e}")
         return False
@@ -100,7 +121,21 @@ def load_from_db(table_name, batch_name):
     conn = sqlite3.connect(DB_NAME)
     try:
         # use parameterized query to safely substitute batch_name
-        df = pd.read_sql_query(f"SELECT * FROM {table_name} WHERE Batch_Name = ?", conn, params=(batch_name,))
+        if table_name == 'Classroom':
+            df = pd.read_sql_query(
+                "SELECT Classroom.Classroom_ID, Classroom.Floor, Classroom.Capacity, Classroom.Scheduled_Hours, Classroom.Actual_Occupancy, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "
+                "FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
+                                   conn,
+                                   params=(batch_name,)
+                                   )
+        elif table_name == 'Energy':
+            df = pd.read_sql_query(
+                "SELECT Energy.Floor, Energy.Month, Energy.Energy_kWh, Energy.Energy_Cost, Batch.Batch_Name "
+                "FROM Energy INNER JOIN Batch ON Energy.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
+                                   conn,
+                                   params=(batch_name,)
+                                   )
+
         return df
     finally:
         conn.close()
@@ -109,7 +144,7 @@ def class_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Classroom table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM Classroom WHERE LOWER(Batch_Name) = LOWER(?)"""
+        query = """SELECT 1 FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE LOWER(Batch.Batch_Name) = LOWER(?)"""
 
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
@@ -120,7 +155,7 @@ def energy_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Energy table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        query = """SELECT 1 FROM Energy WHERE LOWER(Batch_Name) = LOWER(?)"""
+        query = """SELECT 1 FROM Energy INNER JOIN Batch ON Energy.Batch_id = Batch.Batch_id WHERE LOWER(Batch.Batch_Name) = LOWER(?)"""
         result = conn.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
@@ -142,7 +177,14 @@ def clear_classroom_data(batch_name):
     """Clears all records from Classroom table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM Classroom WHERE Batch_Name = ?", (batch_name,))
+        conn.execute("""
+            DELETE FROM Classroom
+            WHERE Batch_id IN (
+                SELECT Batch_id
+                FROM Batch
+                WHERE LOWER(Batch_Name) = LOWER(?)
+            )
+        """, (batch_name,))
         conn.commit()
         return True
     finally:
@@ -152,7 +194,14 @@ def clear_energy_data(batch_name):
     """Clears all records from Energy table for a specific batch."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM Energy WHERE Batch_Name = ?", (batch_name,))
+        conn.execute("""
+            DELETE FROM Energy
+            WHERE Batch_id IN (
+                SELECT Batch_id
+                FROM Batch
+                WHERE LOWER(Batch_Name) = LOWER(?)
+            )
+        """, (batch_name,))
         conn.commit()
         return True
     finally:
@@ -162,7 +211,7 @@ def clear_batch(batch_name):
     """Clears batch record from Batch table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("DELETE FROM Batch WHERE Batch_Name = ?", (batch_name,))
+        conn.execute("DELETE FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)", (batch_name,))
         conn.commit()
         return True
     finally:

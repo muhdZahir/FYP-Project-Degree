@@ -18,6 +18,19 @@
     font-family: 'Arial', sans-serif;
 }
 
+.st-key-green button {
+    background-color: #0ad42c;
+    border-radius: 10px;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.st-key-green button:hover {
+    background-color: #54e072;
+    color: white;
+}
+
 @keyframes pulse {
     0% {
         transform: scale(1);

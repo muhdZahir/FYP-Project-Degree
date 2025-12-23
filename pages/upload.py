@@ -15,6 +15,14 @@ if "class_df_upload" not in st.session_state:
 if "energy_df_upload" not in st.session_state:
     st.session_state.energy_df_upload = None
 
+def inject_custom_css(css_file_path):
+        #Injects custom CSS from a local file into the Streamlit app.
+        try:
+            with open(css_file_path) as f:
+                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.error(f"Error: CSS file not found at {css_file_path}")
+
 def check_columns(df, required_cols): #function to check column
     return [col for col in required_cols if col not in df.columns]
 
@@ -23,6 +31,12 @@ def clear_files():
     st.session_state["uploader_key"] += 1
 
 with st.spinner("Loading page...", show_time=True):
+    # Define the relative path to your CSS file
+    css_path = os.path.join("assets", "style.css")
+
+    # Inject the CSS
+    inject_custom_css(css_path)
+
     st.title("UPLOAD FILES")
 
     #Introduction of the system
@@ -182,7 +196,7 @@ with st.spinner("Loading page...", show_time=True):
         with col2:
             st.write("") # Spacer
             st.write("")
-            save_btn = st.button("Save Data", type="primary")
+            save_btn = st.button("Save Data", key="green")
         
         if save_btn and batch_name:
             saved_c = False
@@ -203,11 +217,6 @@ with st.spinner("Loading page...", show_time=True):
                 else:
                     if db.save_to_db(energy_df, "Energy", batch_name):
                         saved_e = True
-
-            if saved_c or saved_e:
-                if db.save_batch_to_db(batch_name):
-                    st.toast(f"Batch '{batch_name}' registered successfully!", icon="✅")
-                    time.sleep(1)  # brief pause to ensure toast is seen
 
             if saved_c:
                 st.success(f"Successfully saved batch '{batch_name}' classroom data to database!")

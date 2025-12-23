@@ -1,7 +1,7 @@
 import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
 import numpy as np # pip install numpy |
-import os # line20-24 tambah untuk error biasa, line 83 - 95 untuk utilization
+import os
 import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
 import database as db  # Importing your database.py
 # pip install -U scikit-learn
