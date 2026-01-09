@@ -7,6 +7,7 @@ import database as db  # Importing your database.py
 # pip install -U scikit-learn
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
+import calendar
 
 # for the system to read excel, install 'pip install openpyxl'
 
@@ -245,74 +246,129 @@ with st.spinner("Loading page...", show_time=True):
 
                 with st.spinner("Analyzing data...", show_time=True):
                     # 1. Prepare Data: Map Weeks to Months to align datasets
-                    # Logic: Weeks 1-4 = First Month, 5-8 = Second Month, 9-12 = Third Month, 13-16 = Fourth Month
+                    # Logic: Weeks 1-4 = Month 1, 5-8 = Month 2, 9-12 = Month 3, 13-16 = Month 4
                     def map_week_to_month(week):
+                        try:
+                            week = int(week)
+                        except Exception:
+                            return None
                         if week <= 4: return "1"
                         elif week <= 8: return "2"
                         elif week <= 12: return "3"
                         elif week <= 16: return "4"
-                        return "Other"
+                        return None
+
+                    # Helper: normalize various month representations to a canonical numeric-string (1-12)
+                    month_name_map = {m.lower(): str(i) for i, m in enumerate(calendar.month_name) if m}
+                    month_abbr_map = {m.lower(): str(i) for i, m in enumerate(calendar.month_abbr) if m}
+
+                    def normalize_month(val):
+                        if pd.isna(val):
+                            return None
+                        # ints
+                        if isinstance(val, (int, np.integer)):
+                            return str(int(val))
+                        # numeric strings
+                        s = str(val).strip()
+                        if s.isdigit():
+                            return str(int(s))
+                        s_lower = s.lower()
+                        # full month name
+                        if s_lower in month_name_map:
+                            return month_name_map[s_lower]
+                        # abbreviated month name
+                        if s_lower in month_abbr_map:
+                            return month_abbr_map[s_lower]
+                        return s  # fallback: keep as-is
 
                     # Create working copies
                     corr_class = class_df.copy()
                     corr_energy = energy_df.copy()
 
-                    if "Week" in corr_class.columns:
+                    # Ensure Month column exists in class data: map from Week if possible
+                    if "Month" not in corr_class.columns and "Week" in corr_class.columns:
                         corr_class["Month"] = corr_class["Week"].apply(map_week_to_month)
-                
-                        # Aggregate Occupancy by Floor and Month
-                        grouped_occupancy = corr_class.groupby(["Floor", "Month"])["Actual_Occupancy"].sum().reset_index()
-                
-                        # Aggregate Energy by Floor and Month (handling potential duplicates)
-                        grouped_energy = corr_energy.groupby(["Floor", "Month"])["Energy_Cost"].sum().reset_index()
 
-                        # Merge datasets
-                        correlation_df = pd.merge(grouped_occupancy, grouped_energy, on=["Floor", "Month"])
+                    # Normalize Month values in both dataframes if present
+                    if "Month" in corr_class.columns:
+                        corr_class["Month"] = corr_class["Month"].apply(normalize_month)
 
-                        if not correlation_df.empty:
-                            # 2. Linear Regression for Trendline
-                            # We use sklearn because it's imported at the top
-                            X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
-                            y = correlation_df["Energy_Cost"].values
-                    
-                            model = LinearRegression()
-                            model.fit(X, y)
-                            correlation_df["Predicted_Cost"] = model.predict(X)
+                    if "Month" not in corr_energy.columns and "Week" in corr_energy.columns:
+                        corr_energy["Month"] = corr_energy["Week"].apply(map_week_to_month)
 
-                            # 3. Plot Scatter with Trendline
-                            corr_fig = px.scatter(
-                                correlation_df,
-                                x="Actual_Occupancy",
-                                y="Energy_Cost",
-                                color="Floor",
-                                size="Energy_Cost",
-                                title="Correlation: Occupancy vs Energy Cost (Monthly per Floor)",
-                                labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
-                                hover_data=["Month"]
-                            )
+                    if "Month" in corr_energy.columns:
+                        corr_energy["Month"] = corr_energy["Month"].apply(normalize_month)
 
-                            # update title font size
-                            corr_fig.update_layout(title=dict(text="Correlation: Occupancy vs Energy Cost (Monthly per Floor)",
-                                    font=dict(size=20),   # ← change size here
-                                    x=0.1                 # ← position the title
-                                ),
-                                xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
-                                yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
-                                legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
-                            )
-                    
-                            # Add trendline trace
-                            # Sort by X to make line plotting correct
-                            line_data = correlation_df.sort_values("Actual_Occupancy")
-                            
-                            # Update line color to be distinct
-                            corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
-                            corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
+                    # At this point we attempt to aggregate and merge. Preferred: by Floor+Month
+                    grouped_occupancy = corr_class.groupby([col for col in ["Floor", "Month"] if col in corr_class.columns])["Actual_Occupancy"].sum().reset_index()
+                    grouped_energy = corr_energy.groupby([col for col in ["Floor", "Month"] if col in corr_energy.columns])["Energy_Cost"].sum().reset_index()
 
-                            st.plotly_chart(corr_fig, width="stretch")
-                        else:
-                            st.warning("Insufficient overlapping data (Months) to plot correlation.")
+                    # Try merge by Floor+Month if both have Month and Floor
+                    if set(["Floor", "Month"]).issubset(grouped_occupancy.columns) and set(["Floor", "Month"]).issubset(grouped_energy.columns):
+                        correlation_df = pd.merge(grouped_occupancy, grouped_energy, on=["Floor", "Month"], how="inner")
                     else:
-                        st.warning("Classroom file missing 'Week' column required for correlation mapping.")
+                        correlation_df = pd.DataFrame()
+
+                    # Fallback: if no Floor+Month overlap, try aggregating by Month only (sum across floors)
+                    if correlation_df.empty:
+                        if "Month" in grouped_occupancy.columns and "Month" in grouped_energy.columns:
+                            occ_total = grouped_occupancy.groupby("Month")["Actual_Occupancy"].sum().reset_index()
+                            energy_total = grouped_energy.groupby("Month")["Energy_Cost"].sum().reset_index()
+                            correlation_df = pd.merge(occ_total, energy_total, on="Month", how="inner")
+                        else:
+                            correlation_df = pd.DataFrame()
+
+                    # If still empty, show helpful diagnostics
+                    if correlation_df.empty:
+                        occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
+                        eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
+                        st.warning("Insufficient overlapping data (Months) to plot correlation.")
+                        st.info(f"Classroom months found: {occ_months}")
+                        st.info(f"Energy months found: {eng_months}")
+                        st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
+                    else:
+                        # 2. Linear Regression for Trendline
+                        X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
+                        y = correlation_df["Energy_Cost"].values
+
+                        model = LinearRegression()
+                        model.fit(X, y)
+                        correlation_df["Predicted_Cost"] = model.predict(X)
+
+                        # 3. Plot Scatter with Trendline
+                        if "Floor" in correlation_df.columns:
+                            color_arg = "Floor"
+                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
+                        else:
+                            color_arg = None
+                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly)"
+
+                        corr_fig = px.scatter(
+                            correlation_df,
+                            x="Actual_Occupancy",
+                            y="Energy_Cost",
+                            color=color_arg,
+                            size="Energy_Cost",
+                            title=title_text,
+                            labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
+                            hover_data=[c for c in ["Month", "Floor"] if c in correlation_df.columns]
+                        )
+
+                        # update title font size
+                        corr_fig.update_layout(title=dict(text=title_text,
+                                font=dict(size=20),
+                                x=0.1
+                            ),
+                            xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                            yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                            legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16))
+                        )
+
+                        # Add trendline trace
+                        line_data = correlation_df.sort_values("Actual_Occupancy")
+                        corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+                        corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
+
+                        st.plotly_chart(corr_fig, width="stretch")
             elif class_df.empty or energy_df.empty:
                 st.info(f"No data available for batch {selected_batch}.")
