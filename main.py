@@ -5,6 +5,7 @@ if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None
 
 def choose_role():
+    st.title("URO: University Resource Optimization")
     st.info("Please select your user role to log in")
     
     role = st.radio(
