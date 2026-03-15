@@ -9,11 +9,10 @@ import database as db  # Importing your database.py
 db.init_db()
 
 # Initialize upload-specific session keys
-if "class_df_upload" not in st.session_state:
-    st.session_state.class_df_upload = None
-
-if "energy_df_upload" not in st.session_state:
-    st.session_state.energy_df_upload = None
+if 'class_file' not in st.session_state:
+    st.session_state.class_file = None
+if 'energy_file' not in st.session_state:
+    st.session_state.energy_file = None
 
 def inject_custom_css(css_file_path):
         #Injects custom CSS from a local file into the Streamlit app.
@@ -29,6 +28,9 @@ def check_columns(df, required_cols): #function to check column
 def clear_files():
     # Increment the key to force a fresh widget instance
     st.session_state["uploader_key"] += 1
+
+class_df = pd.DataFrame()
+energy_df = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
     # Define the relative path to your CSS file
@@ -123,18 +125,20 @@ with st.spinner("Loading page...", show_time=True):
                 st.error("This file matches BOTH classroom and energy schemas. Please split the dataset.")
             # For matching classroom dataset
             elif len(missing_class) == 0:
-                if st.session_state.class_df_upload is None:
-                    st.session_state.class_df_upload = df.copy()
-                    st.success(f"Identified as Classroom Dataset")
+                if class_df.empty:
+                    class_df = df.copy()
+                    st.success("Identified as Classroom Dataset")
+                    st.session_state.class_file = file.name
                 else:
-                    st.warning("Classroom dataset already loaded. Additional classroom files are ignored.")
+                    st.warning(f"Classroom dataset already loaded from '{st.session_state.class_file}'. Additional classroom files are ignored.")
             # For matching energy dataset
             elif len(missing_energy) == 0:
-                if st.session_state.energy_df_upload is None:
-                    st.session_state.energy_df_upload = df.copy()
-                    st.success(f"Identified as Energy Dataset")
+                if energy_df.empty:
+                    energy_df = df.copy()
+                    st.success("Identified as Energy Dataset")
+                    st.session_state.energy_file = file.name
                 else:
-                    st.warning("Energy dataset already loaded. Additional energy files are ignored.")
+                    st.warning(f"Energy dataset already loaded from '{st.session_state.energy_file}'. Additional energy files are ignored.")
             # Neither matches
             else:
                 st.error(
@@ -145,11 +149,7 @@ with st.spinner("Loading page...", show_time=True):
                 )
 
     # Preprocessing classroom data
-    if st.session_state.class_df_upload is not None:
-        class_df = st.session_state.class_df_upload
-        st.subheader("Classroom Usage Data:")
-        st.dataframe(class_df)
-        
+    if 'class_df' in locals() and not class_df.empty:
         class_df = class_df.dropna() # drop missing values in a row
 
         # Convert string data in Capacity, Scheduled_Hours, & Actual_Occupancy to numeric, coercing errors to NaN
@@ -167,12 +167,11 @@ with st.spinner("Loading page...", show_time=True):
         class_df = class_df.drop(columns=['Scheduled_clean'])
         class_df = class_df.drop(columns=['ActOccu_clean'])
 
-    # Preprocessing energy data
-    if st.session_state.energy_df_upload is not None:
-        energy_df = st.session_state.energy_df_upload
-        st.subheader("Energy Cost Data:")
-        st.dataframe(energy_df)
+        with st.expander("Classroom Usage Data"):
+            st.dataframe(class_df)
 
+    # Preprocessing energy data
+    if 'energy_df' in locals() and not energy_df.empty:
         energy_df = energy_df.dropna() # drop missing values in a row
 
         # Convert string data in Energy_kWh & Energy_Cost to numeric, coercing errors to NaN
@@ -187,7 +186,17 @@ with st.spinner("Loading page...", show_time=True):
         energy_df = energy_df.drop(columns=['Energy_clean'])
         energy_df = energy_df.drop(columns=['Cost_clean'])
 
-    if st.session_state.class_df_upload is not None or st.session_state.energy_df_upload is not None:
+        with st.expander("Energy Cost Data"):
+            st.dataframe(energy_df)
+
+    # clear the uploader and session state for a fresh start
+    if st.button("Clear Files"):
+        clear_files()
+        st.toast("Files cleared successfully!", icon="✅")
+        time.sleep(1)  # brief pause to ensure toast is seen
+        st.rerun()
+
+    if 'class_df' in locals() and not class_df.empty or 'energy_df' in locals() and not energy_df.empty:
         st.markdown("---")
         st.write("💾 Save to System Memory")
         col1, col2 = st.columns([3, 1])
@@ -202,16 +211,14 @@ with st.spinner("Loading page...", show_time=True):
             saved_c = False
             saved_e = False
             
-            if st.session_state.class_df_upload is not None:
-                class_df = st.session_state.class_df_upload
+            if not class_df.empty:
                 if not db.class_batch_unique(batch_name):
                     st.error("❌ This batch name already exists in classroom. Please use a unique batch name.")
                 else:
                     if db.save_to_db(class_df, "Classroom", batch_name):
                         saved_c = True
 
-            if st.session_state.energy_df_upload is not None:
-                energy_df = st.session_state.energy_df_upload
+            if not energy_df.empty:
                 if not db.energy_batch_unique(batch_name):
                     st.error("❌ This batch name already exists in energy. Please use a unique batch name.")
                 else:
@@ -226,12 +233,3 @@ with st.spinner("Loading page...", show_time=True):
 
         elif save_btn and not batch_name:
             st.error("Please enter a Batch Name before saving.")
-
-    # clear the uploader and session state for a fresh start
-    if st.button("Clear Files"):
-        clear_files()
-        st.session_state.class_df_upload = None
-        st.session_state.energy_df_upload = None
-        st.toast("Files cleared successfully!", icon="✅")
-        time.sleep(1)  # brief pause to ensure toast is seen
-        st.rerun()

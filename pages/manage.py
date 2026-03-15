@@ -6,26 +6,43 @@ import database as db  # Importing your database.py
 
 db.init_db()
 
-def delete_data():
-    """Function to perform the actual delete operation."""
-    st.write("Data has been deleted!")
-    # Add your actual deletion logic here (e.g., clear database, remove items from a list)
-    st.session_state['delete_pending'] = False # Reset the flag after deletion
-    # You might want to rerun the script to update the UI
-    st.rerun()
+def delete_data(data_type, batch_name):
+    """Perform the actual delete operation."""
+    with st.spinner("Clearing " + data_type + " data..."):
+        if data_type == "Classroom" and db.clear_classroom_data(batch_name):
+            st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
+            time.sleep(1)  # brief pause to ensure toast is seen
+            st.session_state.class_df_manage = pd.DataFrame()
+            class_df = pd.DataFrame()
 
-def confirm_delete_ui():
+            if db.energy_batch_unique(batch_name):
+                db.clear_batch(batch_name)
+            
+            st.session_state['delete_pending'] = None # Reset the flag after deletion
+
+        elif data_type == "Energy" and db.clear_energy_data(batch_name):
+            st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
+            time.sleep(1)  # brief pause to ensure toast is seen
+            st.session_state.energy_df_manage = pd.DataFrame()
+            energy_df = pd.DataFrame()
+
+            if db.class_batch_unique(batch_name):
+                db.clear_batch(batch_name)
+
+            st.session_state['delete_pending'] = None # Reset the flag after deletion
+
+def confirm_delete(data_type, batch_name):
     """Displays the confirmation UI."""
     st.error("Are you sure you want to delete all data? This action cannot be undone.")
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.button("Yes, Delete Forever", on_click=delete_data, key="confirm_delete_btn")
+        st.button("Delete", type="primary", on_click=delete_data, args=(data_type, batch_name), key=f"confirm_delete_btn_{data_type}_{batch_name}")
     with col2:
-        st.button("Cancel", on_click=cancel_delete, key="cancel_delete_btn")
+        st.button("Cancel", on_click=cancel_delete, key=f"cancel_delete_btn_{data_type}")
 
 def cancel_delete():
     """Cancels the delete action and hides the confirmation UI."""
-    st.session_state['delete_pending'] = False
+    st.session_state['delete_pending'] = None
 
 # Initialize session state for persistence across reruns
 if 'class_df_manage' not in st.session_state:
@@ -35,7 +52,7 @@ if 'energy_df_manage' not in st.session_state:
 if 'selected_batch_manage' not in st.session_state:
     st.session_state.selected_batch_manage = None
 if 'delete_pending' not in st.session_state:
-    st.session_state['delete_pending'] = False
+    st.session_state['delete_pending'] = None
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
@@ -66,7 +83,6 @@ with st.spinner("Loading page...", show_time=True):
                 st.info("Choose a data batch and click 'Load Data' to fetch data from database.")
                 st.session_state["class_df_manage"] = pd.DataFrame()
                 st.session_state["energy_df_manage"] = pd.DataFrame()
-
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
                     # store loaded dataframes in session_state so they persist across interactions
@@ -78,45 +94,26 @@ with st.spinner("Loading page...", show_time=True):
         energy_df = st.session_state.get('energy_df_manage', pd.DataFrame())
         batch_name = st.session_state.get('selected_batch_manage', None)
 
-        if not class_df.empty:
+        if 'class_df' in locals() and not class_df.empty:
             st.subheader(f"Classroom Data Records for {batch_name}")
             st.dataframe(class_df)
 
-            if st.button("Clear Classroom Data", type="primary", key="clear_class_btn"):
-                if st.session_state['delete_pending']:
-                    confirm_delete_ui()
-                else:
-                    st.write("Your data is safe (for now).")
-                    if st.button("Initiate Delete Action"):
-                        st.session_state['delete_pending'] = True
-                        # Rerunning immediately after setting the flag updates the UI to show the confirmation
-                        st.rerun()
+            if st.session_state['delete_pending'] == "Classroom":
+                confirm_delete("Classroom", batch_name)
+            else:
+                if st.button("Clear Classroom Data", type="primary", key="clear_class_btn"):
+                    st.session_state['delete_pending'] = "Classroom"
+                    # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                    st.rerun()
 
-                with st.spinner("Clearing classroom data..."):
-                    if db.clear_classroom_data(batch_name):
-                        st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
-                        time.sleep(1)  # brief pause to ensure toast is seen
-                        st.session_state.class_df_manage = pd.DataFrame()
-                        class_df = pd.DataFrame()
-
-                        if db.energy_batch_unique(batch_name):
-                            db.clear_batch(batch_name)
-
-                        st.rerun()
-
-        if not energy_df.empty:
+        if 'energy_df' in locals() and not energy_df.empty:
             st.subheader(f"Energy Data Records for {batch_name}")
             st.dataframe(energy_df)
 
-            if st.button("Clear Energy Data", type="primary", key="clear_energy_btn"):
-                with st.spinner("Clearing energy data..."):
-                    if db.clear_energy_data(batch_name):
-                        st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
-                        time.sleep(1)  # brief pause to ensure toast is seen
-                        st.session_state.energy_df_manage = pd.DataFrame()
-                        energy_df = pd.DataFrame()
-                        
-                        if db.class_batch_unique(batch_name):
-                            db.clear_batch(batch_name)
-
-                        st.rerun()
+            if st.session_state['delete_pending'] == "Energy":
+                confirm_delete("Energy", batch_name)
+            else:
+                if st.button("Clear Energy Data", type="primary", key="clear_energy_btn"):
+                    st.session_state['delete_pending'] = "Energy"
+                    # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                    st.rerun()
