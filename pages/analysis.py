@@ -210,11 +210,128 @@ with st.spinner("Loading page...", show_time=True):
 
                     st.plotly_chart(line_fig, width="stretch")
 
+                    # ==========================================
+                    # Findings: Monthly Energy Cost per Floor
+                    # ==========================================
+                    st.markdown("Findings: Monthly Energy Cost per Floor")
+
+                    with st.expander("Show Monthly Energy Cost per Floor findings details"):
+                        # Total energy per month
+                        monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
+
+                        # Identify highest and lowest month
+                        high_month = monthly_energy.loc[monthly_energy["Energy_Cost"].idxmax()]
+                        low_month = monthly_energy.loc[monthly_energy["Energy_Cost"].idxmin()]
+
+                        # Floors in highest month
+                        high_month_floors = energy_df[energy_df["Month"] == high_month["Month"]]
+                        high_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmin()]
+
+                        # Floors in lowest month
+                        low_month_floors = energy_df[energy_df["Month"] == low_month["Month"]]
+                        high_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmin()]
+
+                        # Average monthly cost
+                        avg_monthly_cost = monthly_energy["Energy_Cost"].mean()
+
+                        # Display metrics
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            st.metric(
+                                "Highest Energy Cost Month",
+                                high_month["Month"],
+                                f"RM {high_month['Energy_Cost']:.2f}"
+                            )
+
+                        with col2:
+                            st.metric(
+                                "Lowest Energy Cost Month",
+                                low_month["Month"],
+                                f"RM {low_month['Energy_Cost']:.2f}"
+                            )
+
+                        with col3:
+                            st.metric(
+                                "Average Monthly Energy Cost",
+                                f"RM {avg_monthly_cost:.2f}"
+                            )
+
+                        # text findings
+                        st.markdown(f"""
+                        **Observations:**
+
+                        **{high_month['Month']} recorded the highest total energy cost** of **RM {high_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_high_month['Floor']}**, with **RM {high_floor_high_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_high_month['Floor']}**, with **RM {low_floor_high_month['Energy_Cost']:.2f}**.
+
+                        **{low_month['Month']} recorded the lowest total energy cost** of **RM {low_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_low_month['Floor']}**, with **RM {high_floor_low_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_low_month['Floor']}**, with **RM {low_floor_low_month['Energy_Cost']:.2f}**.
+
+                        These variations indicate that energy consumption patterns differ across floors and months, suggesting opportunities
+                        for improved energy management and operational optimization.
+                        """)
+
+                        # ===== PANEL LAYOUT =====
+                        col1, col2 = st.columns(2)
+
+                        # Highest Month Panel
+                        with col1:
+                            st.container(border=True)
+                            st.markdown("### 🔺 Highest Energy Month")
+
+                            st.metric(
+                                "Month",
+                                high_month["Month"]
+                            )
+
+                            st.metric(
+                                "Total Energy Cost",
+                                f"RM {high_month['Energy_Cost']:.2f}"
+                            )
+
+                            st.write("**Highest Floor Contributor**")
+                            st.write(f"{high_floor_high_month['Floor']} — RM {high_floor_high_month['Energy_Cost']:.2f}")
+
+                            st.write("**Lowest Floor Contributor**")
+                            st.write(f"{low_floor_high_month['Floor']} — RM {low_floor_high_month['Energy_Cost']:.2f}")
+
+                        # Lowest Month Panel
+                        with col2:
+                            st.container(border=True)
+                            st.markdown("### 🔻 Lowest Energy Month")
+
+                            st.metric(
+                                "Month",
+                                low_month["Month"]
+                            )
+
+                            st.metric(
+                                "Total Energy Cost",
+                                f"RM {low_month['Energy_Cost']:.2f}"
+                            )
+
+                            st.write("**Highest Floor Contributor**")
+                            st.write(f"{high_floor_low_month['Floor']} — RM {high_floor_low_month['Energy_Cost']:.2f}")
+
+                            st.write("**Lowest Floor Contributor**")
+                            st.write(f"{low_floor_low_month['Floor']} — RM {low_floor_low_month['Energy_Cost']:.2f}")
+
+                        st.markdown(f"""
+                            Energy usage peaked in **{high_month['Month']}**, mainly driven by **{high_floor_high_month['Floor']}**. 
+                            The lowest energy consumption occurred in **{low_month['Month']}**, suggesting lower building activity.
+                        """)
+
                     # Pie chart: percentage contribution
                     st.subheader("Floor Contribution to Total Energy Cost")
 
                     total_energy_cost = energy_df["Energy_Cost"].sum()
-                    st.metric("Total Energy Cost: RM", f"{total_energy_cost:.2f}")
+                    st.metric("Total Energy Cost:", f"RM {total_energy_cost:.2f}")
 
                     pie_fig = px.pie(
                         floor_energy_cost,
@@ -234,6 +351,56 @@ with st.spinner("Loading page...", show_time=True):
                     )
 
                     st.plotly_chart(pie_fig, width="stretch")
+                    
+                    # ==========================================
+                    # Findings: Energy Cost Contribution
+                    # ==========================================
+                    st.markdown("Findings: Floor Contribution to Total Energy Cost")
+
+                    with st.expander("Show Floor Contribution to Total Energy Cost findings details"):
+                        # Calculate percentage contribution
+                        floor_energy_cost["Contribution (%)"] = (
+                            floor_energy_cost["Energy_Cost"] / total_energy_cost * 100
+                        )
+
+                        st.dataframe(floor_energy_cost)
+
+                        avg_cost = floor_energy_cost["Energy_Cost"].mean()
+
+                        # Identify dominant floor
+                        dominant_floor = floor_energy_cost.loc[
+                            floor_energy_cost["Contribution (%)"].idxmax()
+                        ]
+
+                        least_floor = floor_energy_cost.loc[
+                            floor_energy_cost["Contribution (%)"].idxmin()
+                        ]
+
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            st.metric(
+                                "Highest Energy Cost Contributor",
+                                dominant_floor["Floor"],
+                                f"{dominant_floor['Contribution (%)']:.2f}%"
+                            )
+
+                        with col2:
+                            st.metric(
+                                "Lowest Energy Cost Contributor",
+                                least_floor["Floor"],
+                                f"{least_floor['Contribution (%)']:.2f}%"
+                            )
+
+                        st.markdown(f"""
+                        **Observation:**  
+                        **{dominant_floor['Floor']}** contributes the highest share of energy cost, 
+                        accounting for **{dominant_floor['Contribution (%)']:.2f}%** of the total energy expenditure. 
+                        In contrast, **{least_floor['Floor']}** contributes the least at **{least_floor['Contribution (%)']:.2f}%**. 
+                        This suggests that **{dominant_floor['Floor']}** may have higher operational demand or energy usage and 
+                        **{least_floor['Floor']}** have lower operational demand or energy usage.
+                        """)
+
             elif energy_df.empty:
                 st.info(f"No energy data available for batch {selected_batch}.")
 
@@ -370,5 +537,11 @@ with st.spinner("Loading page...", show_time=True):
                         corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
 
                         st.plotly_chart(corr_fig, width="stretch")
+
             elif class_df.empty or energy_df.empty:
-                st.info(f"No data available for batch {selected_batch}.")
+                if class_df.empty:
+                    st.info(f"No classroom data available for batch {selected_batch}.")
+                elif energy_df.empty:
+                    st.info(f"No energy data available for batch {selected_batch}.")
+                else:
+                    st.info(f"No data available for batch {selected_batch}.")

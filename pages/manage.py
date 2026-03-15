@@ -6,6 +6,27 @@ import database as db  # Importing your database.py
 
 db.init_db()
 
+def delete_data():
+    """Function to perform the actual delete operation."""
+    st.write("Data has been deleted!")
+    # Add your actual deletion logic here (e.g., clear database, remove items from a list)
+    st.session_state['delete_pending'] = False # Reset the flag after deletion
+    # You might want to rerun the script to update the UI
+    st.rerun()
+
+def confirm_delete_ui():
+    """Displays the confirmation UI."""
+    st.error("Are you sure you want to delete all data? This action cannot be undone.")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.button("Yes, Delete Forever", on_click=delete_data, key="confirm_delete_btn")
+    with col2:
+        st.button("Cancel", on_click=cancel_delete, key="cancel_delete_btn")
+
+def cancel_delete():
+    """Cancels the delete action and hides the confirmation UI."""
+    st.session_state['delete_pending'] = False
+
 # Initialize session state for persistence across reruns
 if 'class_df_manage' not in st.session_state:
     st.session_state["class_df_manage"] = pd.DataFrame()
@@ -13,6 +34,8 @@ if 'energy_df_manage' not in st.session_state:
     st.session_state["energy_df_manage"] = pd.DataFrame()
 if 'selected_batch_manage' not in st.session_state:
     st.session_state.selected_batch_manage = None
+if 'delete_pending' not in st.session_state:
+    st.session_state['delete_pending'] = False
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
@@ -59,7 +82,16 @@ with st.spinner("Loading page...", show_time=True):
             st.subheader(f"Classroom Data Records for {batch_name}")
             st.dataframe(class_df)
 
-            if st.button("Clear Classroom Data for This Batch", type="primary", key="clear_class_btn"):
+            if st.button("Clear Classroom Data", type="primary", key="clear_class_btn"):
+                if st.session_state['delete_pending']:
+                    confirm_delete_ui()
+                else:
+                    st.write("Your data is safe (for now).")
+                    if st.button("Initiate Delete Action"):
+                        st.session_state['delete_pending'] = True
+                        # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                        st.rerun()
+
                 with st.spinner("Clearing classroom data..."):
                     if db.clear_classroom_data(batch_name):
                         st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
@@ -76,7 +108,7 @@ with st.spinner("Loading page...", show_time=True):
             st.subheader(f"Energy Data Records for {batch_name}")
             st.dataframe(energy_df)
 
-            if st.button("Clear Energy Data for This Batch", type="primary", key="clear_energy_btn"):
+            if st.button("Clear Energy Data", type="primary", key="clear_energy_btn"):
                 with st.spinner("Clearing energy data..."):
                     if db.clear_energy_data(batch_name):
                         st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
