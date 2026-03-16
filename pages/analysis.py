@@ -147,6 +147,61 @@ with st.spinner("Loading page...", show_time=True):
                     )
                     
                     st.plotly_chart(bar_fig, width="stretch")
+                    # ------------------------------------------
+                    # Findings: Top 5 Underutilized Rooms (UPGRADED VARIANCE ANALYSIS)
+                    # ------------------------------------------
+                    st.markdown("Findings: Top 5 Underutilized Rooms")
+
+                    with st.expander("Show findings details"):
+                        # Data Extraction & Baseline Calculation
+                        campus_avg = class_df["Percent_Utilize"].mean()
+                        worst_room = top_underutilized.iloc[0]
+                        second_worst = top_underutilized.iloc[1]
+                        fifth_worst = top_underutilized.iloc[-1]
+                        
+                        # Calculate Difference (Delta) from Campus Average
+                        worst_diff = worst_room['Percent_Utilize'] - campus_avg
+                        second_diff = second_worst['Percent_Utilize'] - campus_avg
+                        fifth_diff = fifth_worst['Percent_Utilize'] - campus_avg
+
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            st.metric(
+                                label=f"Most Critical: Room {worst_room['Classroom_ID']}",
+                                value=f"{worst_room['Percent_Utilize']:.2f}%",
+                                delta=f"{worst_diff:.2f}% vs Avg",
+                                delta_color="normal" # Up = Green, Down = Red (Danger)
+                            )
+                        with col2:
+                            st.metric(
+                                label=f"2nd Worst: Room {second_worst['Classroom_ID']}",
+                                value=f"{second_worst['Percent_Utilize']:.2f}%",
+                                delta=f"{second_diff:.2f}% vs Avg",
+                                delta_color="normal"
+                            )
+                        with col3:
+                            st.metric(
+                                label=f"5th Worst: Room {fifth_worst['Classroom_ID']}",
+                                value=f"{fifth_worst['Percent_Utilize']:.2f}%",
+                                delta=f"{fifth_diff:.2f}% vs Avg",
+                                delta_color="normal"
+                            )
+
+                        # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
+                        worst_wasted_space = 100 - worst_room['Percent_Utilize']
+
+                        st.markdown(f"""
+                        **Variance Observations:**
+
+                        The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly from this baseline:
+                        
+                        - **Room {worst_room['Classroom_ID']}** is severely underperforming, operating at **{abs(worst_diff):.2f}% below** the campus average. 
+                        - This means **{worst_wasted_space:.2f}% of Room {worst_room['Classroom_ID']}'s capacity is entirely wasted** during its scheduled hours.
+                        - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still **{abs(fifth_diff):.2f}% below** acceptable average levels.
+
+                        **Actionable Insight:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the UniTime/FET scheduling pool immediately and re-route its assigned classes to standard-sized rooms to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage.
+                        """)
 
                     # Heatmap: Floor vs Time Slot
                     st.subheader("Utilization Heatmap (Floor vs Time)")
@@ -172,6 +227,41 @@ with st.spinner("Loading page...", show_time=True):
                     )
 
                     st.plotly_chart(heat_fig, width="stretch")
+
+                    # ------------------------------------------
+                    # Findings: Utilization Heatmap
+                    # ------------------------------------------
+                    st.markdown("Findings: Floor vs Time Utilization")
+
+                    with st.expander("Show findings details"):
+                        # Data Extraction
+                        peak_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmax()]
+                        lowest_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmin()]
+
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            st.markdown("### 🔥 Peak Usage Zone")
+                            st.metric("Time Slot", peak_usage["Time_Slot"])
+                            st.metric("Floor Level", f"Floor {peak_usage['Floor']}")
+                            st.write(f"**Utilization:** {peak_usage['Percent_Utilize']:.2f}%")
+
+                        with col2:
+                            st.markdown("### ❄️ Dead Zone (Lowest Usage)")
+                            st.metric("Time Slot", lowest_usage["Time_Slot"])
+                            st.metric("Floor Level", f"Floor {lowest_usage['Floor']}")
+                            st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
+
+                        st.markdown(f"""
+                        **Observations:**
+
+                        The campus experiences its highest density on **{peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot, reaching **{peak_usage['Percent_Utilize']:.2f}%** capacity. 
+                        
+                        Conversely, the most inefficient scheduling occurs on **{lowest_usage['Floor']}** during **{lowest_usage['Time_Slot']}**, dropping to a 'Dead Zone' level of just **{lowest_usage['Percent_Utilize']:.2f}%**.""")
+
+                        ##**Actionable Insight:** This indicates **Temporal Energy Leakage**. Management should investigate the classes operating during the {lowest_usage['Time_Slot']} on Floor {lowest_usage['Floor']}. Moving these isolated classes to a different floor would allow the centralized air-conditioning for Floor {lowest_usage['Floor']} to be deactivated entirely during that time.
+                        ##""")
+
             elif class_df.empty:
                 st.info(f"No classroom data available for batch {selected_batch}.")
 
@@ -215,7 +305,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ==========================================
                     st.markdown("Findings: Monthly Energy Cost per Floor")
 
-                    with st.expander("Show Monthly Energy Cost per Floor findings details"):
+                    with st.expander("Show findings details"):
                         # Total energy per month
                         monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
 
@@ -357,7 +447,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ==========================================
                     st.markdown("Findings: Floor Contribution to Total Energy Cost")
 
-                    with st.expander("Show Floor Contribution to Total Energy Cost findings details"):
+                    with st.expander("Show findings details"):
                         # Calculate percentage contribution
                         floor_energy_cost["Contribution (%)"] = (
                             floor_energy_cost["Energy_Cost"] / total_energy_cost * 100
@@ -537,6 +627,53 @@ with st.spinner("Loading page...", show_time=True):
                         corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
 
                         st.plotly_chart(corr_fig, width="stretch")
+
+                        # ==========================================
+                        # 4. Findings: Correlation Analysis
+                        # ==========================================
+                        st.markdown("Findings: Occupancy vs Energy Cost Correlation")
+
+                        with st.expander("Show findings details"):
+                            # Statistical Calculations
+                            r2_score = model.score(X, y)
+                            corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
+                            slope = model.coef_[0]
+                            unexplained_variance = 100 - (r2_score * 100)
+
+                            # Metric Columns
+                            col1, col2, col3 = st.columns(3)
+
+                            with col1:
+                                st.metric(
+                                    label="Correlation Coefficient (r)",
+                                    value=f"{corr_coef:.2f}",
+                                    help="1.0 is perfect correlation. Near 0 means no relationship."
+                                )
+                            with col2:
+                                st.metric(
+                                    label="R-Squared Score",
+                                    value=f"{r2_score * 100:.1f}%",
+                                    help="Percentage of energy cost explained by student occupancy."
+                                )
+                            with col3:
+                                st.metric(
+                                    label="Est. Cost per Occupant",
+                                    value=f"RM {slope:.2f}",
+                                    help="Estimated increase in energy bill for each additional student."
+                                )
+
+                            # Dynamic Text Findings
+                            st.markdown(f"""
+                            **Statistical Observations:**
+
+                            The correlation coefficient ($r$) is **{corr_coef:.2f}**, indicating the mathematical relationship between the number of students in a building and its resulting electricity bill.
+                            
+                            - The $R^2$ score reveals that only **{r2_score * 100:.1f}%** of the energy cost variance is actually driven by student occupancy.
+                            - Alarmingly, the remaining **{unexplained_variance:.1f}%** of the energy bill is completely unlinked to human presence—representing fixed baseline costs or massive wastage (e.g., cooling empty hallways, running HVAC in underutilized 500-seater halls).
+                            - The Linear Regression trendline estimates that every additional scheduled student adds approximately **RM {slope:.2f}** to the operational energy cost.""")
+                            
+                            ##**Actionable Insight:** A low $R^2$ score mathematically proves the critical flaw in traditional, logistics-only schedulers like **UniTime**. The university is paying exorbitant energy bills regardless of whether the rooms are full or empty. Management must implement strict **Zone Shutdown Policies** (e.g., packing all afternoon classes onto a single floor) to force the energy cost to align closely with actual human occupancy, rather than cooling an entire empty building.
+                            ##""")
 
             elif class_df.empty or energy_df.empty:
                 if class_df.empty:
