@@ -192,7 +192,7 @@ with st.spinner("Loading page...", show_time=True):
                         worst_wasted_space = 100 - worst_room['Percent_Utilize']
 
                         st.markdown(f"""
-                        **Variance Observations:**
+                        **Observations:**
 
                         The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly from this baseline:
                         
@@ -247,7 +247,7 @@ with st.spinner("Loading page...", show_time=True):
                             st.write(f"**Utilization:** {peak_usage['Percent_Utilize']:.2f}%")
 
                         with col2:
-                            st.markdown("### ❄️ Dead Zone (Lowest Usage)")
+                            st.markdown("### ❄️ Dead Zone")
                             st.metric("Time Slot", lowest_usage["Time_Slot"])
                             st.metric("Floor Level", f"Floor {lowest_usage['Floor']}")
                             st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
@@ -339,24 +339,28 @@ with st.spinner("Loading page...", show_time=True):
 
                         with col1:
                             st.metric(
-                                "Peak Month",
+                                "Highest Energy Cost Month",
                                 high_month["Month"],
                                 f"RM {high_month['Energy_Cost']:.2f}"
                             )
 
                         with col2:
                             st.metric(
-                                "2nd Peak Month",
+                                "2nd Highest Energy Cost Month",
                                 second_high_month["Month"],
                                 f"RM {second_high_month['Energy_Cost']:.2f}"
                             )
 
                         with col3:
                             st.metric(
-                                "Dead Month",
+                                "Lowest Energy Cost Month",
                                 low_month["Month"],
                                 f"RM {low_month['Energy_Cost']:.2f}"
                             )
+
+                        difference = high_month["Energy_Cost"] - second_high_month["Energy_Cost"]
+
+                        st.metric("Difference of Costs Between 1st and 2nd Highest Energy Cost Month", f"RM {difference:.2f}")
 
                         # text findings
                         st.markdown(f"""
@@ -420,7 +424,10 @@ with st.spinner("Loading page...", show_time=True):
                             floor_energy_cost["Energy_Cost"] / total_energy_cost * 100
                         )
 
-                        st.dataframe(floor_energy_cost)
+                        # Sort by energy cost (descending)
+                        cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False)
+
+                        st.dataframe(cost_sorted)
 
                         avg_cost = floor_energy_cost["Energy_Cost"].mean()
 
@@ -460,13 +467,13 @@ with st.spinner("Loading page...", show_time=True):
                         col3, col4, col5 = st.columns(3)
 
                         with col3:
-                            st.metric("Variance (RM²)", f"{variance:.2f}")
+                            st.metric("Variance (RM²):", f"{variance:.2f}")
 
                         with col4:
-                            st.metric("Std Deviation (RM)", f"{std_dev:.2f}")
+                            st.metric("Std Deviation (RM):", f"{std_dev:.2f}")
 
                         with col5:
-                            st.metric("Max-Min Difference (RM)", f"{range_diff:.2f}")
+                            st.metric("Max-Min Difference (RM):", f"{range_diff:.2f}")
 
                         cv = std_dev / avg_cost
                         
@@ -495,21 +502,23 @@ with st.spinner("Loading page...", show_time=True):
                             **Recommendation:** Current energy usage patterns are relatively efficient, but continuous monitoring is recommended to maintain performance.
                             """
 
-                        st.divider()
-
                         st.markdown(f"""
-                        **Observation:**  
+                        **Observation:**
+                                    
                         **{dominant_floor['Floor']}** contributes the highest share of energy cost, 
                         accounting for **{dominant_floor['Contribution (%)']:.2f}%** of the total energy expenditure. 
+
                         In contrast, **{least_floor['Floor']}** contributes the least at **{least_floor['Contribution (%)']:.2f}%**. 
-                        This suggests that **{dominant_floor['Floor']}** may have higher operational demand or energy usage and 
-                        **{least_floor['Floor']}** have lower operational demand or energy usage.
+
+                        This suggests that **{dominant_floor['Floor']}** may have higher operational demand or energy usage, 
+                        while **{least_floor['Floor']}** has lower operational demand or energy usage.
 
                         The variation in energy cost across floors is **{variation_level}**, with a difference of 
                         **RM {range_diff:.2f}** (approximately **{percent_diff:.2f}%** higher between the highest and lowest floors).
-
-                        {variation_text}
                         """)
+
+                        st.markdown(f"""{variation_text}""")
+                        
 
             elif energy_df.empty:
                 st.info(f"No energy data available for batch {selected_batch}.")

@@ -59,40 +59,51 @@ def init_db():
 
 def save_to_db(df, table_name, batch_name):
     """Saves a dataframe to the database with a specific batch tag."""
+
     if table_name not in ALLOWED_TABLES:
         raise ValueError(f"Invalid table name: {table_name}")
 
     conn = sqlite3.connect(DB_NAME)
+
     try:
-        if save_batch_to_db(batch_name):
-            st.toast(f"Batch '{batch_name}' registered successfully!", icon="✅")
-            time.sleep(1)  # brief pause to ensure toast is seen
+        # Ensure batch exists
+        save_batch_to_db(batch_name)
 
-            query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
-            result = conn.execute(query, (batch_name,)).fetchone()
+        # Get Batch_id
+        query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
+        result = conn.execute(query, (batch_name,)).fetchone()
+        batch_id = result[0]
 
-            # Create a copy to avoid modifying the original view
-            save_df = df.copy()
-            save_df["Batch_id"] = result[0]
+        # ==============================
+        # 🔍 CHECK BEFORE INSERT
+        # ==============================
+        class_exists_before, energy_exists_before = get_batch_status(batch_id)
 
-            # Write to SQL (append mode)
-            save_df.to_sql(table_name, conn, if_exists='append', index=False)
-            return True
+        # Save data
+        save_df = df.copy()
+        save_df["Batch_id"] = batch_id
+        save_df.to_sql(table_name, conn, if_exists='append', index=False)
+
+        # ==============================
+        # 🚨 CONDITION (ONLY BEFORE)
+        # ==============================
+        if class_exists_before and energy_exists_before:
+            st.toast(
+                f"Batch '{batch_name}' already exists in both Classroom and Energy data.",
+                icon="⚠️"
+            )
         else:
-            query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
-            result = conn.execute(query, (batch_name,)).fetchone()
+            st.toast(
+                f"{table_name} data saved successfully for batch '{batch_name}'.",
+                icon="✅"
+            )
 
-            # Create a copy to avoid modifying the original view
-            save_df = df.copy()
-            save_df["Batch_id"] = result[0]
-
-            # Write to SQL (append mode)
-            save_df.to_sql(table_name, conn, if_exists='append', index=False)
-            return True
+        return True
 
     except Exception as e:
         st.error(f"Database Error: {e}")
         return False
+
     finally:
         conn.close()
 
@@ -100,15 +111,25 @@ def save_batch_to_db(batch_name):
     """Saves a new batch name to the Batch table."""
     conn = sqlite3.connect(DB_NAME)
     try:
-        conn.execute("INSERT INTO Batch (Batch_Name) VALUES (?)", (batch_name,))
+        conn.execute("INSERT OR IGNORE INTO Batch (Batch_Name) VALUES (?)", (batch_name,))
         conn.commit()
         return True
-    except sqlite3.IntegrityError:
-        st.toast("Batch name already exists.", icon="⚠️")
-        time.sleep(1)  # brief pause to ensure toast is seen
-        return False
     finally:
         conn.close()
+
+def get_batch_status(batch_id):
+    """Returns (class_exists, energy_exists)"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM Classroom WHERE Batch_id = ?", (batch_id,))
+    class_exists = cursor.fetchone()[0] > 0
+
+    cursor.execute("SELECT COUNT(*) FROM Energy WHERE Batch_id = ?", (batch_id,))
+    energy_exists = cursor.fetchone()[0] > 0
+
+    conn.close()
+    return class_exists, energy_exists
 
 def load_from_db(table_name, batch_name):
     """Loads data from the database for a specific batch. Returns empty DataFrame if batch_name is not provided."""

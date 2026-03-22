@@ -90,9 +90,13 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state["energy_df_manage"] = db.load_from_db("Energy", st.session_state['selected_batch_manage'])
                     st.toast("Data loaded successfully.", icon="✅")
 
+                    st.divider()
+
         class_df = st.session_state.get('class_df_manage', pd.DataFrame())
         energy_df = st.session_state.get('energy_df_manage', pd.DataFrame())
         batch_name = st.session_state.get('selected_batch_manage', None)
+
+        
 
         if 'class_df' in locals() and not class_df.empty:
             st.subheader(f"Classroom Data Records for {batch_name}")

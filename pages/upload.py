@@ -74,6 +74,14 @@ with st.spinner("Loading page...", show_time=True):
 
     st.write(f"Upload raw Excel/CSV files to analyze and save them to the database.")
 
+    with st.expander("Data Preprocessing Notes", icon="⚠️"):
+        st.warning(f"Dataset may differ from the original uploaded files after preprocessing. Please review the data and ensure it is correct before saving to the database.")
+        st.write(f"Preprocessing steps taken:\n"
+                 f"- Dropped rows with any missing values.\n"
+                 f"- Dropped rows with non-numeric values in 'Capacity', 'Scheduled_Hours', and 'Actual_Occupancy' in classroom data.\n"
+                 f"- Dropped rows with non-numeric values in 'Energy_kWh' and 'Energy_Cost' in energy data."
+        )
+
     # Initialize uploader key in session state
     if "uploader_key" not in st.session_state:
         st.session_state["uploader_key"] = 0
@@ -148,6 +156,15 @@ with st.spinner("Loading page...", show_time=True):
                     f"\nPlease upload the correct dataset."
                 )
 
+        # clear the uploaded files for a fresh start
+        if st.button("Clear Files"):
+            clear_files()
+            st.toast("Files cleared successfully!", icon="✅")
+            time.sleep(1)  # brief pause to ensure toast is seen
+            st.rerun()
+
+        st.divider()
+        
     # Preprocessing classroom data
     if 'class_df' in locals() and not class_df.empty:
         class_df = class_df.dropna() # drop missing values in a row
@@ -189,15 +206,8 @@ with st.spinner("Loading page...", show_time=True):
         with st.expander("Energy Cost Data"):
             st.dataframe(energy_df)
 
-    # clear the uploader and session state for a fresh start
-    if st.button("Clear Files"):
-        clear_files()
-        st.toast("Files cleared successfully!", icon="✅")
-        time.sleep(1)  # brief pause to ensure toast is seen
-        st.rerun()
-
     if 'class_df' in locals() and not class_df.empty or 'energy_df' in locals() and not energy_df.empty:
-        st.markdown("---")
+        st.divider()
         st.write("💾 Save to System Memory")
         col1, col2 = st.columns([3, 1])
         with col1:
