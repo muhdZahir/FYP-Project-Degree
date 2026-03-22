@@ -271,8 +271,13 @@ with st.spinner("Loading page...", show_time=True):
             if not energy_df.empty:
                 st.header("Energy Cost Analysis")
 
-                # Calculate total energy cost of the whole floor
-                floor_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
+                # Total energy per month
+                monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
+
+                # Average monthly cost
+                avg_monthly_cost = monthly_energy["Energy_Cost"].mean()
+
+                st.metric("Average Monthly Energy Cost: ", f"RM {avg_monthly_cost:.2f}")
 
                 with st.spinner("Analyzing data...", show_time=True):
                     # Line chart: monthly energy cost per floor
@@ -306,47 +311,51 @@ with st.spinner("Loading page...", show_time=True):
                     st.markdown("Findings: Monthly Energy Cost per Floor")
 
                     with st.expander("Show details"):
-                        # Total energy per month
-                        monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
+                        # Sort by energy cost (descending)
+                        monthly_sorted = monthly_energy.sort_values(by="Energy_Cost", ascending=False)
 
-                        # Identify highest and lowest month
-                        high_month = monthly_energy.loc[monthly_energy["Energy_Cost"].idxmax()]
-                        low_month = monthly_energy.loc[monthly_energy["Energy_Cost"].idxmin()]
+                        # Identify highest, 2nd highest and lowest month
+                        high_month = monthly_sorted.iloc[0]
+                        second_high_month = monthly_sorted.iloc[1]
+                        low_month = monthly_sorted.iloc[-1]
 
                         # Floors in highest month
                         high_month_floors = energy_df[energy_df["Month"] == high_month["Month"]]
                         high_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmax()]
                         low_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmin()]
 
+                        # Floors in 2nd highest month
+                        second_month_floors = energy_df[energy_df["Month"] == second_high_month["Month"]]
+                        high_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmin()]
+
                         # Floors in lowest month
                         low_month_floors = energy_df[energy_df["Month"] == low_month["Month"]]
                         high_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmax()]
                         low_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmin()]
-
-                        # Average monthly cost
-                        avg_monthly_cost = monthly_energy["Energy_Cost"].mean()
 
                         # Display metrics
                         col1, col2, col3 = st.columns(3)
 
                         with col1:
                             st.metric(
-                                "Highest Energy Cost Month",
+                                "Peak Month",
                                 high_month["Month"],
                                 f"RM {high_month['Energy_Cost']:.2f}"
                             )
 
                         with col2:
                             st.metric(
-                                "Lowest Energy Cost Month",
-                                low_month["Month"],
-                                f"RM {low_month['Energy_Cost']:.2f}"
+                                "2nd Peak Month",
+                                second_high_month["Month"],
+                                f"RM {second_high_month['Energy_Cost']:.2f}"
                             )
 
                         with col3:
                             st.metric(
-                                "Average Monthly Energy Cost",
-                                f"RM {avg_monthly_cost:.2f}"
+                                "Dead Month",
+                                low_month["Month"],
+                                f"RM {low_month['Energy_Cost']:.2f}"
                             )
 
                         # text findings
@@ -358,17 +367,25 @@ with st.spinner("Loading page...", show_time=True):
                         - The **highest contributing floor** during this month was **{high_floor_high_month['Floor']}**, with **RM {high_floor_high_month['Energy_Cost']:.2f}**.
                         - The **lowest contributing floor** was **{low_floor_high_month['Floor']}**, with **RM {low_floor_high_month['Energy_Cost']:.2f}**.
 
+                        **{second_high_month['Month']} recorded the second highest energy cost** of **RM {second_high_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_second_month['Floor']}**, with **RM {high_floor_second_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_second_month['Floor']}**, with **RM {low_floor_second_month['Energy_Cost']:.2f}**.
+
                         **{low_month['Month']} recorded the lowest total energy cost** of **RM {low_month['Energy_Cost']:.2f}**.
 
                         - The **highest contributing floor** during this month was **{high_floor_low_month['Floor']}**, with **RM {high_floor_low_month['Energy_Cost']:.2f}**.
                         - The **lowest contributing floor** was **{low_floor_low_month['Floor']}**, with **RM {low_floor_low_month['Energy_Cost']:.2f}**.
-
-                        These variations indicate that energy consumption patterns differ across floors and months, suggesting opportunities
-                        for improved energy management and operational optimization.
                         """)
+                        #These variations indicate that energy consumption patterns differ across floors and months, suggesting opportunities
+                        #for improved energy management and operational optimization.
+                        #""")
 
                     # Pie chart: percentage contribution
                     st.subheader("Floor Contribution to Total Energy Cost")
+
+                    # Calculate total energy cost of the whole floor
+                    floor_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
 
                     total_energy_cost = energy_df["Energy_Cost"].sum()
                     st.metric("Total Energy Cost:", f"RM {total_energy_cost:.2f}")
@@ -408,13 +425,20 @@ with st.spinner("Loading page...", show_time=True):
                         avg_cost = floor_energy_cost["Energy_Cost"].mean()
 
                         # Identify dominant floor
-                        dominant_floor = floor_energy_cost.loc[
-                            floor_energy_cost["Contribution (%)"].idxmax()
-                        ]
+                        dominant_floor = floor_energy_cost.loc[floor_energy_cost["Contribution (%)"].idxmax()]
+                        least_floor = floor_energy_cost.loc[floor_energy_cost["Contribution (%)"].idxmin()]
 
-                        least_floor = floor_energy_cost.loc[
-                            floor_energy_cost["Contribution (%)"].idxmin()
-                        ]
+                        # ==============================
+                        # Variance Analysis
+                        # ==============================
+                        variance = floor_energy_cost["Energy_Cost"].var()
+                        std_dev = floor_energy_cost["Energy_Cost"].std()
+
+                        max_cost = floor_energy_cost["Energy_Cost"].max()
+                        min_cost = floor_energy_cost["Energy_Cost"].min()
+                        range_diff = max_cost - min_cost
+
+                        percent_diff = ((max_cost - min_cost) / min_cost) * 100
 
                         col1, col2 = st.columns(2)
 
@@ -431,6 +455,47 @@ with st.spinner("Loading page...", show_time=True):
                                 least_floor["Floor"],
                                 f"{least_floor['Contribution (%)']:.2f}%"
                             )
+                        
+                        # Variance metrics
+                        col3, col4, col5 = st.columns(3)
+
+                        with col3:
+                            st.metric("Variance (RM²)", f"{variance:.2f}")
+
+                        with col4:
+                            st.metric("Std Deviation (RM)", f"{std_dev:.2f}")
+
+                        with col5:
+                            st.metric("Max-Min Difference (RM)", f"{range_diff:.2f}")
+
+                        cv = std_dev / avg_cost
+                        
+                        if cv > 0.3:
+                            variation_level = "high"
+                            variation_text = """
+                            This indicates a **significant imbalance in energy consumption** across floors. 
+                            Certain floors are consuming disproportionately higher energy, suggesting potential inefficiencies 
+                            such as overuse of air conditioning, longer operating hours, or underutilized spaces with active energy usage.
+
+                            **Recommendation:** Target high-consuming floors for optimization, such as adjusting schedules or improving energy management.
+                            """
+                        elif cv >= 0.2 and cv <= 0.3:
+                            variation_level = "moderate"
+                            variation_text = """
+                            This indicates a **moderate variation in energy consumption** across floors. 
+                            While some differences exist, energy usage is relatively balanced but may still benefit from minor optimization.
+
+                            **Recommendation:** Monitor high-consuming floors and consider gradual improvements in scheduling or energy usage efficiency.
+                            """
+                        else:
+                            variation_level = "low"
+                            variation_text = """
+                            This indicates a **low variation in energy consumption**, suggesting that energy usage is relatively evenly distributed across floors.
+
+                            **Recommendation:** Current energy usage patterns are relatively efficient, but continuous monitoring is recommended to maintain performance.
+                            """
+
+                        st.divider()
 
                         st.markdown(f"""
                         **Observation:**  
@@ -439,6 +504,11 @@ with st.spinner("Loading page...", show_time=True):
                         In contrast, **{least_floor['Floor']}** contributes the least at **{least_floor['Contribution (%)']:.2f}%**. 
                         This suggests that **{dominant_floor['Floor']}** may have higher operational demand or energy usage and 
                         **{least_floor['Floor']}** have lower operational demand or energy usage.
+
+                        The variation in energy cost across floors is **{variation_level}**, with a difference of 
+                        **RM {range_diff:.2f}** (approximately **{percent_diff:.2f}%** higher between the highest and lowest floors).
+
+                        {variation_text}
                         """)
 
             elif energy_df.empty:
@@ -619,8 +689,9 @@ with st.spinner("Loading page...", show_time=True):
                             The correlation coefficient ($r$) is **{corr_coef:.2f}**, indicating the mathematical relationship between the number of students in a building and its resulting electricity bill.
                             
                             - The $R^2$ score reveals that only **{r2_score * 100:.1f}%** of the energy cost variance is actually driven by student occupancy.
-                            - Alarmingly, the remaining **{unexplained_variance:.1f}%** of the energy bill is completely unlinked to human presence—representing fixed baseline costs or massive wastage (e.g., cooling empty hallways, running HVAC in underutilized 500-seater halls).
-                            - The Linear Regression trendline estimates that every additional scheduled student adds approximately **RM {slope:.2f}** to the operational energy cost.""")
+                            - The remaining **{unexplained_variance:.1f}%** of the energy bill, however, is completely unlinked to human presence—representing fixed baseline costs or massive wastage (e.g., cooling empty hallways, running HVAC in underutilized 500-seater halls).
+                            - The Linear Regression trendline estimates that every additional scheduled student adds approximately **RM {slope:.2f}** to the operational energy cost.
+                            """)
                             
                             ##**Actionable Insight:** A low $R^2$ score mathematically proves the critical flaw in traditional, logistics-only schedulers like **UniTime**. The university is paying exorbitant energy bills regardless of whether the rooms are full or empty. Management must implement strict **Zone Shutdown Policies** (e.g., packing all afternoon classes onto a single floor) to force the energy cost to align closely with actual human occupancy, rather than cooling an entire empty building.
                             ##""")
