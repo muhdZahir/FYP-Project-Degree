@@ -152,7 +152,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ------------------------------------------
                     st.markdown("Findings: Top 5 Underutilized Rooms")
 
-                    with st.expander("Show findings details"):
+                    with st.expander("Show details"):
                         # Data Extraction & Baseline Calculation
                         campus_avg = class_df["Percent_Utilize"].mean()
                         worst_room = top_underutilized.iloc[0]
@@ -233,7 +233,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ------------------------------------------
                     st.markdown("Findings: Floor vs Time Utilization")
 
-                    with st.expander("Show findings details"):
+                    with st.expander("Show details"):
                         # Data Extraction
                         peak_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmax()]
                         lowest_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmin()]
@@ -305,7 +305,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ==========================================
                     st.markdown("Findings: Monthly Energy Cost per Floor")
 
-                    with st.expander("Show findings details"):
+                    with st.expander("Show details"):
                         # Total energy per month
                         monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
 
@@ -367,56 +367,6 @@ with st.spinner("Loading page...", show_time=True):
                         for improved energy management and operational optimization.
                         """)
 
-                        # ===== PANEL LAYOUT =====
-                        col1, col2 = st.columns(2)
-
-                        # Highest Month Panel
-                        with col1:
-                            st.container(border=True)
-                            st.markdown("### 🔺 Highest Energy Month")
-
-                            st.metric(
-                                "Month",
-                                high_month["Month"]
-                            )
-
-                            st.metric(
-                                "Total Energy Cost",
-                                f"RM {high_month['Energy_Cost']:.2f}"
-                            )
-
-                            st.write("**Highest Floor Contributor**")
-                            st.write(f"{high_floor_high_month['Floor']} — RM {high_floor_high_month['Energy_Cost']:.2f}")
-
-                            st.write("**Lowest Floor Contributor**")
-                            st.write(f"{low_floor_high_month['Floor']} — RM {low_floor_high_month['Energy_Cost']:.2f}")
-
-                        # Lowest Month Panel
-                        with col2:
-                            st.container(border=True)
-                            st.markdown("### 🔻 Lowest Energy Month")
-
-                            st.metric(
-                                "Month",
-                                low_month["Month"]
-                            )
-
-                            st.metric(
-                                "Total Energy Cost",
-                                f"RM {low_month['Energy_Cost']:.2f}"
-                            )
-
-                            st.write("**Highest Floor Contributor**")
-                            st.write(f"{high_floor_low_month['Floor']} — RM {high_floor_low_month['Energy_Cost']:.2f}")
-
-                            st.write("**Lowest Floor Contributor**")
-                            st.write(f"{low_floor_low_month['Floor']} — RM {low_floor_low_month['Energy_Cost']:.2f}")
-
-                        st.markdown(f"""
-                            Energy usage peaked in **{high_month['Month']}**, mainly driven by **{high_floor_high_month['Floor']}**. 
-                            The lowest energy consumption occurred in **{low_month['Month']}**, suggesting lower building activity.
-                        """)
-
                     # Pie chart: percentage contribution
                     st.subheader("Floor Contribution to Total Energy Cost")
 
@@ -447,7 +397,7 @@ with st.spinner("Loading page...", show_time=True):
                     # ==========================================
                     st.markdown("Findings: Floor Contribution to Total Energy Cost")
 
-                    with st.expander("Show findings details"):
+                    with st.expander("Show details"):
                         # Calculate percentage contribution
                         floor_energy_cost["Contribution (%)"] = (
                             floor_energy_cost["Energy_Cost"] / total_energy_cost * 100
@@ -633,7 +583,7 @@ with st.spinner("Loading page...", show_time=True):
                         # ==========================================
                         st.markdown("Findings: Occupancy vs Energy Cost Correlation")
 
-                        with st.expander("Show findings details"):
+                        with st.expander("Show details"):
                             # Statistical Calculations
                             r2_score = model.score(X, y)
                             corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
@@ -664,7 +614,7 @@ with st.spinner("Loading page...", show_time=True):
 
                             # Dynamic Text Findings
                             st.markdown(f"""
-                            **Statistical Observations:**
+                            **Observations:**
 
                             The correlation coefficient ($r$) is **{corr_coef:.2f}**, indicating the mathematical relationship between the number of students in a building and its resulting electricity bill.
                             
