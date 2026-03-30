@@ -153,6 +153,7 @@ with st.spinner("Loading page...", show_time=True):
                     st.markdown("Findings: Top 5 Underutilized Rooms")
 
                     with st.expander("Show details"):
+                        
                         # Data Extraction & Baseline Calculation
                         campus_avg = class_df["Percent_Utilize"].mean()
                         worst_room = top_underutilized.iloc[0]
@@ -191,16 +192,22 @@ with st.spinner("Loading page...", show_time=True):
                         # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
                         worst_wasted_space = 100 - worst_room['Percent_Utilize']
 
+                        # THE BEGINNER-FRIENDLY TL;DR ---
+                        st.error(f"""
+                        🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
+                        *Solution:* Move these few students to a smaller room.
+                        """)
+
                         st.markdown(f"""
-                        **Observations:**
+                        **Observation: Severe Capacity Deficit**
 
                         The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly from this baseline:
                         
                         - **Room {worst_room['Classroom_ID']}** is severely underperforming, operating at **{abs(worst_diff):.2f}% below** the campus average. 
-                        - This means **{worst_wasted_space:.2f}% of Room {worst_room['Classroom_ID']}'s capacity is entirely wasted** during its scheduled hours.
+                        - This indicates a **{worst_wasted_space:.2f}% spatial wastage**, yet the university incurs 100% of the baseline cooling costs for this area.
                         - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still **{abs(fifth_diff):.2f}% below** acceptable average levels.
 
-                        **Actionable Insight:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the UniTime/FET scheduling pool immediately and re-route its assigned classes to standard-sized rooms to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage.
+                        **Strategic Recommendation:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the active UniTime/FET scheduling pool immediately and re-route its assigned classes to standard-sized venues to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage and fixed utility overhead.
                         """)
 
                     # Heatmap: Floor vs Time Slot
@@ -252,15 +259,22 @@ with st.spinner("Loading page...", show_time=True):
                             st.metric("Floor Level", f"Floor {lowest_usage['Floor']}")
                             st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
 
-                        st.markdown(f"""
-                        **Observations:**
-
-                        The campus experiences its highest density on **{peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot, reaching **{peak_usage['Percent_Utilize']:.2f}%** capacity. 
+                        # --- THE BEGINNER-FRIENDLY TL;DR ---
+                        st.warning(f"""
+                        ⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
+                        *Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
+                        """)
                         
-                        Conversely, the most inefficient scheduling occurs on **{lowest_usage['Floor']}** during **{lowest_usage['Time_Slot']}**, dropping to a 'Dead Zone' level of just **{lowest_usage['Percent_Utilize']:.2f}%**.""")
+                        st.markdown(f"""
+                        **Observation: Spatial-Temporal Inefficiency**
 
-                        ##**Actionable Insight:** This indicates **Temporal Energy Leakage**. Management should investigate the classes operating during the {lowest_usage['Time_Slot']} on Floor {lowest_usage['Floor']}. Moving these isolated classes to a different floor would allow the centralized air-conditioning for Floor {lowest_usage['Floor']} to be deactivated entirely during that time.
-                        ##""")
+                        The current schedule exhibits severe spatial fragmentation. While the campus experiences its highest density on **Floor {peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot (**{peak_usage['Percent_Utilize']:.2f}%** capacity), other areas form inefficient 'Dead Zones':
+                        
+                        - During the **{lowest_usage['Time_Slot']}** slot, classes are isolated, dropping to a minimum efficiency of **{lowest_usage['Percent_Utilize']:.2f}%** on **Floor {lowest_usage['Floor']}**.
+                        - This fragmentation forces the centralized HVAC systems to cool entire building blocks merely to service a few scattered, low-density populations.
+
+                        **Strategic Recommendation: Zone Consolidation.** Investigate the isolated classes operating during the **{lowest_usage['Time_Slot']}** on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for the unoccupied levels.
+                        """)
 
             elif class_df.empty:
                 st.info(f"No classroom data available for batch {selected_batch}.")
@@ -691,19 +705,23 @@ with st.spinner("Loading page...", show_time=True):
                                     help="Estimated increase in energy bill for each additional student."
                                 )
 
+                                # --- THE BEGINNER-FRIENDLY TL;DR ---
+                            st.error(f"""
+                            🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
+                            Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
+                                """)
+
                             # Dynamic Text Findings
                             st.markdown(f"""
-                            **Observations:**
+                            **Observation: Decoupled Operational Expenditure**
 
-                            The correlation coefficient ($r$) is **{corr_coef:.2f}**, indicating the mathematical relationship between the number of students in a building and its resulting electricity bill.
-                            
-                            - The $R^2$ score reveals that only **{r2_score * 100:.1f}%** of the energy cost variance is actually driven by student occupancy.
-                            - The remaining **{unexplained_variance:.1f}%** of the energy bill, however, is completely unlinked to human presence—representing fixed baseline costs or massive wastage (e.g., cooling empty hallways, running HVAC in underutilized 500-seater halls).
-                            - The Linear Regression trendline estimates that every additional scheduled student adds approximately **RM {slope:.2f}** to the operational energy cost.
-                            """)
-                            
-                            ##**Actionable Insight:** A low $R^2$ score mathematically proves the critical flaw in traditional, logistics-only schedulers like **UniTime**. The university is paying exorbitant energy bills regardless of whether the rooms are full or empty. Management must implement strict **Zone Shutdown Policies** (e.g., packing all afternoon classes onto a single floor) to force the energy cost to align closely with actual human occupancy, rather than cooling an entire empty building.
-                            ##""")
+                            The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of the energy expenditure is actually driven by student occupancy.
+                        
+                            - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to human presence.
+                            - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}** to the utility overhead due to inefficient spatial mapping.
+                        
+                            **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly proportional to actual human utilization, stopping the financial bleed.
+                                """)
 
             elif class_df.empty or energy_df.empty:
                 if class_df.empty:
