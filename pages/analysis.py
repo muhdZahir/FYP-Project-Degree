@@ -152,26 +152,290 @@ with st.spinner("Loading page...", show_time=True):
 
                     col1, col2, col3 = st.columns(3)
 
-                    with col1:
-                        st.metric(
-                            label=f"Most Critical: Room {worst_room['Classroom_ID']}",
-                            value=f"{worst_room['Percent_Utilize']:.2f}%",
-                            delta=f"{worst_diff:.2f}% vs Avg",
-                            delta_color="normal" # Up = Green, Down = Red (Danger)
-                        )
-                    with col2:
-                        st.metric(
-                            label=f"2nd Worst: Room {second_worst['Classroom_ID']}",
-                            value=f"{second_worst['Percent_Utilize']:.2f}%",
-                            delta=f"{second_diff:.2f}% vs Avg",
-                            delta_color="normal"
-                        )
-                    with col3:
-                        st.metric(
-                            label=f"5th Worst: Room {fifth_worst['Classroom_ID']}",
-                            value=f"{fifth_worst['Percent_Utilize']:.2f}%",
-                            delta=f"{fifth_diff:.2f}% vs Avg",
-                            delta_color="normal"
+                    with st.expander("Show details"):
+                        
+                        # Data Extraction & Baseline Calculation
+                        campus_avg = class_df["Percent_Utilize"].mean()
+                        worst_room = top_underutilized.iloc[0]
+                        second_worst = top_underutilized.iloc[1]
+                        fifth_worst = top_underutilized.iloc[-1]
+                        
+                        # Calculate Difference (Delta) from Campus Average
+                        worst_diff = worst_room['Percent_Utilize'] - campus_avg
+                        second_diff = second_worst['Percent_Utilize'] - campus_avg
+                        fifth_diff = fifth_worst['Percent_Utilize'] - campus_avg
+
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            st.metric(
+                                label=f"Most Critical: Room {worst_room['Classroom_ID']}",
+                                value=f"{worst_room['Percent_Utilize']:.2f}%",
+                                delta=f"{worst_diff:.2f}% vs Avg",
+                                delta_color="normal" # Up = Green, Down = Red (Danger)
+                            )
+                        with col2:
+                            st.metric(
+                                label=f"2nd Worst: Room {second_worst['Classroom_ID']}",
+                                value=f"{second_worst['Percent_Utilize']:.2f}%",
+                                delta=f"{second_diff:.2f}% vs Avg",
+                                delta_color="normal"
+                            )
+                        with col3:
+                            st.metric(
+                                label=f"5th Worst: Room {fifth_worst['Classroom_ID']}",
+                                value=f"{fifth_worst['Percent_Utilize']:.2f}%",
+                                delta=f"{fifth_diff:.2f}% vs Avg",
+                                delta_color="normal"
+                            )
+
+                        # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
+                        worst_wasted_space = 100 - worst_room['Percent_Utilize']
+
+                        # THE BEGINNER-FRIENDLY TL;DR ---
+                        st.error(f"""
+                        🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
+                        *Solution:* Move these few students to a smaller room.
+                        """)
+
+                        st.markdown(f"""
+                        **Observation: Severe Capacity Deficit**
+
+                        The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly from this baseline:
+                        
+                        - **Room {worst_room['Classroom_ID']}** is severely underperforming, operating at **{abs(worst_diff):.2f}% below** the campus average. 
+                        - This indicates a **{worst_wasted_space:.2f}% spatial wastage**, yet the university incurs 100% of the baseline cooling costs for this area.
+                        - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still **{abs(fifth_diff):.2f}% below** acceptable average levels.
+
+                        **Strategic Recommendation:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the active UniTime/FET scheduling pool immediately and re-route its assigned classes to standard-sized venues to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage and fixed utility overhead.
+                        """)
+
+                    # Heatmap: Floor vs Time Slot
+                    st.subheader("Utilization Heatmap (Floor vs Time)")
+                    # Pivot data for heatmap
+                    heatmap_data = class_df.groupby(["Floor", "Time_Slot"])["Percent_Utilize"].mean().reset_index()
+                    heatmap_pivot = heatmap_data.pivot(index="Floor", columns="Time_Slot", values="Percent_Utilize")
+                    
+                    heat_fig = px.imshow(
+                        heatmap_pivot,
+                        labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
+                        color_continuous_scale="RdYlGn", 
+                        title="Avg Utilization Rate (%) by Floor and Time"
+                    )
+
+                    # update chart
+                    heat_fig.update_layout(title=dict(text="Avg Utilization Rate (%) by Floor and Time",
+                            font=dict(size=20),   # ← change size here
+                            x=0.2                 # ← position the title
+                        ),
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                        coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font (title and tick) size
+                    )
+
+                    st.plotly_chart(heat_fig, width="stretch")
+
+                    # ------------------------------------------
+                    # Findings: Utilization Heatmap
+                    # ------------------------------------------
+                    st.markdown("Findings: Floor vs Time Utilization")
+
+                    with st.expander("Show details"):
+                        # Data Extraction
+                        peak_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmax()]
+                        lowest_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmin()]
+
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            st.markdown("### 🔥 Peak Usage Zone")
+                            st.metric("Time Slot", peak_usage["Time_Slot"])
+                            st.metric("Floor Level", f"Floor {peak_usage['Floor']}")
+                            st.write(f"**Utilization:** {peak_usage['Percent_Utilize']:.2f}%")
+
+                        with col2:
+                            st.markdown("### ❄️ Dead Zone")
+                            st.metric("Time Slot", lowest_usage["Time_Slot"])
+                            st.metric("Floor Level", f"Floor {lowest_usage['Floor']}")
+                            st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
+
+                        # --- THE BEGINNER-FRIENDLY TL;DR ---
+                        st.warning(f"""
+                        ⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
+                        *Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
+                        """)
+                        
+                        st.markdown(f"""
+                        **Observation: Spatial-Temporal Inefficiency**
+
+                        The current schedule exhibits severe spatial fragmentation. While the campus experiences its highest density on **Floor {peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot (**{peak_usage['Percent_Utilize']:.2f}%** capacity), other areas form inefficient 'Dead Zones':
+                        
+                        - During the **{lowest_usage['Time_Slot']}** slot, classes are isolated, dropping to a minimum efficiency of **{lowest_usage['Percent_Utilize']:.2f}%** on **Floor {lowest_usage['Floor']}**.
+                        - This fragmentation forces the centralized HVAC systems to cool entire building blocks merely to service a few scattered, low-density populations.
+
+                        **Strategic Recommendation: Zone Consolidation.** Investigate the isolated classes operating during the **{lowest_usage['Time_Slot']}** on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for the unoccupied levels.
+                        """)
+
+            elif class_df.empty:
+                st.info(f"No classroom data available for batch {selected_batch}.")
+
+            # ==========================================
+            # ENERGY ANALYSIS
+            # ==========================================
+            if not energy_df.empty:
+                st.header("Energy Cost Analysis")
+
+                # Total energy per month
+                monthly_energy = energy_df.groupby("Month")["Energy_Cost"].sum().reset_index()
+
+                # Average monthly cost
+                avg_monthly_cost = monthly_energy["Energy_Cost"].mean()
+
+                st.metric("Average Monthly Energy Cost: ", f"RM {avg_monthly_cost:.2f}")
+
+                with st.spinner("Analyzing data...", show_time=True):
+                    # Line chart: monthly energy cost per floor
+                    st.subheader("Monthly Energy Cost per Floor")
+
+                    line_fig = px.line(
+                        energy_df,
+                        x="Month",
+                        y="Energy_Cost",
+                        color="Floor",
+                        labels={"Energy_Cost": "Energy Cost (RM)"},
+                        title="Floor Energy Cost by Month",
+                        markers=True
+                    )
+
+                    # update chart
+                    line_fig.update_layout(title=dict(text="Floor Energy Cost by Month",
+                            font=dict(size=20),   # ← change font size here
+                            x=0.2                 # ← position the title
+                        ),
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
+                    )
+
+                    st.plotly_chart(line_fig, width="stretch")
+
+                    # ==========================================
+                    # Findings: Monthly Energy Cost per Floor
+                    # ==========================================
+                    st.markdown("Findings: Monthly Energy Cost per Floor")
+
+                    with st.expander("Show details"):
+                        # Sort by energy cost (descending)
+                        monthly_sorted = monthly_energy.sort_values(by="Energy_Cost", ascending=False)
+
+                        # Identify highest, 2nd highest and lowest month
+                        high_month = monthly_sorted.iloc[0]
+                        second_high_month = monthly_sorted.iloc[1]
+                        low_month = monthly_sorted.iloc[-1]
+
+                        # Floors in highest month
+                        high_month_floors = energy_df[energy_df["Month"] == high_month["Month"]]
+                        high_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmin()]
+
+                        # Floors in 2nd highest month
+                        second_month_floors = energy_df[energy_df["Month"] == second_high_month["Month"]]
+                        high_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmin()]
+
+                        # Floors in lowest month
+                        low_month_floors = energy_df[energy_df["Month"] == low_month["Month"]]
+                        high_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmax()]
+                        low_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmin()]
+
+                        # Display metrics
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            st.metric(
+                                "Highest Energy Cost Month",
+                                high_month["Month"],
+                                f"RM {high_month['Energy_Cost']:.2f}"
+                            )
+
+                        with col2:
+                            st.metric(
+                                "2nd Highest Energy Cost Month",
+                                second_high_month["Month"],
+                                f"RM {second_high_month['Energy_Cost']:.2f}"
+                            )
+
+                        with col3:
+                            st.metric(
+                                "Lowest Energy Cost Month",
+                                low_month["Month"],
+                                f"RM {low_month['Energy_Cost']:.2f}"
+                            )
+
+                        difference = high_month["Energy_Cost"] - second_high_month["Energy_Cost"]
+
+                        st.metric("Difference of Costs Between 1st and 2nd Highest Energy Cost Month", f"RM {difference:.2f}")
+
+                        # text findings
+                        st.markdown(f"""
+                        **Observations:**
+
+                        **{high_month['Month']} recorded the highest total energy cost** of **RM {high_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_high_month['Floor']}**, with **RM {high_floor_high_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_high_month['Floor']}**, with **RM {low_floor_high_month['Energy_Cost']:.2f}**.
+
+                        **{second_high_month['Month']} recorded the second highest energy cost** of **RM {second_high_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_second_month['Floor']}**, with **RM {high_floor_second_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_second_month['Floor']}**, with **RM {low_floor_second_month['Energy_Cost']:.2f}**.
+
+                        **{low_month['Month']} recorded the lowest total energy cost** of **RM {low_month['Energy_Cost']:.2f}**.
+
+                        - The **highest contributing floor** during this month was **{high_floor_low_month['Floor']}**, with **RM {high_floor_low_month['Energy_Cost']:.2f}**.
+                        - The **lowest contributing floor** was **{low_floor_low_month['Floor']}**, with **RM {low_floor_low_month['Energy_Cost']:.2f}**.
+                        """)
+                        #These variations indicate that energy consumption patterns differ across floors and months, suggesting opportunities
+                        #for improved energy management and operational optimization.
+                        #""")
+
+                    # Pie chart: percentage contribution
+                    st.subheader("Floor Contribution to Total Energy Cost")
+
+                    # Calculate total energy cost of the whole floor
+                    floor_energy_cost = energy_df.groupby("Floor")["Energy_Cost"].sum().reset_index()
+
+                    total_energy_cost = energy_df["Energy_Cost"].sum()
+                    st.metric("Total Energy Cost:", f"RM {total_energy_cost:.2f}")
+
+                    pie_fig = px.pie(
+                        floor_energy_cost,
+                        names="Floor",
+                        values="Energy_Cost",
+                        title="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)"
+                    )
+
+                    # update title font size
+                    pie_fig.update_layout(title=dict(text="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)",
+                            font=dict(size=20),   # ← change size here
+                            x=0.1                 # ← position the title
+                        ),
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
+                    )
+
+                    st.plotly_chart(pie_fig, width="stretch")
+                    
+                    # ==========================================
+                    # Findings: Energy Cost Contribution
+                    # ==========================================
+                    st.markdown("Findings: Floor Contribution to Total Energy Cost")
+
+                    with st.expander("Show details"):
+                        # Calculate percentage contribution
+                        floor_energy_cost["Contribution (%)"] = (
+                            floor_energy_cost["Energy_Cost"] / total_energy_cost * 100
                         )
 
                     # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
@@ -579,6 +843,7 @@ with st.spinner("Loading page...", show_time=True):
                     else:
                         correlation_df = pd.DataFrame()
 
+<<<<<<< HEAD
                 # If still empty, show helpful diagnostics
                 if correlation_df.empty:
                     occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
@@ -587,6 +852,127 @@ with st.spinner("Loading page...", show_time=True):
                     st.info(f"Classroom months found: {occ_months}")
                     st.info(f"Energy months found: {eng_months}")
                     st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
+=======
+                    # Fallback: if no Floor+Month overlap, try aggregating by Month only (sum across floors)
+                    if correlation_df.empty:
+                        if "Month" in grouped_occupancy.columns and "Month" in grouped_energy.columns:
+                            occ_total = grouped_occupancy.groupby("Month")["Actual_Occupancy"].sum().reset_index()
+                            energy_total = grouped_energy.groupby("Month")["Energy_Cost"].sum().reset_index()
+                            correlation_df = pd.merge(occ_total, energy_total, on="Month", how="inner")
+                        else:
+                            correlation_df = pd.DataFrame()
+
+                    # If still empty, show helpful diagnostics
+                    if correlation_df.empty:
+                        occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
+                        eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
+                        st.warning("Insufficient overlapping data (Months) to plot correlation.")
+                        st.info(f"Classroom months found: {occ_months}")
+                        st.info(f"Energy months found: {eng_months}")
+                        st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
+                    else:
+                        # 2. Linear Regression for Trendline
+                        X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
+                        y = correlation_df["Energy_Cost"].values
+
+                        model = LinearRegression()
+                        model.fit(X, y)
+                        correlation_df["Predicted_Cost"] = model.predict(X)
+
+                        # 3. Plot Scatter with Trendline
+                        if "Floor" in correlation_df.columns:
+                            color_arg = "Floor"
+                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
+                        else:
+                            color_arg = None
+                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly)"
+
+                        corr_fig = px.scatter(
+                            correlation_df,
+                            x="Actual_Occupancy",
+                            y="Energy_Cost",
+                            color=color_arg,
+                            size="Energy_Cost",
+                            title=title_text,
+                            labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
+                            hover_data=[c for c in ["Month", "Floor"] if c in correlation_df.columns]
+                        )
+
+                        # update title font size
+                        corr_fig.update_layout(title=dict(text=title_text,
+                                font=dict(size=20),
+                                x=0.1
+                            ),
+                            xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                            yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                            legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16))
+                        )
+
+                        # Add trendline trace
+                        line_data = correlation_df.sort_values("Actual_Occupancy")
+                        corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+                        corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
+
+                        st.plotly_chart(corr_fig, width="stretch")
+
+                        # ==========================================
+                        # 4. Findings: Correlation Analysis
+                        # ==========================================
+                        st.markdown("Findings: Occupancy vs Energy Cost Correlation")
+
+                        with st.expander("Show details"):
+                            # Statistical Calculations
+                            r2_score = model.score(X, y)
+                            corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
+                            slope = model.coef_[0]
+                            unexplained_variance = 100 - (r2_score * 100)
+
+                            # Metric Columns
+                            col1, col2, col3 = st.columns(3)
+
+                            with col1:
+                                st.metric(
+                                    label="Correlation Coefficient (r)",
+                                    value=f"{corr_coef:.2f}",
+                                    help="1.0 is perfect correlation. Near 0 means no relationship."
+                                )
+                            with col2:
+                                st.metric(
+                                    label="R-Squared Score",
+                                    value=f"{r2_score * 100:.1f}%",
+                                    help="Percentage of energy cost explained by student occupancy."
+                                )
+                            with col3:
+                                st.metric(
+                                    label="Est. Cost per Occupant",
+                                    value=f"RM {slope:.2f}",
+                                    help="Estimated increase in energy bill for each additional student."
+                                )
+
+                                # --- THE BEGINNER-FRIENDLY TL;DR ---
+                            st.error(f"""
+                            🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
+                            Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
+                                """)
+
+                            # Dynamic Text Findings
+                            st.markdown(f"""
+                            **Observation: Decoupled Operational Expenditure**
+
+                            The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of the energy expenditure is actually driven by student occupancy.
+                        
+                            - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to human presence.
+                            - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}** to the utility overhead due to inefficient spatial mapping.
+                        
+                            **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly proportional to actual human utilization, stopping the financial bleed.
+                                """)
+
+            elif class_df.empty or energy_df.empty:
+                if class_df.empty:
+                    st.info(f"No classroom data available for batch {selected_batch}.")
+                elif energy_df.empty:
+                    st.info(f"No energy data available for batch {selected_batch}.")
+>>>>>>> 269141e3814c11f56313330e92a310cab549736a
                 else:
                     # 2. Linear Regression for Trendline
                     X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
