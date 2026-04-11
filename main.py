@@ -5,6 +5,10 @@ if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None
 
 def choose_role():
+    col1, col2, col3 = st.columns(3)
+    with col2:
+        st.image("images/URO_logo.png")
+    
     st.title("URO: University Resource Optimization")
     st.info("Please select your user role to log in")
     
@@ -30,7 +34,17 @@ dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":materia
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
 manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
 analysis_page = st.Page("pages/analysis.py", title="Analysis", icon=":material/analytics:")
+optimize_page = st.Page("pages/optimize.py", title="Optimization", icon=":material/auto_fix_high:")
 
+st.html("""
+  <style>
+    [alt=Logo] {
+      height: 4rem;
+    }
+  </style>
+        """)
+
+st.logo("images/URO_logo.png", icon_image="images/URO_logo.png")
 if st.session_state['user_role'] == "IT Staff":
     pg = st.navigation(
         [
@@ -45,6 +59,7 @@ elif st.session_state['user_role'] == "Manager":
         [
             dashboard_page,
             analysis_page,
+            optimize_page,
             logout_page,
         ],
     )
