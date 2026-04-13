@@ -590,119 +590,110 @@ with st.spinner("Loading page...", show_time=True):
                     else:
                         correlation_df = pd.DataFrame()
 
-                    # Fallback: if no Floor+Month overlap, try aggregating by Month only (sum across floors)
-                    if correlation_df.empty:
-                        if "Month" in grouped_occupancy.columns and "Month" in grouped_energy.columns:
-                            occ_total = grouped_occupancy.groupby("Month")["Actual_Occupancy"].sum().reset_index()
-                            energy_total = grouped_energy.groupby("Month")["Energy_Cost"].sum().reset_index()
-                            correlation_df = pd.merge(occ_total, energy_total, on="Month", how="inner")
-                        else:
-                            correlation_df = pd.DataFrame()
+                # If still empty, show helpful diagnostics
+                if correlation_df.empty:
+                    occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
+                    eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
+                    st.warning("Insufficient overlapping data (Months) to plot correlation.")
+                    st.info(f"Classroom months found: {occ_months}")
+                    st.info(f"Energy months found: {eng_months}")
+                    st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
+                else:
+                    # 2. Linear Regression for Trendline
+                    X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
+                    y = correlation_df["Energy_Cost"].values
 
-                    # If still empty, show helpful diagnostics
-                    if correlation_df.empty:
-                        occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
-                        eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
-                        st.warning("Insufficient overlapping data (Months) to plot correlation.")
-                        st.info(f"Classroom months found: {occ_months}")
-                        st.info(f"Energy months found: {eng_months}")
-                        st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
+                    model = LinearRegression()
+                    model.fit(X, y)
+                    correlation_df["Predicted_Cost"] = model.predict(X)
+
+                    # 3. Plot Scatter with Trendline
+                    if "Floor" in correlation_df.columns:
+                        color_arg = "Floor"
+                        title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
                     else:
-                        # 2. Linear Regression for Trendline
-                        X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
-                        y = correlation_df["Energy_Cost"].values
+                        color_arg = None
+                        title_text = "Correlation: Occupancy vs Energy Cost (Monthly)"
 
-                        model = LinearRegression()
-                        model.fit(X, y)
-                        correlation_df["Predicted_Cost"] = model.predict(X)
+                    corr_fig = px.scatter(
+                        correlation_df,
+                        x="Actual_Occupancy",
+                        y="Energy_Cost",
+                        color=color_arg,
+                        size="Energy_Cost",
+                        title=title_text,
+                        labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
+                        hover_data=[c for c in ["Month", "Floor"] if c in correlation_df.columns]
+                    )
 
-                        # 3. Plot Scatter with Trendline
-                        if "Floor" in correlation_df.columns:
-                            color_arg = "Floor"
-                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
-                        else:
-                            color_arg = None
-                            title_text = "Correlation: Occupancy vs Energy Cost (Monthly)"
+                    # update title font size
+                    corr_fig.update_layout(title=dict(text=title_text,
+                            font=dict(size=20),
+                            x=0.1
+                        ),
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
+                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16))
+                    )
 
-                        corr_fig = px.scatter(
-                            correlation_df,
-                            x="Actual_Occupancy",
-                            y="Energy_Cost",
-                            color=color_arg,
-                            size="Energy_Cost",
-                            title=title_text,
-                            labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
-                            hover_data=[c for c in ["Month", "Floor"] if c in correlation_df.columns]
-                        )
+                    # Add trendline trace
+                    line_data = correlation_df.sort_values("Actual_Occupancy")
+                    corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+                    corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
 
-                        # update title font size
-                        corr_fig.update_layout(title=dict(text=title_text,
-                                font=dict(size=20),
-                                x=0.1
-                            ),
-                            xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                            yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                            legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16))
-                        )
+                    st.plotly_chart(corr_fig, width="stretch")
 
-                        # Add trendline trace
-                        line_data = correlation_df.sort_values("Actual_Occupancy")
-                        corr_fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
-                        corr_fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
+                    # ==========================================
+                    # 4. Findings: Correlation Analysis
+                    # ==========================================
+                    st.markdown("Findings: Occupancy vs Energy Cost Correlation")
 
-                        st.plotly_chart(corr_fig, width="stretch")
+                    with st.expander("Show details"):
+                        # Statistical Calculations
+                        r2_score = model.score(X, y)
+                        corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
+                        slope = model.coef_[0]
+                        unexplained_variance = 100 - (r2_score * 100)
 
-                        # ==========================================
-                        # 4. Findings: Correlation Analysis
-                        # ==========================================
-                        st.markdown("Findings: Occupancy vs Energy Cost Correlation")
+                        # Metric Columns
+                        col1, col2, col3 = st.columns(3)
 
-                        with st.expander("Show details"):
-                            # Statistical Calculations
-                            r2_score = model.score(X, y)
-                            corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
-                            slope = model.coef_[0]
-                            unexplained_variance = 100 - (r2_score * 100)
+                        with col1:
+                            st.metric(
+                                label="Correlation Coefficient (r)",
+                                value=f"{corr_coef:.2f}",
+                                help="1.0 is perfect correlation. Near 0 means no relationship."
+                            )
+                        with col2:
+                            st.metric(
+                                label="R-Squared Score",
+                                value=f"{r2_score * 100:.1f}%",
+                                help="Percentage of energy cost explained by student occupancy."
+                            )
+                        with col3:
+                            st.metric(
+                                label="Est. Cost per Occupant",
+                                value=f"RM {slope:.2f}",
+                                help="Estimated increase in energy bill for each additional student."
+                            )
 
-                            # Metric Columns
-                            col1, col2, col3 = st.columns(3)
+                            # --- THE BEGINNER-FRIENDLY TL;DR ---
+                        st.error(f"""
+                        🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
+                        Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
+                            """)
 
-                            with col1:
-                                st.metric(
-                                    label="Correlation Coefficient (r)",
-                                    value=f"{corr_coef:.2f}",
-                                    help="1.0 is perfect correlation. Near 0 means no relationship."
-                                )
-                            with col2:
-                                st.metric(
-                                    label="R-Squared Score",
-                                    value=f"{r2_score * 100:.1f}%",
-                                    help="Percentage of energy cost explained by student occupancy."
-                                )
-                            with col3:
-                                st.metric(
-                                    label="Est. Cost per Occupant",
-                                    value=f"RM {slope:.2f}",
-                                    help="Estimated increase in energy bill for each additional student."
-                                )
+                        # Dynamic Text Findings
+                        st.markdown(f"""
+                        **Observation: Decoupled Operational Expenditure**
 
-                                # --- THE BEGINNER-FRIENDLY TL;DR ---
-                            st.error(f"""
-                            🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
-                            Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
-                                """)
-
-                            # Dynamic Text Findings
-                            st.markdown(f"""
-                            **Observation: Decoupled Operational Expenditure**
-
-                            The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of the energy expenditure is actually driven by student occupancy.
-                        
-                            - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to human presence.
-                            - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}** to the utility overhead due to inefficient spatial mapping.
-                        
-                            **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly proportional to actual human utilization, stopping the financial bleed.
-                                """)
+                        The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of the energy expenditure is actually driven by student occupancy.
+                    
+                        - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to human presence.
+                        - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}** to the utility overhead due to inefficient spatial mapping.
+                    
+                        **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly proportional to actual human utilization, stopping the financial bleed.
+                            """)
 
         elif class_df.empty or energy_df.empty:
             if class_df.empty:
