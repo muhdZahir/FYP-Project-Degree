@@ -178,11 +178,11 @@ with st.spinner("Loading page...", show_time=True):
                     worst_wasted_space = 100 - worst_room['Percent_Utilize']
 
                     # THE BEGINNER-FRIENDLY TL;DR ---
-                    st.error(f"""
-                    🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to 
-                    air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
-                    *Solution:* Move these few students to a smaller room.
-                    """)
+                    # st.error(f"""
+                    #🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to 
+                    # air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
+                    # *Solution:* Move these few students to a smaller room.
+                    # """)
 
                     st.markdown(f"""
                     **Observation: Severe Capacity Deficit**
@@ -251,11 +251,11 @@ with st.spinner("Loading page...", show_time=True):
                         st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
 
                     # --- THE BEGINNER-FRIENDLY TL;DR ---
-                    st.warning(f"""
-                    ⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning
-                    for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
-                    *Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
-                    """)
+                    #st.warning(f"""
+                    #⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning
+                    #for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
+                    #*Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
+                    #""")
                     
                     st.markdown(f"""
                     **Observation: Spatial-Temporal Inefficiency**
@@ -691,11 +691,11 @@ with st.spinner("Loading page...", show_time=True):
                             )
 
                             # --- THE BEGINNER-FRIENDLY TL;DR ---
-                        st.error(f"""
-                        🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
-                        Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software
-                                 only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
-                            """)
+                        #st.error(f"""
+                        #🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
+                        #Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software
+                         #        only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
+                          #  """)
 
                         # Dynamic Text Findings
                         st.markdown(f"""
