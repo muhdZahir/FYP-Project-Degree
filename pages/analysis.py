@@ -423,10 +423,10 @@ with st.spinner("Loading page...", show_time=True):
                     )
 
                     # Sort by energy cost (descending)
-                    cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False)
+                    cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False, ignore_index=True)
 
                     st.markdown("Top Energy Cost Contribution by Floor:")
-                    st.dataframe(cost_sorted)
+                    st.dataframe(cost_sorted.head(5).style.format({"Energy_Cost": "RM {:.2f}", "Contribution (%)": "{:.2f}%"}))
 
                     avg_cost = floor_energy_cost["Energy_Cost"].mean()
 
