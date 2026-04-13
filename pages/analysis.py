@@ -179,20 +179,26 @@ with st.spinner("Loading page...", show_time=True):
 
                     # THE BEGINNER-FRIENDLY TL;DR ---
                     st.error(f"""
-                    🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
+                    🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to 
+                    air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
                     *Solution:* Move these few students to a smaller room.
                     """)
 
                     st.markdown(f"""
                     **Observation: Severe Capacity Deficit**
 
-                    The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly from this baseline:
+                    The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly
+                    from this baseline:
                     
                     - **Room {worst_room['Classroom_ID']}** is severely underperforming, operating at **{abs(worst_diff):.2f}% below** the campus average. 
                     - This indicates a **{worst_wasted_space:.2f}% spatial wastage**, yet the university incurs 100% of the baseline cooling costs for this area.
-                    - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still **{abs(fifth_diff):.2f}% below** acceptable average levels.
+                    - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still 
+                    **{abs(fifth_diff):.2f}% below** acceptable average levels.
 
-                    **Strategic Recommendation:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the active UniTime/FET scheduling pool immediately and re-route its assigned classes to standard-sized venues to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage and fixed utility overhead.
+                    **Strategic Recommendation:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific
+                    outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the active UniTime/FET scheduling pool immediately
+                    and re-route its assigned classes to standard-sized venues to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage
+                    and fixed utility overhead.
                     """)
 
                 # Heatmap: Floor vs Time Slot
@@ -246,19 +252,26 @@ with st.spinner("Loading page...", show_time=True):
 
                     # --- THE BEGINNER-FRIENDLY TL;DR ---
                     st.warning(f"""
-                    ⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
+                    ⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning
+                    for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
                     *Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
                     """)
                     
                     st.markdown(f"""
                     **Observation: Spatial-Temporal Inefficiency**
 
-                    The current schedule exhibits severe spatial fragmentation. While the campus experiences its highest density on **Floor {peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot (**{peak_usage['Percent_Utilize']:.2f}%** capacity), other areas form inefficient 'Dead Zones':
+                    The current schedule exhibits severe spatial fragmentation. While the campus experiences its highest density on
+                    **Floor {peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot (**{peak_usage['Percent_Utilize']:.2f}%** capacity),
+                    other areas form inefficient 'Dead Zones':
                     
-                    - During the **{lowest_usage['Time_Slot']}** slot, classes are isolated, dropping to a minimum efficiency of **{lowest_usage['Percent_Utilize']:.2f}%** on **Floor {lowest_usage['Floor']}**.
-                    - This fragmentation forces the centralized HVAC systems to cool entire building blocks merely to service a few scattered, low-density populations.
+                    - During the **{lowest_usage['Time_Slot']}** slot, classes are isolated, dropping to a minimum efficiency of
+                    **{lowest_usage['Percent_Utilize']:.2f}%** on **Floor {lowest_usage['Floor']}**.
+                    - This fragmentation forces the centralized HVAC systems to cool entire building blocks merely to service a few scattered,
+                    low-density populations.
 
-                    **Strategic Recommendation: Zone Consolidation.** Investigate the isolated classes operating during the **{lowest_usage['Time_Slot']}** on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for the unoccupied levels.
+                    **Strategic Recommendation: Zone Consolidation.** Investigate the isolated classes operating during the **{lowest_usage['Time_Slot']}**
+                    on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for
+                    the unoccupied levels.
                     """)
         elif class_df.empty:
             st.info(f"No classroom data available for batch {selected_batch}.")
@@ -366,7 +379,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     **{high_month['Month']} recorded the highest total energy cost** of **RM {high_month['Energy_Cost']:.2f}**.
 
-                    - The **highest contributing floor** during this month was **{high_floor_high_month['Floor']}**, with **RM {high_floor_high_month['Energy_Cost']:.2f}**.
+                    - The **highest contributing floor** during this month was **{high_floor_high_month['Floor']}**, with**RM {high_floor_high_month['Energy_Cost']:.2f}**.
                     - The **lowest contributing floor** was **{low_floor_high_month['Floor']}**, with **RM {low_floor_high_month['Energy_Cost']:.2f}**.
 
                     **{second_high_month['Month']} recorded the second highest energy cost** of **RM {second_high_month['Energy_Cost']:.2f}**.
@@ -680,19 +693,25 @@ with st.spinner("Loading page...", show_time=True):
                             # --- THE BEGINNER-FRIENDLY TL;DR ---
                         st.error(f"""
                         🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
-                        Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
+                        Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software
+                                 only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
                             """)
 
                         # Dynamic Text Findings
                         st.markdown(f"""
                         **Observation: Decoupled Operational Expenditure**
 
-                        The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of the energy expenditure is actually driven by student occupancy.
+                        The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of
+                        the energy expenditure is actually driven by student occupancy.
                     
-                        - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to human presence.
-                        - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}** to the utility overhead due to inefficient spatial mapping.
+                        - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to
+                        human presence.
+                        - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}**
+                        to the utility overhead due to inefficient spatial mapping.
                     
-                        **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly proportional to actual human utilization, stopping the financial bleed.
+                        **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for
+                        logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly
+                        proportional to actual human utilization, stopping the financial bleed.
                             """)
 
         elif class_df.empty or energy_df.empty:
