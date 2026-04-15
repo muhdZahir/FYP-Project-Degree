@@ -1,26 +1,16 @@
-import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
-import numpy as np # pip install numpy |
-import os
-import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
-import database as db  # Importing your database.py
-# pip install -U scikit-learn
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LinearRegression
-
-# for the system to read excel, install 'pip install openpyxl'
+from core.imports import st, pd, os,px, db, MinMaxScaler, LinearRegression
 
 db.init_db()
 
 # Initialize session state for persistence across reruns
-if 'class_df_optimize' not in st.session_state:
-    st.session_state['class_df_optimize'] = pd.DataFrame()
-if 'energy_df_optimize' not in st.session_state:
-    st.session_state['energy_df_optimize'] = pd.DataFrame()
-if 'selected_batch' not in st.session_state:
-    st.session_state['selected_batch'] = None
-if 'show_insights' not in st.session_state:
-    st.session_state['show_insights'] = False
+#f 'class_df_optimize' not in st.session_state:
+#   st.session_state['class_df_optimize'] = pd.DataFrame()
+#f 'energy_df_optimize' not in st.session_state:
+#   st.session_state['energy_df_optimize'] = pd.DataFrame()
+#f 'batch_optimize' not in st.session_state:
+#   st.session_state['batch_optimize'] = None
+#f 'show_insights' not in st.session_state:
+#   st.session_state['show_insights'] = False
 
 # Initialize data containers
 class_df = pd.DataFrame()
@@ -37,39 +27,42 @@ with st.spinner("Loading page...", show_time=True):
     css_path = os.path.join("assets", "style.css")
     inject_custom_css(css_path)
 
-    st.title("OPTIMIZATION & RECOMMENDATIONS")
+    st.title("OPTIMIZATION RECOMMENDATIONS")
+    st.write(f"Generate optimization recommendation based on the analysis results. The system provides insights into classroom usage and energy/electrical "
+           f"cost patterns, helping you make informed decisions about resource allocation and cost management.\n"
+    )
     st.write("Choose the semester data batch stored in the system for predictive forecasting and heuristic audits.")
 
-    available_batches = db.get_unique_batches()
+#   available_batches = db.get_unique_batches()
 
-    if not available_batches:
-        st.warning("No data found in database. Please upload and save files first.")
-    else:
-        if "selected_batch" not in st.session_state:
-            st.session_state.selected_batch = None
+#   if not available_batches:
+#       st.warning("No data found in database. Please upload and save files first.")
+#   else:
+#       if "batch_optimize" not in st.session_state:
+#           st.session_state['batch_optimize'] = None
 
-        selected_batch = st.selectbox(
-            "Select Data Batch:",
-            available_batches,
-            index=0,
-            key="selected_batch"
-        )
+#      selected_batch = st.selectbox(
+#          "Select Data Batch:",
+#          available_batches,
+#          index=0,
+#          key="batch_optimize"
+#      )
 
-        if st.button("Load Data", key="load_db_btn"):
-            if st.session_state["selected_batch"] is None:
-                st.info("Choose a data batch and click 'Load Data'.")
-                st.session_state['class_df_optimize'] = pd.DataFrame()
-                st.session_state['energy_df_optimize'] = pd.DataFrame()
-                st.session_state['show_insights'] = False 
-            else:
-                with st.spinner("Fetching data from SQL Engine..."):
-                    st.session_state['class_df_optimize'] = db.load_from_db("Classroom", st.session_state['selected_batch'])
-                    st.session_state['energy_df_optimize'] = db.load_from_db("Energy", st.session_state['selected_batch'])
-                    st.session_state['show_insights'] = False 
-                    st.toast("Data Loaded Successfully.", icon="✅")
+#       if st.button("Load Data", key="load_db_btn"):
+#          if st.session_state["batch_optimize"] is None:
+#             st.info("Choose a data batch and click 'Load Data'.")
+#            st.session_state['class_df_optimize'] = pd.DataFrame()
+#           st.session_state['energy_df_optimize'] = pd.DataFrame()
+#          st.session_state['show_insights'] = False 
+#     else:
+#        with st.spinner("Fetching data from SQL Engine..."):
+#           st.session_state['class_df_optimize'] = db.load_from_db("Classroom", st.session_state['batch_optimize'])
+#          st.session_state['energy_df_optimize'] = db.load_from_db("Energy", st.session_state['batch_optimize'])
+#         st.session_state['show_insights'] = False 
+#        st.toast(f"Batch '{st.session_state['batch_optimize']}' Loaded Successfully.", icon="✅")
             
-    class_df = st.session_state.get('class_df_optimize', pd.DataFrame())
-    energy_df = st.session_state.get('energy_df_optimize', pd.DataFrame())
+    class_df = st.session_state.get('class_df', pd.DataFrame())
+    energy_df = st.session_state.get('energy_df', pd.DataFrame())
 
     # Pre-process class data
     if not class_df.empty:
@@ -100,16 +93,16 @@ with st.spinner("Loading page...", show_time=True):
     if not class_df.empty or not energy_df.empty:
         st.divider()
         if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
-            st.session_state['show_insights'] = True
+            st.session_state['show'] = True
 
     # ==========================================
     # FORECASTING & HEURISTIC ENGINE
     # ==========================================
-    if st.session_state['show_insights']:
-        
+    if st.session_state['show']:
         # ---------------------------------------------------------
         # THE 3-PILLAR PREDICTIONS
         # ---------------------------------------------------------
+        st.title(f"Predictive Forecasting & Trend Analysis: {st.session_state['batch_name']}")
         st.header("Executive Forecasts")
         st.write("Predictive modeling for upcoming operational cycles.")
         
@@ -126,6 +119,9 @@ with st.spinner("Loading page...", show_time=True):
             
             with col1:
                 st.metric(label="Next Semester Est. Demand", value=f"{pred_demand:.1f}%", help="Predicted average classroom utilization for the upcoming cycle.")
+        else:
+            with col1:
+                st.metric(label="Next Semester Est. Demand", value="N/A", help="No classroom data available for demand forecasting.")
         
         # Prediction 2: Energy
         pred_energy = 0
@@ -140,6 +136,9 @@ with st.spinner("Loading page...", show_time=True):
             
             with col2:
                 st.metric(label="Next Month Est. Energy Cost", value=f"RM {pred_energy:.2f}", help="Forecasted utility bill based on current trajectory.")
+        else:
+            with col2:
+                st.metric(label="Next Month Est. Energy Cost", value="N/A", help="No energy data available for cost forecasting.")
                 
         # Prediction 3: The Cost of Inaction (Wastage)
         if not class_df.empty and not energy_df.empty:
@@ -171,17 +170,67 @@ with st.spinner("Loading page...", show_time=True):
             with chart_col1:
                 weekly_plot = weekly.copy()
                 weekly_plot.loc[len(weekly_plot)] = [next_week, pred_demand]
-                fig1 = px.line(weekly_plot, x="Week", y="Percent_Utilize", title="Classroom Demand Trend", markers=True)
-                fig1.add_scatter(x=[next_week], y=[pred_demand], mode="markers+text", text=["Prediction"], textposition="top center", name="Forecast")
-                st.plotly_chart(fig1, use_container_width=True)
+                fig1 = px.line(
+                    weekly_plot,
+                    x="Week",
+                    y="Percent_Utilize",
+                    title="Classroom Demand Trend",
+                    labels={"Percent_Utilize": "Avg Utilization (%)"},
+                    markers=True
+                )
+                fig1.add_scatter(
+                    x=[next_week],
+                    y=[pred_demand],
+                    mode="markers+text",
+                    text=["Prediction"],
+                    textposition="top center",
+                    name="Forecast"
+                )
+                fig1.update_layout(title=dict(text="Classroom Demand Trend",
+                        font=dict(size=20),   # ← change size here
+                        x=0.1                 # ← position the title
+                    ),
+                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                    coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font size
+                )
+                st.plotly_chart(fig1, width='stretch')
+        else:
+            with chart_col1:
+                st.info("No classroom data available to visualize demand trends.")
                 
         if not energy_df.empty:
             with chart_col2:
                 monthly_plot = monthly_cost.copy()
                 monthly_plot.loc[len(monthly_plot)] = [next_month, pred_energy]
-                fig2 = px.line(monthly_plot, x="Month_Num", y="Energy_Cost", title="Energy Cost Trend", markers=True)
-                fig2.add_scatter(x=[next_month], y=[pred_energy], mode="markers+text", text=["Prediction"], textposition="top center", name="Forecast")
-                st.plotly_chart(fig2, use_container_width=True)
+                fig2 = px.line(
+                    monthly_plot,
+                    x="Month_Num",
+                    y="Energy_Cost",
+                    title="Energy Cost Trend",
+                    labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
+                    markers=True
+                )
+                fig2.add_scatter(
+                    x=[next_month],
+                    y=[pred_energy],
+                    mode="markers+text",
+                    text=["Prediction"],
+                    textposition="top center",
+                    name="Forecast"
+                )
+                fig2.update_layout(title=dict(text="Energy Cost Trend",
+                        font=dict(size=20),   # ← change size here
+                        x=0.2                 # ← position the title
+                    ),
+                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                    coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font size
+                )
+                st.plotly_chart(fig2, width='stretch')
+        else:
+            with chart_col2:
+                st.info("No energy data available to visualize cost trends.")
 
         st.divider()
 
@@ -207,7 +256,8 @@ with st.spinner("Loading page...", show_time=True):
             if not ghost_rooms.empty:
                 worst_room = ghost_rooms.sort_values(by='Percent_Utilize').iloc[0]
                 st.error(f"""
-                🚨 **THE BOTTOM LINE:** You are using massive rooms for tiny classes. **Room {worst_room['Classroom_ID']}** is operating at only **{worst_room['Percent_Utilize']:.1f}% capacity**, drastically below the campus standard. We are paying full electricity to cool empty air.
+                🚨 **THE BOTTOM LINE:** You are using massive rooms for tiny classes. **Room {worst_room['Classroom_ID']}** is operating at only
+                **{worst_room['Percent_Utilize']:.1f}% capacity**, drastically below the campus standard. We are paying full electricity to cool empty air.
                 * **The Fix:** Move the classes currently assigned to Room {worst_room['Classroom_ID']} into a smaller, appropriately sized venue.
                 """)
                 with st.expander("View Tier 1 Technical Details"):
@@ -215,6 +265,8 @@ with st.spinner("Loading page...", show_time=True):
                     st.dataframe(ghost_rooms.sort_values(by='Percent_Utilize').style.format({'Percent_Utilize': '{:.2f}%'}))
             else:
                 st.success("✅ **Spatial Efficiency:** No critical room sizing violations detected. Classes are appropriately matched to room capacities.")
+        else:
+            st.info("No classroom data available to perform spatial optimization audit.")
 
         # TIER 2: TEMPORAL OPTIMIZATION
         if not class_df.empty:
@@ -225,14 +277,18 @@ with st.spinner("Loading page...", show_time=True):
             if not ghost_slots.empty:
                 worst_slot = ghost_slots.sort_values(by='Active_Classes').iloc[0]
                 st.warning(f"""
-                ⚠️ **THE BOTTOM LINE:** The timetable is scattered. During **{worst_slot['Time_Slot']}**, **Floor {worst_slot['Floor']}** only has **{worst_slot['Active_Classes']} active class(es)** running. Central air-conditioning is running for the entire floor for a handful of students.
-                * **The Fix:** Reschedule these isolated classes to a busier floor. Instruct Facility Management to shut down HVAC for Floor {worst_slot['Floor']} during the {worst_slot['Time_Slot']} block.
+                ⚠️ **THE BOTTOM LINE:** The timetable is scattered. During **{worst_slot['Time_Slot']}**, **Floor {worst_slot['Floor']}** only has
+                **{worst_slot['Active_Classes']} active class(es)** running. Central air-conditioning is running for the entire floor for a handful of
+                students. * **The Fix:** Reschedule these isolated classes to a busier floor. Instruct Facility Management to shut down HVAC for
+                Floor {worst_slot['Floor']} during the {worst_slot['Time_Slot']} block.
                 """)
                 with st.expander("View Tier 2 Technical Details"):
                     st.write("**Detected Ghost Floors (Consolidation Required):**")
                     st.dataframe(ghost_slots.sort_values(by=['Active_Classes', 'Time_Slot']))
             else:
                 st.success("✅ **Temporal Efficiency:** No isolated classes detected. Schedule is well-consolidated.")
+        else:
+            st.info("No classroom data available to perform temporal optimization audit.")
 
         # TIER 3: FINANCIAL ALIGNMENT
         if not class_df.empty and not energy_df.empty:
@@ -259,3 +315,5 @@ with st.spinner("Loading page...", show_time=True):
                     }))
             else:
                 st.success("✅ **Financial Alignment:** Energy expenditure is proportional to student occupancy across all floors.")
+        else:
+            st.info("No classroom or energy data available to perform financial alignment audit.")

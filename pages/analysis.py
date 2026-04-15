@@ -1,26 +1,16 @@
-import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
-import numpy as np # pip install numpy |
-import os
-import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
-import database as db  # Importing your database.py
-# pip install -U scikit-learn
-from sklearn.linear_model import LinearRegression
-import calendar
-
-# for the system to read excel, install 'pip install openpyxl'
+from core.imports import st, pd, np, os, px, db, calendar, LinearRegression
 
 db.init_db()
 
 # Initialize session state for persistence across reruns
-if 'class_df_analysis' not in st.session_state:
-    st.session_state['class_df_analysis'] = pd.DataFrame()
-if 'energy_df_analysis' not in st.session_state:
-    st.session_state['energy_df_analysis'] = pd.DataFrame()
-if 'selected_batch' not in st.session_state:
-    st.session_state['selected_batch'] = None
-if 'show_analysis' not in st.session_state:
-    st.session_state['show_analysis'] = False
+#f 'class_df_analysis' not in st.session_state:
+#   st.session_state['class_df_analysis'] = pd.DataFrame()
+#f 'energy_df_analysis' not in st.session_state:
+#   st.session_state['energy_df_analysis'] = pd.DataFrame()
+#f 'batch_analysis' not in st.session_state:
+#   st.session_state['batch_analysis'] = None
+#f 'show_analysis' not in st.session_state:
+#   st.session_state['show_analysis'] = False
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
@@ -42,57 +32,51 @@ with st.spinner("Loading page...", show_time=True):
     inject_custom_css(css_path)
 
     st.title("ANALYSIS")
-
+    st.write(f"Analyze the data and generate insights to identify areas for improvement. The system provides insights into "
+            f"classroom usage and energy/electrical cost patterns, helping you make informed decisions about resource allocation and cost management.\n"
+    )
     st.write(f"Choose the semester data batch stored in the system for analysis.")
 
-    available_batches = db.get_unique_batches()
+#  available_batches = db.get_unique_batches()
+#
+#   if not available_batches:
+#       st.warning("No data found in database. Please upload and save files first.")
+#   else:
+#       if "batch_analysis" not in st.session_state:
+#           st.session_state['batch_analysis'] = None
 
-    if not available_batches:
-        st.warning("No data found in database. Please upload and save files first.")
-    else:
-        if "selected_batch" not in st.session_state:
-            st.session_state.selected_batch = None
+#       selected_batch = st.selectbox(
+#           "Select Data Batch:",
+#           available_batches,
+#           index=0,
+#           key="batch_analysis"
+#       )
 
-        selected_batch = st.selectbox(
-            "Select Data Batch:",
-            available_batches,
-            index=0,
-            key="selected_batch"
-        )
-
-        if st.button("Load Data", key="load_db_btn"):
-            if st.session_state["selected_batch"] is None:
-                st.info("Choose a data batch and click 'Load Data' to fetch data from database.")
-                st.session_state['class_df_analysis'] = pd.DataFrame()
-                st.session_state['energy_df_analysis'] = pd.DataFrame()
-                st.session_state['show_analysis'] = False # reset analysis view when loading new data
-
-            else:
-                with st.spinner("Fetching data from SQL Engine..."):
-                    # store loaded dataframes in session_state so they persist across interactions
-                    st.session_state['class_df_analysis'] = db.load_from_db("Classroom", st.session_state['selected_batch'])
-                    st.session_state['energy_df_analysis'] = db.load_from_db("Energy", st.session_state['selected_batch'])
-                    st.session_state['show_analysis'] = False # reset analysis view when loading new data
+#       if st.button("Load Data", key="load_db_btn"):
+#           if st.session_state["batch_analysis"] is None:
+#               st.info("Choose a data batch and click 'Load Data'.")
+#               st.session_state['class_df_analysis'] = pd.DataFrame()
+#               st.session_state['energy_df_analysis'] = pd.DataFrame()
+#               st.session_state['show_analysis'] = False # reset analysis view when loading new data
+#           else:
+#               with st.spinner("Fetching data from SQL Engine..."):
+#                   # store loaded dataframes in session_state so they persist across interactions
+#                   st.session_state['class_df_analysis'] = db.load_from_db("Classroom", st.session_state['batch_analysis'])
+#                   st.session_state['energy_df_analysis'] = db.load_from_db("Energy", st.session_state['batch_analysis'])
+#                   st.session_state['show_analysis'] = False # reset analysis view when loading new data   
+#                   st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
             
-                    st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
-            
-    class_df = st.session_state.get('class_df_analysis', pd.DataFrame())
-    # Preprocessing classroom data for normalization
-    if not class_df.empty:
-        # Calculate utilization rate per room
-        if (class_df["Actual_Occupancy"] == 0).any():
-            class_df["Utilization"] = 0
-        else:
-            class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
-        class_df["Percent_Utilize"] = class_df["Utilization"] * 100
-
-    energy_df = st.session_state.get('energy_df_analysis', pd.DataFrame())
+    class_df = st.session_state.get('class_df', pd.DataFrame())
+    energy_df = st.session_state.get('energy_df', pd.DataFrame())
+    batch_name = st.session_state.get('batch_name', None)
 
     if not class_df.empty or not energy_df.empty:
+        st.divider()
         if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="blue"):
-            st.session_state['show_analysis'] = True
+            st.session_state['show'] = True
 
-    if st.session_state['show_analysis']:
+    if st.session_state['show']:
+        st.title(f"Data Analysis & Insights: {batch_name}")
         # ==========================================
         # CLASSROOM ANALYSIS
         # ==========================================
@@ -100,6 +84,13 @@ with st.spinner("Loading page...", show_time=True):
             st.header("Classroom Utilization Analysis")
 
             with st.spinner("Analyzing data...", show_time=True):
+                # Calculate utilization rate per room
+                if (class_df["Actual_Occupancy"] == 0).any():
+                    class_df["Utilization"] = 0
+                else:
+                    class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
+                class_df["Percent_Utilize"] = class_df["Utilization"] * 100
+
                 # Display Average Utilization
                 avg_util = class_df["Utilization"].mean() * 100
                 st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
@@ -273,8 +264,10 @@ with st.spinner("Loading page...", show_time=True):
                     on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for
                     the unoccupied levels.
                     """)
+            st.divider()
         elif class_df.empty:
-            st.info(f"No classroom data available for batch {selected_batch}.")
+            st.info(f"No classroom data available for batch {batch_name} to analyze.")
+            st.divider()
 
         # ==========================================
         # ENERGY ANALYSIS
@@ -517,9 +510,11 @@ with st.spinner("Loading page...", show_time=True):
                     **RM {range_diff:.2f}** (approximately **{percent_diff:.2f}%** higher between the highest and lowest floors).
                     """)
 
-                    st.markdown(f"""{variation_text}""")             
+                    st.markdown(f"""{variation_text}""")   
+            st.divider()          
         elif energy_df.empty:
-            st.info(f"No energy data available for batch {selected_batch}.")
+            st.info(f"No energy data available for batch {batch_name} to analyze.")
+            st.divider()
 
     
         # ==========================================
@@ -716,6 +711,6 @@ with st.spinner("Loading page...", show_time=True):
 
         elif class_df.empty or energy_df.empty:
             if class_df.empty:
-                st.info(f"No classroom data available for batch {selected_batch}.")
+                st.info(f"No classroom data available for batch {batch_name} to correlate.")
             elif energy_df.empty:
-                st.info(f"No energy data available for batch {selected_batch}.")
+                st.info(f"No energy data available for batch {batch_name} to correlate.")

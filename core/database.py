@@ -1,10 +1,7 @@
-import sqlite3  # For database operations, using SQLite for simplicity 
-import pandas as pd  # sqlite checking; python -c "import sqlite3; print(sqlite3.sqlite_version)"
-import time
-import streamlit as st
+from core.imports import st, pd, sqlite3
 
 # name of the database
-DB_NAME = "uro_system.db"
+DB_NAME = "database/uro_system.db"
 # allowed tables for read/write to avoid accidental SQL injection via table names
 ALLOWED_TABLES = {"Classroom", "Energy"} 
 

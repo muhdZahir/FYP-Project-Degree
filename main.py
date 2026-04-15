@@ -1,33 +1,56 @@
-# pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-import streamlit as st
+from core.imports import st, pd, db
 
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None
+if "batch" not in st.session_state:
+    st.session_state["batch"] = None
+if 'class_df' not in st.session_state:
+    st.session_state["class_df"] = pd.DataFrame()
+if 'energy_df' not in st.session_state:
+    st.session_state["energy_df"] = pd.DataFrame()
+if 'batch_name' not in st.session_state:
+    st.session_state["batch_name"] = None
+if 'show' not in st.session_state:
+    st.session_state['show'] = False
 
-def choose_role():
+available_batches = db.get_unique_batches()            
+
+def login():
     col1, col2, col3 = st.columns(3)
     with col2:
-        st.image("images/URO_logo.png")
+        st.image("assets/URO_logo.png")
     
     st.title("URO: University Resource Optimization")
-    st.info("Please select your user role to log in")
-    
-    role = st.radio(
-        "Select User Role",
-        options=["IT Staff", "Manager"],
-    )
+    st.info("Login to Your App")
+
+    username = st.text_input(label="Username", placeholder="Enter your username")
+    password = st.text_input(label="Password", placeholder="Enter your password", type='password')
 
     if st.button("Log in"):
+        if check_login(username, password):
+            st.rerun()
+        else:
+            st.error("Invalid username or password. Please try again.")
+
+def check_login(username, password):
+    if username == "staff" and password == "1234staff": #staff login
+        role = "IT Staff"
         st.session_state['user_role'] = role
-        st.rerun()
+        return True
+    if username == "admin" and password == "4321admin": #admin login
+        role = "Manager"
+        st.session_state['user_role'] = role
+        return True
+    return False
 
 def logout():
+    st.write("Logging out...")
     if st.button("Log out"):
         # actually clear the session state then rerun
         st.session_state.clear()
         st.rerun()
 
-login_page = st.Page(choose_role, title="Log in", icon=":material/login:")
+login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
@@ -44,8 +67,9 @@ st.html("""
   </style>
         """)
 
-st.logo("images/URO_logo.png", icon_image="images/URO_logo.png")
+st.logo("assets/URO_logo.png", icon_image="assets/URO_logo.png")
 if st.session_state['user_role'] == "IT Staff":
+    st.sidebar.markdown(f"Welcome, **IT Staff**!")
     pg = st.navigation(
         [
             dashboard_page,
@@ -55,6 +79,7 @@ if st.session_state['user_role'] == "IT Staff":
         ],
     )
 elif st.session_state['user_role'] == "Manager":
+    st.sidebar.markdown(f"Welcome, **Manager**!")
     pg = st.navigation(
         [
             dashboard_page,
@@ -63,6 +88,40 @@ elif st.session_state['user_role'] == "Manager":
             logout_page,
         ],
     )
+    if pg in [dashboard_page, logout_page]:
+        if st.session_state["batch"] is None:
+            st.session_state['batch_name'] = st.session_state["batch"]
+    elif pg in [analysis_page, optimize_page]:
+        if available_batches:
+            if (
+                st.session_state["batch"] is None or
+                st.session_state["batch"] not in available_batches
+            ):
+                st.session_state["batch"] = st.session_state["batch_name"]
+
+            st.sidebar.selectbox(
+                "Select Data Batch",
+                available_batches,
+                key="batch"
+            )
+
+        if not available_batches:
+            st.warning("No data found in database. Please upload and save files first.")
+        else:            
+            if st.sidebar.button("Load Data", key="load_db_btn"):
+                if st.session_state["batch"] is None:
+                    st.info("Choose a data batch and click 'Load Data'.")
+                    st.session_state['class_df'] = pd.DataFrame()
+                    st.session_state['energy_df'] = pd.DataFrame()
+                    st.session_state['batch_name'] = None
+                    st.session_state['show'] = False 
+                else:
+                    with st.spinner("Fetching data from SQL Engine..."):
+                        st.session_state['class_df'] = db.load_from_db("Classroom", st.session_state['batch'])
+                        st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
+                        st.session_state['batch_name'] = st.session_state['batch']
+                        st.session_state['show'] = False 
+                        st.toast(f"Batch '{st.session_state['batch']}' Loaded Successfully.", icon="✅")
 else:
     pg = st.navigation([login_page])
 

@@ -1,9 +1,4 @@
-import streamlit as st # pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-import pandas as pd # pip install pandas | pandas is use to analyze data from csv/xlsx
-import os # to handle file path
-import time # to handle time delay
-import database as db  # Importing your database.py
-
+from core.imports import st, pd,os, time, db
 # to read excel, install 'pip install openpyxl'
 
 db.init_db()
@@ -223,14 +218,14 @@ with st.spinner("Loading page...", show_time=True):
             
             if not class_df.empty:
                 if not db.class_batch_unique(batch_name):
-                    st.error("❌ This batch name already exists in classroom. Please use a unique batch name.")
+                    st.error("❌ This batch name already exists in Classroom Data. Please use a unique batch name.")
                 else:
                     if db.save_to_db(class_df, "Classroom", batch_name):
                         saved_c = True
 
             if not energy_df.empty:
                 if not db.energy_batch_unique(batch_name):
-                    st.error("❌ This batch name already exists in energy. Please use a unique batch name.")
+                    st.error("❌ This batch name already exists in Energy Data. Please use a unique batch name.")
                 else:
                     if db.save_to_db(energy_df, "Energy", batch_name):
                         saved_e = True

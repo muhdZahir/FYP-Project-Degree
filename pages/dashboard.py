@@ -1,9 +1,8 @@
-# pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-import streamlit as st
+from core.imports import st
 
 col1, col2, col3 = st.columns(3)
 with col2:
-    st.image("images/URO_logo.png")
+    st.image("assets/URO_logo.png")
     
 st.title("URO: University Resource Optimization")
 
