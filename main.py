@@ -1,4 +1,4 @@
-from core.imports import st, pd, db
+from core.imports import st, pd, db #python -m streamlit run main.py
 
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None
