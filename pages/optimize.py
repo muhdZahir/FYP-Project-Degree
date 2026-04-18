@@ -1,6 +1,4 @@
 from core.imports import st, pd, np, os, px, db, MinMaxScaler, LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
 import calendar
 
 db.init_db()
@@ -87,14 +85,14 @@ with st.spinner("Loading page...", show_time=True):
         st.header("Executive Forecasts")
         col1, col2, col3 = st.columns(3)
         
-        # Prediction 1: 14-Week Demand (Polynomial Upgrade)
+        # Prediction 1: 14-Week Demand
         future_weeks_df = pd.DataFrame()
         pred_demand_avg = 0
         if not class_df.empty and len(weekly) >= 2:
             try:
                 X_d = weekly["Week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
-                model_d = make_pipeline(PolynomialFeatures(degree=2), LinearRegression()).fit(X_d, y_d)
+                model_d = LinearRegression().fit(X_d, y_d)
                 
                 max_w = int(weekly["Week"].max())
                 future_w = np.array([[max_w + i] for i in range(1, 15)])
@@ -108,14 +106,14 @@ with st.spinner("Loading page...", show_time=True):
         else:
             col1.metric("Next Semester Demand", "N/A")
         
-        # Prediction 2: Energy (Polynomial Upgrade)
+        # Prediction 2: Energy
         pred_e = 0
         avg_monthly_cost = 0
         if not energy_df.empty and len(monthly_cost) >= 2:
             try:
                 X_e = pd.to_numeric(monthly_cost["Month_Num"]).values.reshape(-1, 1)
                 y_e = monthly_cost["Energy_Cost"].values
-                model_e = make_pipeline(PolynomialFeatures(degree=2), LinearRegression()).fit(X_e, y_e)
+                model_e = LinearRegression().fit(X_e, y_e)
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
@@ -125,7 +123,7 @@ with st.spinner("Loading page...", show_time=True):
         else:
             col2.metric("Next Month Est. Cost", "N/A")
 
-        # Prediction 3: Cost of Inaction (Standard Linear Correlation)
+        # Prediction 3: Cost of Inaction (Bridged Logic)
         if not class_df.empty and not energy_df.empty:
             try:
                 c_copy = class_df.copy()
@@ -147,8 +145,6 @@ with st.spinner("Loading page...", show_time=True):
                 col3.metric("Projected 6-Month Wastage", f"RM {waste:.2f}", delta="-High Risk", delta_color="inverse")
             except:
                 col3.metric("Projected 6-Month Wastage", "Error")
-        else:
-            col3.metric("Projected 6-Month Wastage", "N/A")
 
         # ---------------------------------------------------------
         # VISUALIZING THE TRENDS (RESTORED ORIGINAL UI LAYOUT)
@@ -166,6 +162,7 @@ with st.spinner("Loading page...", show_time=True):
                     labels={"Percent_Utilize": "Avg Utilization (%)"},
                     title="Classroom Demand Trend", markers=True
                 )
+                # Restoring your exact layout parameters
                 fig1.update_layout(
                     title=dict(text="Classroom Demand Trend", font=dict(size=20), x=0.1),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
@@ -175,9 +172,6 @@ with st.spinner("Loading page...", show_time=True):
                 chart_col1.plotly_chart(fig1, use_container_width=True)
             except Exception as e:
                 chart_col1.error(f"Chart Error: {e}")
-        else:
-            with chart_col1:
-                st.info("No classroom data available to visualize demand trends.")
                 
         if not energy_df.empty and 'next_m' in locals() and len(monthly_cost) >= 2:
             try:
@@ -190,6 +184,7 @@ with st.spinner("Loading page...", show_time=True):
                     labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
                     title="Energy Cost Trend", markers=True
                 )
+                # Restoring your exact layout parameters
                 fig2.update_layout(
                     title=dict(text="Energy Cost Trend", font=dict(size=20), x=0.2),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
@@ -199,9 +194,6 @@ with st.spinner("Loading page...", show_time=True):
                 chart_col2.plotly_chart(fig2, use_container_width=True)
             except Exception as e:
                 chart_col2.error(f"Chart Error: {e}")
-        else:
-            with chart_col2:
-                st.info("No energy data available to visualize cost trends.")
 
         # ---------------------------------------------------------
         # TIERED HEURISTIC OPTIMIZATION ENGINE
