@@ -1,4 +1,4 @@
-# pip install streamlit | streamlit is use to create the UI. to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
+# pip install streamlit | streamlit is use to create the UI.
 import streamlit as st
 import pandas as pd  # pip install pandas | pandas is use to analyze data from csv/xlsx
 import numpy as np # pip install numpy | numpy is use to handle array and do mathematical operation

@@ -1,6 +1,18 @@
 from core.imports import st, pd, time, db
 
-db.init_db()
+# Initialize session state for persistence across reruns
+if 'class_df' not in st.session_state:
+    st.session_state["class_df"] = pd.DataFrame()
+if 'energy_df' not in st.session_state:
+    st.session_state["energy_df"] = pd.DataFrame()
+if 'selected_batch' not in st.session_state:
+    st.session_state.selected_batch = None
+if 'batch_name' not in st.session_state:
+    st.session_state["batch_name"] = None
+if 'show' not in st.session_state:
+    st.session_state['show'] = False
+if 'delete_pending' not in st.session_state:
+    st.session_state['delete_pending'] = None
 
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
@@ -40,20 +52,6 @@ def confirm_delete(data_type, batch_name):
 
 def cancel_delete():
     """Cancels the delete action and hides the confirmation UI."""
-    st.session_state['delete_pending'] = None
-
-# Initialize session state for persistence across reruns
-if 'class_df' not in st.session_state:
-    st.session_state["class_df"] = pd.DataFrame()
-if 'energy_df' not in st.session_state:
-    st.session_state["energy_df"] = pd.DataFrame()
-if 'selected_batch' not in st.session_state:
-    st.session_state.selected_batch = None
-if 'batch_name' not in st.session_state:
-    st.session_state["batch_name"] = None
-if 'show' not in st.session_state:
-    st.session_state['show'] = False
-if 'delete_pending' not in st.session_state:
     st.session_state['delete_pending'] = None
 
 # Initialize data containers (Empty at start)

@@ -1,4 +1,6 @@
-from core.imports import st, pd, db #python -m streamlit run main.py
+from core.imports import st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
+
+db.init_db()
 
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None

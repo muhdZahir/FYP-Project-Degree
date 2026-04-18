@@ -1,7 +1,4 @@
-from core.imports import st, pd, np, os, px, db, MinMaxScaler, LinearRegression
-import calendar
-
-db.init_db()
+from core.imports import st, pd, np, os, px, calendar, MinMaxScaler, LinearRegression
 
 # Initialize data containers
 class_df = pd.DataFrame()
@@ -43,16 +40,21 @@ with st.spinner("Loading page...", show_time=True):
     inject_custom_css(css_path)
 
     st.title("OPTIMIZATION RECOMMENDATIONS")
-    st.write("Generate optimization recommendations based on the analysis results. The system provides insights into classroom usage and energy/electrical cost patterns.")
+    st.write("Generate optimization recommendations based on the analysis results. The system provides insights into classroom usage and " \
+    "energy/electrical cost patterns. Use these insights to make informed decisions about resource allocation and cost management, helping you " \
+    "optimize your resources and reduce costs while maintaining a high level of service quality."
+    )
+    st.write(f"Choose the semester data batch stored in the system for analysis.")
     
     class_df = st.session_state.get('class_df', pd.DataFrame())
     energy_df = st.session_state.get('energy_df', pd.DataFrame())
-    batch_name = st.session_state.get('batch_name', "No Batch Loaded")
+    batch_name = st.session_state.get('batch_name', None)
 
     # Pre-process class data
     if not class_df.empty:
         try:
             class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
+            class_df.loc[class_df["Actual_Occupancy"] == 0, "Utilization"] = 0
             class_df["Percent_Utilize"] = class_df["Utilization"] * 100
             
             if "Week" in class_df.columns:
@@ -74,9 +76,9 @@ with st.spinner("Loading page...", show_time=True):
     if not class_df.empty or not energy_df.empty:
         st.divider()
         if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
-            st.session_state['show_insights'] = True
+            st.session_state['show'] = True
 
-    if st.session_state.get('show_insights', False):
+    if st.session_state.get('show', False):
         st.title(f"Predictive Forecasting & Trend Analysis: {batch_name}")
         
         # ---------------------------------------------------------
@@ -100,11 +102,14 @@ with st.spinner("Loading page...", show_time=True):
                 
                 future_weeks_df = pd.DataFrame({"Week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
                 pred_demand_avg = future_p.mean()
-                col1.metric("Next Semester Demand (Avg)", f"{pred_demand_avg:.1f}%")
+                with col1:
+                    st.metric("Next Semester Demand (Avg)", f"{pred_demand_avg:.1f}%", help="Predicted average classroom utilization for the upcoming cycle.")
             except:
                 col1.metric("Next Semester Demand", "Error")
         else:
-            col1.metric("Next Semester Demand", "N/A")
+            with col1:
+                st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available for demand forecasting.")
+
         
         # Prediction 2: Energy
         pred_e = 0
@@ -117,11 +122,12 @@ with st.spinner("Loading page...", show_time=True):
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
-                col2.metric("Next Month Est. Cost", f"RM {pred_e:.2f}")
+                col2.metric("Next Month Est. Cost", f"RM {pred_e:.2f}", help="Forecasted utility bill based on current trajectory.")
             except:
                 col2.metric("Next Month Est. Cost", "Error")
         else:
-            col2.metric("Next Month Est. Cost", "N/A")
+            with col2:
+                st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available for cost forecasting.")
 
         # Prediction 3: Cost of Inaction (Bridged Logic)
         if not class_df.empty and not energy_df.empty:
@@ -135,19 +141,23 @@ with st.spinner("Loading page...", show_time=True):
                 eng_m = e_copy.groupby("Month_Map")["Energy_Cost"].sum().reset_index()
                 merged = pd.merge(occ_m, eng_m, on="Month_Map")
                 
+                # Calculate R² to estimate how well occupancy explains energy cost variability
+                # If R² is high, we assume less wastage (more efficient usage); if low, we assume more wastage.
+                # We can use the R² value to estimate a "waste factor" that scales the average energy cost to project potential wastage.
+                # For example, if R² is 0.8, we might assume only 20% of the energy cost is wasted. If R² is 0.2, we might assume 80% is wasted.
                 if len(merged) > 1:
                     r2 = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"]).score(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
                     waste_factor = max(0.1, 1.0 - r2)
                 else:
-                    waste_factor = 0.40
+                    waste_factor = 0.40 # Default to 40% wastage if we can't calculate R² (e.g., only one month of data)
                     
-                waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 6
-                col3.metric("Projected 6-Month Wastage", f"RM {waste:.2f}", delta="-High Risk", delta_color="inverse")
+                waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4 # Projected 4-month wastage
+                col3.metric("Projected 4-Month Wastage", f"RM {waste:.2f}", delta="-High Risk", delta_color="inverse")
             except:
-                col3.metric("Projected 6-Month Wastage", "Error")
+                col3.metric("Projected 4-Month Wastage", "Error")
 
         # ---------------------------------------------------------
-        # VISUALIZING THE TRENDS (RESTORED ORIGINAL UI LAYOUT)
+        # VISUALIZING THE TRENDS
         # ---------------------------------------------------------
         st.write("")
         chart_col1, chart_col2 = st.columns(2)
@@ -169,9 +179,11 @@ with st.spinner("Loading page...", show_time=True):
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
                     legend=dict(title=dict(text="Type", font=dict(size=18)), font=dict(size=16))
                 )
-                chart_col1.plotly_chart(fig1, use_container_width=True)
+                chart_col1.plotly_chart(fig1, width='stretch')
             except Exception as e:
                 chart_col1.error(f"Chart Error: {e}")
+        else:
+            chart_col1.info("No classroom data available to visualize demand trends.")
                 
         if not energy_df.empty and 'next_m' in locals() and len(monthly_cost) >= 2:
             try:
@@ -191,9 +203,11 @@ with st.spinner("Loading page...", show_time=True):
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
                     legend=dict(title=dict(text="Type", font=dict(size=18)), font=dict(size=16))
                 )
-                chart_col2.plotly_chart(fig2, use_container_width=True)
+                chart_col2.plotly_chart(fig2, width='stretch')
             except Exception as e:
                 chart_col2.error(f"Chart Error: {e}")
+        else:
+            chart_col2.info("No energy data available to visualize cost trends.")
 
         # ---------------------------------------------------------
         # TIERED HEURISTIC OPTIMIZATION ENGINE
@@ -201,8 +215,8 @@ with st.spinner("Loading page...", show_time=True):
         st.divider()
         st.header("Strategic Optimization Directives")
 
+        st.subheader("Tier 1: Spatial Optimization (Room Sizing)")
         if not class_df.empty:
-            st.subheader("Tier 1: Spatial Optimization (Room Sizing)")
             try:
                 r_avg = class_df.groupby('Classroom_ID')['Percent_Utilize'].mean().reset_index()
                 c_mean = r_avg['Percent_Utilize'].mean()
@@ -211,25 +225,33 @@ with st.spinner("Loading page...", show_time=True):
                 
                 if not ghosts.empty:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    st.error(f"🚨 **SPACE LEAK:** Room {w_room['Classroom_ID']} is at {w_room['Percent_Utilize']:.1f}% capacity. Relocate these classes to a smaller venue.")
+                    st.error(f"🚨 **SPACE LEAK:** Room {w_room['Classroom_ID']} is at {w_room['Percent_Utilize']:.1f}% capacity. Relocate these classes to a "
+                        f"smaller venue."
+                    )
                 else:
                     st.success("✅ No critical spatial gaps detected.")
             except: pass
+        else:
+            st.info("Classroom spatial optimization requires data on room utilization to identify underused spaces.")
 
+        st.subheader("Tier 2: Temporal Optimization (Zone Consolidation)")
         if not class_df.empty:
-            st.subheader("Tier 2: Temporal Optimization (Zone Consolidation)")
             try:
                 t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
                 ghost_slots = t_floor[t_floor['Count'] <= 2]
                 if not ghost_slots.empty:
                     w_slot = ghost_slots.iloc[0]
-                    st.warning(f"⚠️ **TIME LEAK:** Floor {w_slot['Floor']} has only {w_slot['Count']} class(es) during {w_slot['Time_Slot']}. Consolidate to shut down HVAC.")
+                    st.warning(f"⚠️ **TIME LEAK:** Floor {w_slot['Floor']} has only {w_slot['Count']} class(es) during {w_slot['Time_Slot']}. Consolidate to "
+                        f"shut down HVAC."
+                    )
                 else:
                     st.success("✅ Schedule is temporally dense.")
             except: pass
+        else:
+            st.info("Temporal optimization requires data on class schedules to identify underutilized time slots.")
 
+        st.subheader("Tier 3: Financial Alignment Audit")
         if not class_df.empty and not energy_df.empty:
-            st.subheader("Tier 3: Financial Alignment Audit")
             try:
                 f_eng = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
                 f_eng['Cost_Pct'] = (f_eng['Energy_Cost'] / f_eng['Energy_Cost'].sum()) * 100
@@ -240,7 +262,11 @@ with st.spinner("Loading page...", show_time=True):
                 leaks = t3[(t3['Cost_Pct'] - t3['Occ_Pct']) > 15.0]
                 if not leaks.empty:
                     w_leak = leaks.sort_values(by='Cost_Pct', ascending=False).iloc[0]
-                    st.error(f"🚨 **MONEY LEAK:** Floor {int(w_leak['Floor'])} consumes {w_leak['Cost_Pct']:.1f}% of budget but holds only {w_leak['Occ_Pct']:.1f}% of students. Physical audit required.")
+                    st.error(f"🚨 **MONEY LEAK:** Floor {int(w_leak['Floor'])} consumes {w_leak['Cost_Pct']:.1f}% of budget but holds only "
+                        f"{w_leak['Occ_Pct']:.1f}% of students. Physical audit required."
+                    )
                 else:
                     st.success("✅ Financial expenditure aligns with student presence.")
             except: pass
+        else:
+            st.info("Financial alignment audit requires both classroom occupancy and energy cost data to identify floors where costs disproportionately exceed usage.")

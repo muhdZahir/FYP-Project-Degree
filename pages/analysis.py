@@ -1,16 +1,4 @@
-from core.imports import st, pd, np, os, px, db, calendar, LinearRegression
-
-db.init_db()
-
-# Initialize session state for persistence across reruns
-#f 'class_df_analysis' not in st.session_state:
-#   st.session_state['class_df_analysis'] = pd.DataFrame()
-#f 'energy_df_analysis' not in st.session_state:
-#   st.session_state['energy_df_analysis'] = pd.DataFrame()
-#f 'batch_analysis' not in st.session_state:
-#   st.session_state['batch_analysis'] = None
-#f 'show_analysis' not in st.session_state:
-#   st.session_state['show_analysis'] = False
+from core.imports import st, pd, np, os, px, calendar, LinearRegression
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
@@ -36,35 +24,6 @@ with st.spinner("Loading page...", show_time=True):
             f"classroom usage and energy/electrical cost patterns, helping you make informed decisions about resource allocation and cost management.\n"
     )
     st.write(f"Choose the semester data batch stored in the system for analysis.")
-
-#  available_batches = db.get_unique_batches()
-#
-#   if not available_batches:
-#       st.warning("No data found in database. Please upload and save files first.")
-#   else:
-#       if "batch_analysis" not in st.session_state:
-#           st.session_state['batch_analysis'] = None
-
-#       selected_batch = st.selectbox(
-#           "Select Data Batch:",
-#           available_batches,
-#           index=0,
-#           key="batch_analysis"
-#       )
-
-#       if st.button("Load Data", key="load_db_btn"):
-#           if st.session_state["batch_analysis"] is None:
-#               st.info("Choose a data batch and click 'Load Data'.")
-#               st.session_state['class_df_analysis'] = pd.DataFrame()
-#               st.session_state['energy_df_analysis'] = pd.DataFrame()
-#               st.session_state['show_analysis'] = False # reset analysis view when loading new data
-#           else:
-#               with st.spinner("Fetching data from SQL Engine..."):
-#                   # store loaded dataframes in session_state so they persist across interactions
-#                   st.session_state['class_df_analysis'] = db.load_from_db("Classroom", st.session_state['batch_analysis'])
-#                   st.session_state['energy_df_analysis'] = db.load_from_db("Energy", st.session_state['batch_analysis'])
-#                   st.session_state['show_analysis'] = False # reset analysis view when loading new data   
-#                   st.toast(f"Loaded {len(st.session_state.get('class_df_analysis', pd.DataFrame()))} classroom records and {len(st.session_state.get('energy_df_analysis', pd.DataFrame()))} energy records.", icon="✅")
             
     class_df = st.session_state.get('class_df', pd.DataFrame())
     energy_df = st.session_state.get('energy_df', pd.DataFrame())
@@ -84,12 +43,18 @@ with st.spinner("Loading page...", show_time=True):
             st.header("Classroom Utilization Analysis")
 
             with st.spinner("Analyzing data...", show_time=True):
-                # Calculate utilization rate per room
-                if (class_df["Actual_Occupancy"] == 0).any():
-                    class_df["Utilization"] = 0
-                else:
+                try:
                     class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
-                class_df["Percent_Utilize"] = class_df["Utilization"] * 100
+                    class_df.loc[class_df["Actual_Occupancy"] == 0, "Utilization"] = 0
+                    class_df["Percent_Utilize"] = class_df["Utilization"] * 100
+                    
+                    if "Week" in class_df.columns:
+                        weekly = class_df.groupby("Week")["Percent_Utilize"].mean().reset_index()
+                    else:
+                        weekly = class_df.groupby(class_df.index)["Percent_Utilize"].mean().reset_index()
+                        weekly.rename(columns={"index": "Week"}, inplace=True)
+                except Exception as e:
+                    st.warning(f"Classroom Preprocessing Error: {e}")
 
                 # Display Average Utilization
                 avg_util = class_df["Utilization"].mean() * 100

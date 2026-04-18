@@ -1,7 +1,5 @@
-from core.imports import st, pd,os, time, db
+from core.imports import st, pd,os, time, db, calendar
 # to read excel, install 'pip install openpyxl'
-
-db.init_db()
 
 # Initialize upload-specific session keys
 if 'class_file' not in st.session_state:
@@ -23,6 +21,26 @@ def check_columns(df, required_cols): #function to check column
 def clear_files():
     # Increment the key to force a fresh widget instance
     st.session_state["uploader_key"] += 1
+
+def normalize_month(x):
+    if pd.isna(x):
+        return None
+    
+    # Case 1: numeric (1, 1.0, etc.)
+    if isinstance(x, (int, float)):
+        try:
+            return calendar.month_abbr[int(x)]
+        except:
+            return None
+    
+    # Case 2: string (Jan, January, etc.)
+    if isinstance(x, str):
+        x = x.strip().capitalize()
+        abbr = x[:3]
+        if abbr in calendar.month_abbr:
+            return abbr
+    
+    return None  # invalid values
 
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
@@ -72,9 +90,20 @@ with st.spinner("Loading page...", show_time=True):
     with st.expander("Data Preprocessing Notes", icon="⚠️"):
         st.warning(f"Dataset may differ from the original uploaded files after preprocessing. Please review the data and ensure it is correct before saving to the database.")
         st.write(f"Preprocessing steps taken:\n"
-                 f"- Dropped rows with any missing values.\n"
-                 f"- Dropped rows with non-numeric values in 'Capacity', 'Scheduled_Hours', and 'Actual_Occupancy' in classroom data.\n"
-                 f"- Dropped rows with non-numeric values in 'Energy_kWh' and 'Energy_Cost' in energy data."
+                f"- Dropped rows with any missing values.\n\n"
+                f"**CLASSROOM DATA:**\n"
+                f"- Dropped rows with non-numeric values in **'Capacity'**, **'Scheduled_Hours'**, and **'Actual_Occupancy'**.\n"
+                f"- Dropped rows where **'Capacity'** is negative or 0, or **'Actual_Occupancy'** is negative or greater than **'Capacity'**.\n"
+                f"- Standardized **'Day'** to 3-letter format and dropped invalid days.\n"
+                f"- Dropped rows with invalid time slot format (e.g., not like '10:00-12:00').\n"
+                f"- Dropped rows with invalid week numbers (not between 1-16).\n"
+                f"- Dropped duplicate rows of data that happen during the same time period (e.g., multiple entries for the same data in the same "
+                f"classroom (**'1901'**) at the same time, day, & week (**'10:00-12:00'**, **'Mon'**, **4**)).\n\n"
+                f"**ENERGY DATA:**\n"
+                f"- Dropped rows with non-numeric values in **'Energy_kWh'** and **'Energy_Cost'**.\n"
+                f"- Dropped rows where **'Energy_kWh'** or **'Energy_Cost'** is negative.\n"
+                f"- Standardized **'Month'** to 3-letter format (e.g., 'Jan', 'Feb'), including months in numeric format (e.g., '1', '2' and '1.2') and dropped invalid months.\n"
+                f"- Dropped duplicate rows of data of the same floor during the same month (e.g., multiple entries for the same floor (e.g., **'1'**) in the same month (**'Feb'**)).\n"
         )
 
     # Initialize uploader key in session state
@@ -164,24 +193,48 @@ with st.spinner("Loading page...", show_time=True):
     if 'class_df' in locals() and not class_df.empty:
         class_df = class_df.dropna() # drop missing values in a row
 
-        # Convert string data in Capacity, Scheduled_Hours, & Actual_Occupancy to numeric, coercing errors to NaN
+        # Convert string data in Week, Capacity, Scheduled_Hours, & Actual_Occupancy to numeric, coercing errors to NaN
         class_df['Capacity_clean'] = pd.to_numeric(class_df['Capacity'], errors='coerce')
         class_df['Scheduled_clean'] = pd.to_numeric(class_df['Scheduled_Hours'], errors='coerce')
         class_df['ActOccu_clean'] = pd.to_numeric(class_df['Actual_Occupancy'], errors='coerce')
+        class_df['Week_clean'] = pd.to_numeric(class_df['Week'], errors='coerce')
+
+        # Day of week standardization (Mon, Monday, mon -> Monday)
+        class_df['Day'] = class_df['Day'].str.strip().str.capitalize().str[:3] # Standardize to 3-letter format
+        valid_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        class_df = class_df[class_df['Day'].isin(valid_days)] # Keep only valid days
+
+        # Week number validation for 1 semester (1-16)
+        class_df['Week_invalid'] = (class_df['Week_clean'] < 1) | (class_df['Week_clean'] > 16)
+
+        # Time slot format validation (e.g., "10:00-12:00") if file is excel
+        if st.session_state.class_file and st.session_state.class_file.lower().endswith(('.xls', '.xlsx')):
+            class_df['Time_Slot'] = class_df['Time_Slot'].astype(str).str.strip() # Remove leading/trailing whitespace
+            class_df['Time_Slot'] = class_df['Time_Slot'].str.replace('–', '-') # Replace en dash with hyphen if present
+            class_df['Time_Slot_invalid'] = ~class_df['Time_Slot'].str.contains(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}$') # Simple regex to check format like "10:00-12:00 OR "9:00–11:00"
+
+        # Flag rows where Capacity is invalid (negative or 0)
+        class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)
+        # Flag rows where Actual Occupancy is invalid (negative or greater than capacity)
+        class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean'])
+        # Flag rows duplicate of same data during the same time period
+        class_df['Duplicate_class'] = class_df.duplicated(subset=["Classroom_ID", "Week", "Day", "Time_Slot"], keep="first")
 
         # Drop rows where data is NaN (meaning original value was not numeric)
-        class_df = class_df.dropna(subset=['Capacity_clean'])
-        class_df = class_df.dropna(subset=['Scheduled_clean'])
-        class_df = class_df.dropna(subset=['ActOccu_clean'])
-
-        # --- DATA HARDENING: BOUNDARY VALIDATION ---
-        class_df = class_df[(class_df['Capacity_clean'] > 0) & (class_df['ActOccu_clean'] >= 0)]
-        class_df = class_df[class_df['ActOccu_clean'] <= class_df['Capacity_clean']]
+        class_df = class_df.dropna(subset=['Capacity_clean', 'Scheduled_clean', 'ActOccu_clean', 'Week_clean'])
+        class_df = class_df[# Drop Capacity is invalid (negative or 0) or Actual Occupancy is invalid (negative or greater than capacity)
+            ~class_df['Capacity_invalid'] & ~class_df['ActOccu_invalid'] &
+            ~class_df['Week_invalid'] & # Drop invalid week numbers
+            ~class_df['Time_Slot_invalid'] & # Drop invalid time slots
+            ~class_df['Duplicate_class'] # Drop duplicate lessons in the same time period
+        ]
 
         # Remove the temporary cleaned column
-        class_df = class_df.drop(columns=['Capacity_clean'])
-        class_df = class_df.drop(columns=['Scheduled_clean'])
-        class_df = class_df.drop(columns=['ActOccu_clean'])
+        class_df = class_df.drop(
+            columns=['Capacity_clean', 'Scheduled_clean', 'ActOccu_clean', 'Week_clean',
+                     'Capacity_invalid', 'ActOccu_invalid', 'Week_invalid', 'Time_Slot_invalid',
+                     'Duplicate_class']
+        )
 
         with st.expander("Classroom Usage Data"):
             st.dataframe(class_df)
@@ -194,13 +247,24 @@ with st.spinner("Loading page...", show_time=True):
         energy_df['Energy_clean'] = pd.to_numeric(energy_df['Energy_kWh'], errors='coerce')
         energy_df['Cost_clean'] = pd.to_numeric(energy_df['Energy_Cost'], errors='coerce')
 
+        # Month in numeric to month name conversion (1 or Jan -> Jan)
+        energy_df['Month'] = energy_df['Month'].apply(normalize_month)
+
+        # Flag rows where Energy_kWh and Energy_Cost are invalid (negative)
+        energy_df['Energy_invalid'] = energy_df['Energy_clean'] < 0
+        energy_df['Cost_invalid'] = energy_df['Cost_clean'] < 0
+        # Flag rows duplicate of same data of a floor during the same month
+        energy_df['Duplicate_energy'] = energy_df.duplicated(subset=["Floor", "Month"], keep="first")
+
         # Drop rows where data is NaN (meaning original value was not numeric)
-        energy_df = energy_df.dropna(subset=['Energy_clean'])
-        energy_df = energy_df.dropna(subset=['Cost_clean'])
+        energy_df = energy_df.dropna(subset=['Energy_clean', 'Cost_clean', 'Month'])
+        energy_df = energy_df[
+            ~energy_df['Energy_invalid'] & ~energy_df['Cost_invalid'] & # Drop rows where Energy_kWh or Energy_Cost is invalid (negative)
+            ~energy_df['Duplicate_energy'] # Drop duplicate rows of the same floor during the same month
+        ]
 
         # Remove the temporary cleaned column
-        energy_df = energy_df.drop(columns=['Energy_clean'])
-        energy_df = energy_df.drop(columns=['Cost_clean'])
+        energy_df = energy_df.drop(columns=['Energy_clean', 'Cost_clean', 'Energy_invalid', 'Cost_invalid', 'Duplicate_energy'])
 
         with st.expander("Energy Cost Data"):
             st.dataframe(energy_df)
