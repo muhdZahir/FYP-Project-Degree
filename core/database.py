@@ -159,6 +159,16 @@ def load_from_db(table_name, batch_name):
     finally:
         conn.close()
 
+def batch_unique(batch_name):
+    """Checks whether a Batch_Name already exists in the Batch table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        query = "SELECT 1 FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"
+        result = conn.execute(query, (batch_name,)).fetchone()
+        return result is None  # True if unique
+    finally:
+        conn.close()
+
 def class_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Classroom table."""
     conn = sqlite3.connect(DB_NAME)
@@ -189,6 +199,16 @@ def get_unique_batches():
         return batches["Batch_Name"].tolist()
     except:
         return []
+    finally:
+        conn.close()
+
+def update_batch_name(old_name, new_name):
+    """Updates the batch name in the Batch table."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        conn.execute("UPDATE Batch SET Batch_Name = ? WHERE LOWER(Batch_Name) = LOWER(?)", (new_name, old_name))
+        conn.commit()
+        return True
     finally:
         conn.close()
 

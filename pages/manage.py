@@ -1,18 +1,54 @@
-from core.imports import st, pd, time, db
+from core.imports import st, pd, time, db, os
 
 # Initialize session state for persistence across reruns
-if 'class_df' not in st.session_state:
-    st.session_state["class_df"] = pd.DataFrame()
-if 'energy_df' not in st.session_state:
-    st.session_state["energy_df"] = pd.DataFrame()
-if 'selected_batch' not in st.session_state:
-    st.session_state.selected_batch = None
-if 'batch_name' not in st.session_state:
-    st.session_state["batch_name"] = None
-if 'show' not in st.session_state:
-    st.session_state['show'] = False
+if 'edit_batch_name' not in st.session_state:
+    st.session_state['edit_batch_name'] = None
+if 'edit_success' not in st.session_state:
+    st.session_state['edit_success'] = False
+if 'edit_pending' not in st.session_state:
+    st.session_state['edit_pending'] = None
 if 'delete_pending' not in st.session_state:
     st.session_state['delete_pending'] = None
+
+def inject_custom_css(css_file_path):
+    #Injects custom CSS from a local file into the Streamlit app.
+    try:
+        with open(css_file_path) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error(f"Error: CSS file not found at {css_file_path}")
+
+def save_batch_name(old_name, new_name):
+    """Perform the actual batch name update operation."""
+    with st.spinner("Updating batch name..."):
+        if db.update_batch_name(old_name, new_name):
+            st.session_state['batch_name'] = new_name
+            st.session_state['batch'] = new_name
+            st.session_state['edit_batch_name'] = new_name
+            st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
+            st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
+            st.session_state['edit_pending'] = None  # Reset the flag after saving
+            st.session_state['edit_success'] = True
+
+            st.toast(f"Batch name updated to '{new_name}'.", icon="✅")
+            time.sleep(1)  # brief pause to ensure toast is seen
+        else:
+            st.toast("Failed to update batch name. Please try again.")
+            time.sleep(1)  # brief pause to ensure toast is seen
+
+def confirm_edit_batch_name(old_name, new_name):
+    """Displays the confirmation UI for batch name change."""
+    st.warning(f"Are you sure you want to change the batch name from '{old_name}' to '{new_name}'?")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.button("Yes, Change Name", on_click=save_batch_name, args=(old_name, new_name), key="green")
+    with col2:
+        st.button("No, Keep Original", on_click=cancel_edit_batch_name, key="cancel_edit_batch_name_btn")
+
+def cancel_edit_batch_name():
+    """Cancels the batch name edit action and resets the input field."""
+    st.session_state['edit_pending'] = None
+    st.session_state['edit_batch_name'] = st.session_state['batch_name']  # Reset input field to original name
 
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
@@ -23,7 +59,7 @@ def delete_data(data_type, batch_name):
 
             if db.energy_batch_unique(batch_name):
                 db.clear_batch(batch_name)
-                st.session_state['selected_batch'] = None
+                st.session_state['batch'] = None
                 st.session_state['batch_name'] = None
 
             st.session_state.class_df = pd.DataFrame()
@@ -35,7 +71,7 @@ def delete_data(data_type, batch_name):
             
             if db.class_batch_unique(batch_name):
                 db.clear_batch(batch_name)
-                st.session_state['selected_batch'] = None
+                st.session_state['batch'] = None
                 st.session_state['batch_name'] = None
             
             st.session_state.energy_df = pd.DataFrame()
@@ -59,45 +95,53 @@ class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
+    # Define the relative path to your CSS file
+    css_path = os.path.join("assets", "style.css")
+
+    # Inject the CSS
+    inject_custom_css(css_path)
+
     st.title("MANAGE DATA RECORDS")
-    st.write(f"Manage your data records stored in the system. You can view the data, clear old data, and maintain an organized database for analysis.\n")
+    st.write(f"Manage your data records stored in the system. You can view the data, edit the batch name, clear old data, and maintain an organized database for analysis.\n")
     st.write(f"Choose the semester data batch stored in the system for management.\n")
 
     available_batches = db.get_unique_batches()
 
     if available_batches:
         if (
-            st.session_state["selected_batch"] is None or
-            st.session_state["selected_batch"] not in available_batches
+            st.session_state["batch"] is None or
+            st.session_state["batch"] not in available_batches
         ):
-            st.session_state["selected_batch"] = st.session_state["batch_name"]
+            st.session_state["batch"] = st.session_state["batch_name"]
 
     if not available_batches:
         st.warning("No data found in database. Please upload and save files first.")
     else:
-        if "selected_batch" not in st.session_state:
-            st.session_state.selected_batch = None
+        if "batch" not in st.session_state:
+            st.session_state.batch = None
 
-        selected_batch = st.selectbox(
+        batch = st.selectbox(
             "Select Data Batch:",
             available_batches,
             index=0,
-            key="selected_batch"
+            key="batch"
         )
 
         if st.button("Load Data", key="load_db_btn"):
-            if st.session_state["selected_batch"] is None:
+            if st.session_state["batch"] is None:
                 st.info("Choose a data batch and click 'Load Data'.")
                 st.session_state["class_df"] = pd.DataFrame()
                 st.session_state["energy_df"] = pd.DataFrame()
                 st.session_state["batch_name"] = None
+                st.session_state["edit_batch_name"] = None
                 st.session_state['show'] = False
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
                     # store loaded dataframes in session_state so they persist across interactions
-                    st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['selected_batch'])
-                    st.session_state["energy_df"] = db.load_from_db("Energy", st.session_state['selected_batch'])
-                    st.session_state["batch_name"] = st.session_state['selected_batch']
+                    st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
+                    st.session_state["energy_df"] = db.load_from_db("Energy", st.session_state['batch'])
+                    st.session_state["batch_name"] = st.session_state['batch']
+                    st.session_state["edit_batch_name"] = st.session_state['batch_name']
                     st.session_state['show'] = True
                     st.toast("Data loaded successfully.", icon="✅")
 
@@ -106,10 +150,39 @@ with st.spinner("Loading page...", show_time=True):
         class_df = st.session_state.get('class_df', pd.DataFrame())
         energy_df = st.session_state.get('energy_df', pd.DataFrame())
         batch_name = st.session_state.get('batch_name', None)
+        edit_batch_name = st.session_state.get('edit_batch_name', None)
 
         if st.session_state['show']:
+            st.subheader(f"Data Records for Batch: {batch_name}")
+            st.write(f"Review the data records for the selected batch. You can choose to edit the batch name or clear the Classroom or Energy data, but "
+                    f"please note that the delete action is irreversible and will permanently remove the data from the database.\n"
+                    f"Make sure to double-check the data before confirming deletion.\n")
+            
+            # update batch name and save to db if user edits the batch name
+            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name, key="edit_batch_name")
+            if st.session_state['edit_pending'] == "Batch Name":
+                confirm_edit_batch_name(batch_name, new_batch_name)
+            else:
+                if st.button("Save Batch Name", key="green"):
+                    if st.session_state['edit_success']:
+                        st.session_state['edit_success'] = False
+                        st.rerun()
+                    
+                    if new_batch_name is None or new_batch_name.strip() == "":
+                        st.error("Batch name cannot be empty. Please enter a valid name.")
+                    elif new_batch_name == batch_name:
+                        st.info("Batch name is unchanged. No update occurred.")
+                    else:
+                        if new_batch_name != batch_name:
+                            if not db.batch_unique(new_batch_name):
+                                st.error(f"A batch with the name '{new_batch_name}' already exists. Please choose a different name.")
+                            else:
+                                st.session_state['edit_pending'] = "Batch Name"
+                                # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                                st.rerun()
+
             if 'class_df' in locals() and not class_df.empty:
-                st.subheader(f"Classroom Data Records for {batch_name}")
+                st.subheader(f"Classroom Data Records")
                 st.dataframe(class_df)
 
                 if st.session_state['delete_pending'] == "Classroom":
@@ -121,7 +194,7 @@ with st.spinner("Loading page...", show_time=True):
                         st.rerun()
 
             if 'energy_df' in locals() and not energy_df.empty:
-                st.subheader(f"Energy Data Records for {batch_name}")
+                st.subheader(f"Energy Data Records")
                 st.dataframe(energy_df)
 
                 if st.session_state['delete_pending'] == "Energy":
