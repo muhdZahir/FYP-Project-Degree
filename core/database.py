@@ -128,6 +128,7 @@ def get_batch_status(batch_id):
     conn.close()
     return class_exists, energy_exists
 
+@st.cache_data(ttl=3600)
 def load_from_db(table_name, batch_name):
     """Loads data from the database for a specific batch. Returns empty DataFrame if batch_name is not provided."""
     if table_name not in ALLOWED_TABLES and table_name != 'Batch':

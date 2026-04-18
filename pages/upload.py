@@ -174,6 +174,10 @@ with st.spinner("Loading page...", show_time=True):
         class_df = class_df.dropna(subset=['Scheduled_clean'])
         class_df = class_df.dropna(subset=['ActOccu_clean'])
 
+        # --- DATA HARDENING: BOUNDARY VALIDATION ---
+        class_df = class_df[(class_df['Capacity_clean'] > 0) & (class_df['ActOccu_clean'] >= 0)]
+        class_df = class_df[class_df['ActOccu_clean'] <= class_df['Capacity_clean']]
+
         # Remove the temporary cleaned column
         class_df = class_df.drop(columns=['Capacity_clean'])
         class_df = class_df.drop(columns=['Scheduled_clean'])
