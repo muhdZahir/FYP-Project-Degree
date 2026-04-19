@@ -61,11 +61,15 @@ with st.spinner("Loading page...", show_time=True):
                 st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
 
                 # Bar Chart: Top 5 Underutilized Rooms
-                st.subheader("Top 5 Underutilized Rooms")
+                # --- [EDITED: Changed the static title and added an interactive slider] ---
+                st.subheader("Worst Performing Rooms")
+                n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=50, value=5, step=1)
+                
                 # Group by Room to get average utilization
                 room_stats = class_df.groupby("Classroom_ID")["Percent_Utilize"].mean().reset_index()
-                # Sort lowest first
-                top_underutilized = room_stats.sort_values("Percent_Utilize", ascending=True).head(5)
+                
+                # --- [EDITED: Replaced the hardcoded .head(5) with the dynamic .head(n_rooms)] ---
+                top_underutilized = room_stats.sort_values("Percent_Utilize", ascending=True).head(n_rooms)
                 
                 bar_fig = px.bar(
                     top_underutilized,
@@ -73,19 +77,21 @@ with st.spinner("Loading page...", show_time=True):
                     y="Percent_Utilize",
                     color="Percent_Utilize",
                     color_continuous_scale="Reds_r", # Red = Low utilization
-                    title="Rooms with Lowest Utilization Rate (%)",
+                    # --- [EDITED: Made the chart title dynamic based on the slider] ---
+                    title=f"Top {n_rooms} Rooms with Lowest Utilization Rate (%)",
                     text_auto='.1f',
                     labels={"Classroom_ID": "Classroom ID","Percent_Utilize": "Utilization (%)"}
                 )
 
                 # update chart
-                bar_fig.update_layout(title=dict(text="Rooms with Lowest Utilization Rate (%)",
-                        font=dict(size=20),   # ← change size here
-                        x=0.2                 # ← position the title
+                # --- [EDITED: Updated the layout title to match the dynamic slider title] ---
+                bar_fig.update_layout(title=dict(text=f"Top {n_rooms} Rooms with Lowest Utilization Rate (%)",
+                        font=dict(size=20),   
+                        x=0.2                 
                     ),
-                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
-                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
-                    coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font size
+                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15), type='category'), 
+                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), 
+                    coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) 
                 )
                 
                 st.plotly_chart(bar_fig, width="stretch")
