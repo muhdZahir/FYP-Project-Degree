@@ -88,7 +88,11 @@ with st.spinner("Loading page...", show_time=True):
         # THE 3-PILLAR PREDICTIONS
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
-        col1, col2, col3 = st.columns(3)
+        # --- [OLD CODE] ---
+        # col1, col2, col3 = st.columns(3)
+
+        # --- [EDITED: Using weighted columns. Column 2 and 3 now get 50% more space than Column 1] ---
+        col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
         
         # Prediction 1: 14-Week Demand
         future_weeks_df = pd.DataFrame()
@@ -107,7 +111,7 @@ with st.spinner("Loading page...", show_time=True):
                 future_weeks_df = pd.DataFrame({"Week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
                 pred_demand_avg = future_p.mean()
                 with col1:
-                    st.metric("Next Semester Demand (Avg)", f"{pred_demand_avg:.1f}%", help="Predicted average classroom utilization for the upcoming cycle.")
+                    st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="Predicted average classroom utilization for the upcoming cycle.")
             except:
                 col1.metric("Next Semester Demand", "Error")
         else:
