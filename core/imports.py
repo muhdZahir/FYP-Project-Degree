@@ -11,6 +11,4 @@ import core.database as db  # Importing your database.py
 
 import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
 # pip install -U scikit-learn
-from sklearn.preprocessing import PolynomialFeatures # For polynomial regression features
 from sklearn.linear_model import LinearRegression # For linear regression modeling
-from sklearn.pipeline import make_pipeline # To create a pipeline that combines polynomial features and linear regression

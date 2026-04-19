@@ -1,4 +1,4 @@
-from core.imports import st, pd, np, os, px, calendar, LinearRegression, PolynomialFeatures, make_pipeline
+from core.imports import st, pd, np, os, px, calendar, LinearRegression
 
 # Initialize data containers
 class_df = pd.DataFrame()
@@ -70,6 +70,9 @@ with st.spinner("Loading page...", show_time=True):
         try:
             energy_df["Month_Num"] = energy_df["Month"].apply(normalize_month)
             monthly_cost = energy_df.groupby("Month_Num")["Energy_Cost"].sum().reset_index()
+            # Ensure Month_Num is sorted correctly (1, 2, 3, 4) for plotting and modeling
+            monthly_cost["Month_Num"] = pd.to_numeric(monthly_cost["Month_Num"], errors='coerce')
+            monthly_cost = monthly_cost.sort_values("Month_Num").reset_index(drop=True)
         except Exception as e:
             st.warning(f"Energy Preprocessing Error: {e}")
 
@@ -94,8 +97,8 @@ with st.spinner("Loading page...", show_time=True):
             try:
                 X_d = weekly["Week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
-                # --- ALGORITHM UPGRADED TO POLYNOMIAL REGRESSION ---
-                model_d = make_pipeline(PolynomialFeatures(degree=2), LinearRegression()).fit(X_d, y_d)
+
+                model_d = LinearRegression().fit(X_d, y_d)
                 
                 max_w = int(weekly["Week"].max())
                 future_w = np.array([[max_w + i] for i in range(1, 15)])
@@ -118,8 +121,8 @@ with st.spinner("Loading page...", show_time=True):
             try:
                 X_e = pd.to_numeric(monthly_cost["Month_Num"]).values.reshape(-1, 1)
                 y_e = monthly_cost["Energy_Cost"].values
-                # --- ALGORITHM UPGRADED TO POLYNOMIAL REGRESSION ---
-                model_e = make_pipeline(PolynomialFeatures(degree=2), LinearRegression()).fit(X_e, y_e)
+
+                model_e = LinearRegression().fit(X_e, y_e)
                 
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
