@@ -25,10 +25,16 @@ def login():
     st.title("URO: University Resource Optimization")
     st.info("Login to Your App")
 
-    username = st.text_input(label="Username", placeholder="Enter your username")
-    password = st.text_input(label="Password", placeholder="Enter your password", type='password')
+    # --- [EDITED: Wrapped inputs in a form to enable 'Enter' key submission] ---
+    with st.form(key="login_form"):
+        username = st.text_input(label="Username", placeholder="Enter your username")
+        password = st.text_input(label="Password", placeholder="Enter your password", type='password')
 
-    if st.button("Log in"):
+        # --- [EDITED: Changed standard button to form_submit_button] ---
+        submit_button = st.form_submit_button("Log in")
+
+    # --- [EDITED: Moved the logic outside the form block to trigger on submit] ---
+    if submit_button:
         if check_login(username, password):
             st.rerun()
         else:
