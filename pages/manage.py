@@ -1,8 +1,6 @@
 from core.imports import st, pd, time, db, os
 
 # Initialize session state for persistence across reruns
-if 'edit_batch_name' not in st.session_state:
-    st.session_state['edit_batch_name'] = None
 if 'edit_success' not in st.session_state:
     st.session_state['edit_success'] = False
 if 'edit_pending' not in st.session_state:
@@ -24,7 +22,6 @@ def save_batch_name(old_name, new_name):
         if db.update_batch_name(old_name, new_name):
             st.session_state['batch_name'] = new_name
             st.session_state['batch'] = new_name
-            st.session_state['edit_batch_name'] = new_name
             st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
             st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
             st.session_state['edit_pending'] = None  # Reset the flag after saving
@@ -133,7 +130,6 @@ with st.spinner("Loading page...", show_time=True):
                 st.session_state["class_df"] = pd.DataFrame()
                 st.session_state["energy_df"] = pd.DataFrame()
                 st.session_state["batch_name"] = None
-                st.session_state["edit_batch_name"] = None
                 st.session_state['show'] = False
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
@@ -141,7 +137,6 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
                     st.session_state["energy_df"] = db.load_from_db("Energy", st.session_state['batch'])
                     st.session_state["batch_name"] = st.session_state['batch']
-                    st.session_state["edit_batch_name"] = st.session_state['batch_name']
                     st.session_state['show'] = True
                     st.toast("Data loaded successfully.", icon="✅")
 
@@ -150,7 +145,7 @@ with st.spinner("Loading page...", show_time=True):
         class_df = st.session_state.get('class_df', pd.DataFrame())
         energy_df = st.session_state.get('energy_df', pd.DataFrame())
         batch_name = st.session_state.get('batch_name', None)
-        edit_batch_name = st.session_state.get('edit_batch_name', None)
+        edit_batch_name = batch_name
 
         if st.session_state['show']:
             st.subheader(f"Data Records for Batch: {batch_name}")
@@ -159,7 +154,7 @@ with st.spinner("Loading page...", show_time=True):
                     f"Make sure to double-check the data before confirming deletion.\n")
             
             # update batch name and save to db if user edits the batch name
-            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name, key="edit_batch_name")
+            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name)
             if st.session_state['edit_pending'] == "Batch Name":
                 confirm_edit_batch_name(batch_name, new_batch_name)
             else:

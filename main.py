@@ -25,15 +25,12 @@ def login():
     st.title("URO: University Resource Optimization")
     st.info("Login to Your App")
 
-    # --- [EDITED: Wrapped inputs in a form to enable 'Enter' key submission] ---
     with st.form(key="login_form"):
         username = st.text_input(label="Username", placeholder="Enter your username")
         password = st.text_input(label="Password", placeholder="Enter your password", type='password')
 
-        # --- [EDITED: Changed standard button to form_submit_button] ---
         submit_button = st.form_submit_button("Log in")
 
-    # --- [EDITED: Moved the logic outside the form block to trigger on submit] ---
     if submit_button:
         if check_login(username, password):
             st.rerun()
@@ -54,7 +51,7 @@ def check_login(username, password):
 def logout():
     st.write("Logging out...")
     if st.button("Log out"):
-        # actually clear the session state then rerun
+        # clear all session state then rerun
         st.session_state.clear()
         st.rerun()
 
@@ -118,7 +115,7 @@ elif st.session_state['user_role'] == "Manager":
         else:            
             if st.sidebar.button("Load Data", key="load_db_btn"):
                 if st.session_state["batch"] is None:
-                    st.info("Choose a data batch and click 'Load Data'.")
+                    st.toast("Choose a data batch and click 'Load Data'.")
                     st.session_state['class_df'] = pd.DataFrame()
                     st.session_state['energy_df'] = pd.DataFrame()
                     st.session_state['batch_name'] = None

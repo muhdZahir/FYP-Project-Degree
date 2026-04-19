@@ -1,7 +1,4 @@
-from core.imports import st, pd, np, os, px, calendar, MinMaxScaler, LinearRegression
-# --- ADDED THESE TWO IMPORTS FOR ALGORITHM UPGRADE ---
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
+from core.imports import st, pd, np, os, px, calendar, LinearRegression, PolynomialFeatures, make_pipeline
 
 # Initialize data containers
 class_df = pd.DataFrame()
@@ -113,7 +110,6 @@ with st.spinner("Loading page...", show_time=True):
         else:
             with col1:
                 st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available for demand forecasting.")
-
         
         # Prediction 2: Energy
         pred_e = 0
@@ -128,7 +124,7 @@ with st.spinner("Loading page...", show_time=True):
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
-                col2.metric("Next Month Est. Cost", f"RM {pred_e:.2f}", help="Forecasted utility bill based on current trajectory.")
+                col2.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Forecasted utility bill based on current trajectory.")
             except:
                 col2.metric("Next Month Est. Cost", "Error")
         else:
@@ -147,14 +143,18 @@ with st.spinner("Loading page...", show_time=True):
                 eng_m = e_copy.groupby("Month_Map")["Energy_Cost"].sum().reset_index()
                 merged = pd.merge(occ_m, eng_m, on="Month_Map")
                 
+                # Calculate R² to estimate how well occupancy explains energy cost variability
+                # If R² is high, we assume less wastage (more efficient usage); if low, we assume more wastage.
+                # We can use the R² value to estimate a "waste factor" that scales the average energy cost to project potential wastage.
+                # For example, if R² is 0.8, we might assume only 20% of the energy cost is wasted. If R² is 0.2, we might assume 80% is wasted.
                 if len(merged) > 1:
                     r2 = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"]).score(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
                     waste_factor = max(0.1, 1.0 - r2)
                 else:
-                    waste_factor = 0.40 
+                    waste_factor = 0.40 # Default to 40% wastage if we can't calculate R² (e.g., only one month of data)
                     
                 waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4 # Projected 4-month wastage
-                col3.metric("Projected 4-Month Wastage", f"RM {waste:.2f}", delta="-High Risk", delta_color="inverse")
+                col3.metric("Projected 4-Month Wastage", f"RM {waste:,.2f}", delta="-High Risk", delta_color="inverse")
             except:
                 col3.metric("Projected 4-Month Wastage", "Error")
 
@@ -225,7 +225,8 @@ with st.spinner("Loading page...", show_time=True):
                 
                 if not ghosts.empty:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    st.error(f"🚨 **SPACE LEAK:** Room {w_room['Classroom_ID']} is only {w_room['Percent_Utilize']:.1f}% full. This room is way too big for the number of students. Move them to a smaller room to save AC.")
+                    st.error(f"🚨 **SPACE LEAK:** Room {w_room['Classroom_ID']} is only {w_room['Percent_Utilize']:.1f}% full. This room is way "
+                            f"too big for the number of students. Move them to a smaller room to save AC.")
                 else:
                     st.success("✅ All classes are in the right-sized rooms. No space leaks detected.")
             except: pass
@@ -239,7 +240,8 @@ with st.spinner("Loading page...", show_time=True):
                 ghost_slots = t_floor[t_floor['Count'] <= 2]
                 if not ghost_slots.empty:
                     w_slot = ghost_slots.iloc[0]
-                    st.warning(f"⚠️ **WASTED AC:** Floor {w_slot['Floor']} only has {w_slot['Count']} class(es) at {w_slot['Time_Slot']}. Move these classes to an active floor so you can shut down the empty floor.")
+                    st.warning(f"⚠️ **WASTED AC:** Floor {w_slot['Floor']} only has {w_slot['Count']} class(es) at {w_slot['Time_Slot']}. Move these "
+                               f"classes to an active floor so you can shut down the empty floor.")
                 else:
                     st.success("✅ Classes are grouped perfectly. No empty floors wasting electricity.")
             except: pass
@@ -258,7 +260,8 @@ with st.spinner("Loading page...", show_time=True):
                 leaks = t3[(t3['Cost_Pct'] - t3['Occ_Pct']) > 15.0]
                 if not leaks.empty:
                     w_leak = leaks.sort_values(by='Cost_Pct', ascending=False).iloc[0]
-                    st.error(f"🚨 **MONEY LEAK:** Floor {int(w_leak['Floor'])} is burning {w_leak['Cost_Pct']:.1f}% of your electricity bill, but only has {w_leak['Occ_Pct']:.1f}% of your students. Someone is leaving the AC or lights on.")
+                    st.error(f"🚨 **MONEY LEAK:** Floor {int(w_leak['Floor'])} is burning {w_leak['Cost_Pct']:.1f}% of your electricity bill, but only "
+                             f"has {w_leak['Occ_Pct']:.1f}% of your students. Someone is leaving the AC or lights on.")
                 else:
                     st.success("✅ Your electricity bills match your student numbers.")
             except: pass
