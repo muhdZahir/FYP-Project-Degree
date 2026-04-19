@@ -34,7 +34,7 @@ with st.spinner("Loading page...", show_time=True):
         if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="blue"):
             st.session_state['show'] = True
 
-    if st.session_state['show']:
+    if st.session_state.get('show', False):
         st.title(f"Data Analysis & Insights: {batch_name}")
         # ==========================================
         # CLASSROOM ANALYSIS
@@ -133,28 +133,17 @@ with st.spinner("Loading page...", show_time=True):
                     # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
                     worst_wasted_space = 100 - worst_room['Percent_Utilize']
 
-                    # THE BEGINNER-FRIENDLY TL;DR ---
-                    # st.error(f"""
-                    #🚨 **THE BOTTOM LINE:** **Room {worst_room['Classroom_ID']}** is basically empty air. We are paying the full electricity price to 
-                    # air-condition a massive room, but it is **{worst_wasted_space:.2f}% unused** during its booked hours. 
-                    # *Solution:* Move these few students to a smaller room.
-                    # """)
-
+                    # --- [EDITED: Simplified the wording to plain English, removed consultant jargon] ---
                     st.markdown(f"""
-                    **Observation: Severe Capacity Deficit**
+                    **Observation: Rooms are too big for the classes**
 
-                    The campus average utilization currently sits at **{campus_avg:.2f}%**. However, the bottom-performing rooms deviate significantly
-                    from this baseline:
+                    The campus average utilization is **{campus_avg:.2f}%**. But the worst performing rooms are wasting a lot of space:
                     
-                    - **Room {worst_room['Classroom_ID']}** is severely underperforming, operating at **{abs(worst_diff):.2f}% below** the campus average. 
-                    - This indicates a **{worst_wasted_space:.2f}% spatial wastage**, yet the university incurs 100% of the baseline cooling costs for this area.
-                    - The variance remains critical even at the 5th worst room (**Room {fifth_worst['Classroom_ID']}**), which is still 
-                    **{abs(fifth_diff):.2f}% below** acceptable average levels.
+                    - **Room {worst_room['Classroom_ID']}** is only **{worst_room['Percent_Utilize']:.2f}%** full. 
+                    - This means the room is **{worst_wasted_space:.2f}% empty air**, but we are still paying the full price to air-condition it.
+                    - Even the 5th worst room (**Room {fifth_worst['Classroom_ID']}**) is operating **{abs(fifth_diff):.2f}% below** the normal campus average.
 
-                    **Strategic Recommendation:** The university is not just scheduling inefficiently; it is actively bleeding resources on these specific
-                    outlier rooms. Management must quarantine **Room {worst_room['Classroom_ID']}** from the active UniTime/FET scheduling pool immediately
-                    and re-route its assigned classes to standard-sized venues to instantly eliminate this **{worst_wasted_space:.2f}%** capacity wastage
-                    and fixed utility overhead.
+                    **What to do:** The university is bleeding money on these specific rooms. We need to stop putting small classes into **Room {worst_room['Classroom_ID']}** immediately. Move these students to a smaller room to stop wasting electricity on empty space.
                     """)
 
                 # Heatmap: Floor vs Time Slot
@@ -195,39 +184,29 @@ with st.spinner("Loading page...", show_time=True):
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        st.markdown("### 🔥 Peak Usage Zone")
+                        # --- [EDITED: Simplified the header titles] ---
+                        st.markdown("### 🔥 Busiest Time & Floor")
                         st.metric("Time Slot", peak_usage["Time_Slot"])
                         st.metric("Floor Level", f"Floor {peak_usage['Floor']}")
                         st.write(f"**Utilization:** {peak_usage['Percent_Utilize']:.2f}%")
 
                     with col2:
-                        st.markdown("### ❄️ Dead Zone")
+                        # --- [EDITED: Simplified the header titles] ---
+                        st.markdown("### ❄️ Quietest Time & Floor")
                         st.metric("Time Slot", lowest_usage["Time_Slot"])
                         st.metric("Floor Level", f"Floor {lowest_usage['Floor']}")
                         st.write(f"**Utilization:** {lowest_usage['Percent_Utilize']:.2f}%")
 
-                    # --- THE BEGINNER-FRIENDLY TL;DR ---
-                    #st.warning(f"""
-                    #⚠️ **THE BOTTOM LINE:** The timetable is messy. During **{lowest_usage['Time_Slot']}**, we are turning on the central air-conditioning
-                    #for the **entire Floor {lowest_usage['Floor']}** just to service one or two isolated classes. 
-                    #*Solution:* Pack all afternoon classes onto one single floor and shut down the rest.
-                    #""")
-                    
+                    # --- [EDITED: Simplified the explanation, removed spatial fragmentation jargon] ---
                     st.markdown(f"""
-                    **Observation: Spatial-Temporal Inefficiency**
+                    **Observation: Wasted AC on empty floors**
 
-                    The current schedule exhibits severe spatial fragmentation. While the campus experiences its highest density on
-                    **Floor {peak_usage['Floor']}** during the **{peak_usage['Time_Slot']}** slot (**{peak_usage['Percent_Utilize']:.2f}%** capacity),
-                    other areas form inefficient 'Dead Zones':
+                    The current timetable is scattered. We have busy areas like **Floor {peak_usage['Floor']}** at **{peak_usage['Time_Slot']}** (**{peak_usage['Percent_Utilize']:.2f}%** full), but we also have "Ghost Zones":
                     
-                    - During the **{lowest_usage['Time_Slot']}** slot, classes are isolated, dropping to a minimum efficiency of
-                    **{lowest_usage['Percent_Utilize']:.2f}%** on **Floor {lowest_usage['Floor']}**.
-                    - This fragmentation forces the centralized HVAC systems to cool entire building blocks merely to service a few scattered,
-                    low-density populations.
+                    - During **{lowest_usage['Time_Slot']}**, **Floor {lowest_usage['Floor']}** drops to a terrible **{lowest_usage['Percent_Utilize']:.2f}%** utilization.
+                    - Because the classes are scattered, the building management has to turn on the central AC for the entire floor just for one or two isolated classes.
 
-                    **Strategic Recommendation: Zone Consolidation.** Investigate the isolated classes operating during the **{lowest_usage['Time_Slot']}**
-                    on **Floor {lowest_usage['Floor']}**. Move these micro-sessions to a primary active floor to initiate complete power-down protocols for
-                    the unoccupied levels.
+                    **What to do:** Look at the isolated classes on **Floor {lowest_usage['Floor']}** at **{lowest_usage['Time_Slot']}**. Move these few classes to a busier floor. Once they are moved, we can completely shut down the electricity and AC for Floor {lowest_usage['Floor']} during that time.
                     """)
             st.divider()
         elif class_df.empty:
@@ -350,9 +329,6 @@ with st.spinner("Loading page...", show_time=True):
                     - The **highest contributing floor** during this month was **{high_floor_low_month['Floor']}**, with **RM {high_floor_low_month['Energy_Cost']:.2f}**.
                     - The **lowest contributing floor** was **{low_floor_low_month['Floor']}**, with **RM {low_floor_low_month['Energy_Cost']:.2f}**.
                     """)
-                    #These variations indicate that energy consumption patterns differ across floors and months, suggesting opportunities
-                    #for improved energy management and operational optimization.
-                    #""")
 
                 # Pie chart: percentage contribution
                 st.subheader("Floor Contribution to Total Energy Cost")
@@ -435,44 +411,40 @@ with st.spinner("Loading page...", show_time=True):
 
                     cv = std_dev / avg_cost
                     
+                    # --- [EDITED: Translated the variation analysis to plain, actionable English] ---
                     if cv > 0.3:
-                        variation_level = "high"
+                        variation_level = "High"
                         variation_text = """
-                        This indicates a **significant imbalance in energy consumption** across floors. 
-                        Certain floors are consuming disproportionately higher energy, suggesting potential inefficiencies 
-                        such as overuse of air conditioning, longer operating hours, or underutilized spaces with active energy usage.
+                        This means there is a **huge difference in electricity bills** between the floors. 
+                        Some floors are burning way more electricity than others. This usually means someone is leaving the AC running too long, or there are classes scattered across large spaces.
 
-                        **Recommendation:** Target high-consuming floors for optimization, such as adjusting schedules or improving energy management.
+                        **What to do:** Check the highest-consuming floor immediately. Group their classes together or adjust the AC timers.
                         """
                     elif cv >= 0.2 and cv <= 0.3:
-                        variation_level = "moderate"
+                        variation_level = "Moderate"
                         variation_text = """
-                        This indicates a **moderate variation in energy consumption** across floors. 
-                        While some differences exist, energy usage is relatively balanced but may still benefit from minor optimization.
+                        This means there is a **moderate difference in electricity bills** between the floors. 
+                        The energy usage is mostly okay, but some floors are slightly higher than normal.
 
-                        **Recommendation:** Monitor high-consuming floors and consider gradual improvements in scheduling or energy usage efficiency.
+                        **What to do:** Keep an eye on the top-consuming floor and see if you can move a few classes to save energy.
                         """
                     else:
-                        variation_level = "low"
+                        variation_level = "Low"
                         variation_text = """
-                        This indicates a **low variation in energy consumption**, suggesting that energy usage is relatively evenly distributed across floors.
+                        This means there is a **low difference in electricity bills**, meaning the power usage is very balanced across all floors.
 
-                        **Recommendation:** Current energy usage patterns are relatively efficient, but continuous monitoring is recommended to maintain performance.
+                        **What to do:** The electricity is well-managed right now. No major changes needed.
                         """
 
                     st.markdown(f"""
                     **Observation:**
                                 
-                    **{dominant_floor['Floor']}** contributes the highest share of energy cost, 
-                    accounting for **{dominant_floor['Contribution (%)']:.2f}%** of the total energy expenditure. 
+                    **Floor {dominant_floor['Floor']}** is our biggest spender, 
+                    burning **{dominant_floor['Contribution (%)']:.2f}%** of the total electricity bill. 
 
-                    In contrast, **{least_floor['Floor']}** contributes the least at **{least_floor['Contribution (%)']:.2f}%**. 
+                    On the other hand, **Floor {least_floor['Floor']}** is the cheapest, only using **{least_floor['Contribution (%)']:.2f}%**. 
 
-                    This suggests that **{dominant_floor['Floor']}** may have higher operational demand or energy usage, 
-                    while **{least_floor['Floor']}** has lower operational demand or energy usage.
-
-                    The variation in energy cost across floors is **{variation_level}**, with a difference of 
-                    **RM {range_diff:.2f}** (approximately **{percent_diff:.2f}%** higher between the highest and lowest floors).
+                    The difference between the highest and lowest floors is **RM {range_diff:.2f}** (which is **{percent_diff:.2f}%** higher).
                     """)
 
                     st.markdown(f"""{variation_text}""")   
@@ -650,28 +622,16 @@ with st.spinner("Loading page...", show_time=True):
                                 help="Estimated increase in energy bill for each additional student."
                             )
 
-                            # --- THE BEGINNER-FRIENDLY TL;DR ---
-                        #st.error(f"""
-                        #🚨 **THE BOTTOM LINE:** The university's electricity bill is running on **Autopilot**. 
-                        #Even when the building has very few students, the bill stays dangerously high. This proves that our current timetabling software
-                         #        only cares about finding empty slots, completely ignoring the massive energy wasted by cooling empty spaces.
-                          #  """)
-
-                        # Dynamic Text Findings
+                        # --- [EDITED: Simplified the wording to plain English, removed 'Decoupled' jargon] ---
                         st.markdown(f"""
-                        **Observation: Decoupled Operational Expenditure**
+                        **Observation: The AC is running on autopilot**
 
-                        The statistical model (Correlation: **{corr_coef:.2f}**) reveals a critical financial disconnect. Only **{r2_score * 100:.1f}%** of
-                        the energy expenditure is actually driven by student occupancy.
+                        This statistical model proves a major financial problem. Only **{r2_score * 100:.1f}%** of the electricity bill is actually because of students sitting in class.
                     
-                        - The remaining **{unexplained_variance:.1f}% represents unoptimized sunk costs**—cooling and lighting spaces completely unlinked to
-                        human presence.
-                        - The Linear Regression trendline estimates that every additional scheduled student currently adds an estimated **RM {slope:.2f}**
-                        to the utility overhead due to inefficient spatial mapping.
+                        - The other **{unexplained_variance:.1f}% is wasted money**—we are paying to cool and light up empty spaces because the AC is left on or the rooms are too big.
+                        - For every single student we add to the schedule, the university pays an extra **RM {slope:.2f}** in electricity because the scheduling is inefficient.
                     
-                        **Strategic Recommendation: Financially-Weighted Scheduling.** Traditional timetabling (e.g., UniTime) optimizes exclusively for
-                        logistical constraints, creating "autopilot" wastage. Management must use URO to ensure that utility activation is strictly
-                        proportional to actual human utilization, stopping the financial bleed.
+                        **What to do:** The current timetable only cares about finding empty time slots. Management needs to start using URO to group classes together. Only turn on the AC when there are actually people inside, and stop the autopilot wastage.
                             """)
 
         elif class_df.empty or energy_df.empty:
