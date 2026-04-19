@@ -598,10 +598,13 @@ with st.spinner("Loading page...", show_time=True):
                         r2_score = model.score(X, y)
                         corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
                         slope = model.coef_[0]
+                        # --- [NEW: Added y-intercept to calculate the Base Autopilot Cost at 0 students] ---
+                        y_intercept = model.intercept_
                         unexplained_variance = 100 - (r2_score * 100)
 
                         # Metric Columns
-                        col1, col2, col3 = st.columns(3)
+                        # --- [EDITED: Changed 4 columns to a 2-column layout to create a spacious 2x2 grid] ---
+                        col1, col2 = st.columns(2)
 
                         with col1:
                             st.metric(
@@ -609,18 +612,24 @@ with st.spinner("Loading page...", show_time=True):
                                 value=f"{corr_coef:.2f}",
                                 help="1.0 is perfect correlation. Near 0 means no relationship."
                             )
+                            # --- [EDITED: Stacked the 3rd metric inside the 1st column] ---
+                            st.metric(
+                                label="Est. Cost per Occupant",
+                                value=f"RM {slope:.2f}",
+                                help="Estimated increase in energy bill for each additional student."
+                            )
                         with col2:
                             st.metric(
                                 label="R-Squared Score",
                                 value=f"{r2_score * 100:.1f}%",
                                 help="Percentage of energy cost explained by student occupancy."
                             )
-                        with col3:
+                            # --- [EDITED: Stacked the 4th metric inside the 2nd column] ---
                             st.metric(
-                                label="Est. Cost per Occupant",
-                                value=f"RM {slope:.2f}",
-                                help="Estimated increase in energy bill for each additional student."
-                            )
+                                label="Base Cost (0 Students)",
+                                value=f"RM {y_intercept:.2f}",
+                                help="The 'Autopilot Cost'. The estimated electricity bill even if the building is completely empty."
+                            )  
 
                         # --- [EDITED: Simplified the wording to plain English, removed 'Decoupled' jargon] ---
                         st.markdown(f"""
