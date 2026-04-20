@@ -1,24 +1,10 @@
-from core.imports import st, pd, np, os, px, calendar, LinearRegression
+from core.imports import st, pd, np, px, calendar, LinearRegression
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
 
-def inject_custom_css(css_file_path):
-        #Injects custom CSS from a local file into the Streamlit app.
-        try:
-            with open(css_file_path) as f:
-                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-        except FileNotFoundError:
-            st.error(f"Error: CSS file not found at {css_file_path}")
-
 with st.spinner("Loading page...", show_time=True):
-    # Define the relative path to your CSS file
-    css_path = os.path.join("assets", "style.css")
-
-    # Inject the CSS
-    inject_custom_css(css_path)
-
     st.title("ANALYSIS")
     st.write(f"Analyze the data and generate insights to identify areas for improvement. The system provides insights into "
             f"classroom usage and energy/electrical cost patterns, helping you make informed decisions about resource allocation and cost management.\n"
@@ -31,8 +17,10 @@ with st.spinner("Loading page...", show_time=True):
 
     if not class_df.empty or not energy_df.empty:
         st.divider()
-        if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="blue"):
-            st.session_state['show'] = True
+        col1, col2, col3 = st.columns([0.25, 1, 0.3])
+        with col2:
+            if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="blue"):
+                st.session_state['show'] = True
 
     if st.session_state.get('show', False):
         st.title(f"Data Analysis & Insights: {batch_name}")
@@ -85,9 +73,9 @@ with st.spinner("Loading page...", show_time=True):
                 )
 
                 # update chart
-                bar_fig.update_layout(title=dict(text=f"Top {n_rooms} Rooms with Lowest Utilization Rate (%)",
+                bar_fig.update_layout(title=dict(
                         font=dict(size=20),   # ← change size here
-                        x=0.2                 # ← position the title
+                        x=0.25                 # ← position the title
                     ),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15), type='category'), # ← change x axis font (title and tick) size
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
@@ -99,7 +87,6 @@ with st.spinner("Loading page...", show_time=True):
                 # Findings: Top 5 Underutilized Rooms
                 # ------------------------------------------
                 st.markdown("Findings: Worst Performing Rooms")
-
                 with st.expander("Show details"):
                     # Data Extraction & Baseline Calculation
                     campus_avg = class_df["Percent_Utilize"].mean()
@@ -233,9 +220,9 @@ with st.spinner("Loading page...", show_time=True):
                 )
 
                 # update chart
-                heat_fig.update_layout(title=dict(text="Avg Utilization Rate (%) by Floor and Time",
+                heat_fig.update_layout(title=dict(
                         font=dict(size=20),   # ← change size here
-                        x=0.2                 # ← position the title
+                        x=0.25                 # ← position the title
                     ),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
@@ -248,7 +235,6 @@ with st.spinner("Loading page...", show_time=True):
                 # Findings: Utilization Heatmap
                 # ------------------------------------------
                 st.markdown("Findings: Floor vs Time Utilization")
-
                 with st.expander("Show details"):
                     # Data Extraction
                     peak_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmax()]
@@ -346,11 +332,9 @@ with st.spinner("Loading page...", show_time=True):
                         **What to do:** The utilization pattern is unclear, so we recommend doing a deeper analysis of the timetable and classroom usage to
                         identify any potential issues or areas for improvement.
                         """)
-
             st.divider()
         elif class_df.empty:
             st.info(f"No classroom data available for batch {batch_name} to analyze.")
-            st.divider()
 
         # ==========================================
         # ENERGY ANALYSIS
@@ -381,9 +365,9 @@ with st.spinner("Loading page...", show_time=True):
                 )
 
                 # update chart
-                line_fig.update_layout(title=dict(text="Floor Energy Cost by Month",
+                line_fig.update_layout(title=dict(
                         font=dict(size=20),   # ← change font size here
-                        x=0.2                 # ← position the title
+                        x=0.35                 # ← position the title
                     ),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
@@ -396,7 +380,6 @@ with st.spinner("Loading page...", show_time=True):
                 # Findings: Monthly Energy Cost per Floor
                 # ==========================================
                 st.markdown("Findings: Monthly Energy Cost per Floor")
-
                 with st.expander("Show details"):
                     # Sort by energy cost (descending)
                     monthly_sorted = monthly_energy.sort_values(by="Energy_Cost", ascending=False)
@@ -484,13 +467,14 @@ with st.spinner("Loading page...", show_time=True):
                     floor_energy_cost,
                     names="Floor",
                     values="Energy_Cost",
-                    title="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)"
+                    title="Energy Cost (RM) Contribution by Floor to Total Energy Cost",
+                    labels={"Energy_Cost": "Energy Cost (RM)"}
                 )
 
                 # update title font size
-                pie_fig.update_layout(title=dict(text="Energy Cost (RM) per floor contributes to Total Energy Cost (RM)",
+                pie_fig.update_layout(title=dict(
                         font=dict(size=20),   # ← change size here
-                        x=0.1                 # ← position the title
+                        x=0.2                 # ← position the title
                     ),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
@@ -503,7 +487,6 @@ with st.spinner("Loading page...", show_time=True):
                 # Findings: Energy Cost Contribution
                 # ==========================================
                 st.markdown("Findings: Energy Cost Contribution by Floor")
-
                 with st.expander("Show details"):
                     # Calculate percentage contribution
                     floor_energy_cost["Contribution (%)"] = (
@@ -512,6 +495,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     # Sort by energy cost (descending)
                     cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False, ignore_index=True)
+                    cost_sorted = cost_sorted.rename(columns=lambda x: x.replace("_", " ").title())
 
                     st.markdown("Top Energy Cost Contribution by Floor:")
                     st.dataframe(cost_sorted.head(5).style.format({"Energy_Cost": "RM {:,.2f}", "Contribution (%)": "{:.2f}%"}))
@@ -760,13 +744,13 @@ with st.spinner("Loading page...", show_time=True):
                     )
 
                     # update title font size
-                    corr_fig.update_layout(title=dict(text=title_text,
-                            font=dict(size=20),
-                            x=0.1
+                    corr_fig.update_layout(title=dict(
+                            font=dict(size=20),   # ← change size here
+                            x=0.2                # ← position the title
                         ),
-                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16))
+                        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
+                        yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
+                        legend=dict(title=dict(text="Floor", font=dict(size=18)), font=dict(size=16)) # ← change legend (color lables) font (title and tick) size
                     )
 
                     # Add trendline trace
@@ -780,7 +764,6 @@ with st.spinner("Loading page...", show_time=True):
                     # 4. Findings: Correlation Analysis
                     # ==========================================
                     st.markdown("Findings: Occupancy vs Energy Cost Correlation")
-
                     with st.expander("Show details"):
                         # Statistical Calculations
                         r2_score = model.score(X, y)
@@ -888,6 +871,7 @@ with st.spinner("Loading page...", show_time=True):
                         """)
 
         elif class_df.empty or energy_df.empty:
+            st.divider()
             if class_df.empty:
                 st.info(f"No classroom data available for batch {batch_name} to correlate.")
             elif energy_df.empty:

@@ -1,4 +1,7 @@
 /* assets/style.css */
+.stMainBlockContainer {
+    max-width: 60rem;
+}
 .st-key-blue button {
     background-color: #2cd3d3;
     border-radius: 10px;

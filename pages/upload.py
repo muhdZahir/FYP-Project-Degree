@@ -7,14 +7,6 @@ if 'class_file' not in st.session_state:
 if 'energy_file' not in st.session_state:
     st.session_state.energy_file = None
 
-def inject_custom_css(css_file_path):
-        #Injects custom CSS from a local file into the Streamlit app.
-        try:
-            with open(css_file_path) as f:
-                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-        except FileNotFoundError:
-            st.error(f"Error: CSS file not found at {css_file_path}")
-
 def check_columns(df, required_cols): #function to check column
     return [col for col in required_cols if col not in df.columns]
 
@@ -46,12 +38,6 @@ class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
-    # Define the relative path to your CSS file
-    css_path = os.path.join("assets", "style.css")
-
-    # Inject the CSS
-    inject_custom_css(css_path)
-
     st.title("UPLOAD FILES")
 
     #Introduction of the system

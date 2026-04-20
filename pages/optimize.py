@@ -1,15 +1,8 @@
-from core.imports import st, pd, np, os, px, calendar, LinearRegression
+from core.imports import st, pd, np, px, calendar, LinearRegression
 
 # Initialize data containers
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
-
-def inject_custom_css(css_file_path):
-    try:
-        with open(css_file_path) as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass # Silent pass to avoid clutter
 
 def map_week_to_month(week):
     try:
@@ -36,9 +29,6 @@ def normalize_month(val):
     return s
 
 with st.spinner("Loading page...", show_time=True):
-    css_path = os.path.join("assets", "style.css")
-    inject_custom_css(css_path)
-
     st.title("OPTIMIZATION RECOMMENDATIONS")
     st.write("Generate optimization recommendations based on the analysis results. The system provides insights into classroom usage and " \
     "energy/electrical cost patterns. Use these insights to make informed decisions about resource allocation and cost management, helping you " \
@@ -78,8 +68,10 @@ with st.spinner("Loading page...", show_time=True):
 
     if not class_df.empty or not energy_df.empty:
         st.divider()
-        if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
-            st.session_state['show'] = True
+        col1, col2, col3 = st.columns([0.25, 1, 0.3])
+        with col2:
+            if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
+                st.session_state['show'] = True
 
     if st.session_state.get('show', False):
         st.title(f"Predictive Forecasting & Trend Analysis: {batch_name}")
@@ -88,10 +80,7 @@ with st.spinner("Loading page...", show_time=True):
         # THE 3-PILLAR PREDICTIONS
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
-        # --- [OLD CODE] ---
-        # col1, col2, col3 = st.columns(3)
-
-        # --- [EDITED: Using weighted columns. Column 2 and 3 now get 50% more space than Column 1] ---
+        # Using weighted columns. Column 2 and 3 now get 50% more space than Column 1
         col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
         
         # Prediction 1: 14-Week Demand
@@ -158,10 +147,16 @@ with st.spinner("Loading page...", show_time=True):
                     r2 = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"]).score(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
                     waste_factor = max(0.1, 1.0 - r2)
                 else:
-                    waste_factor = 0.40 # Default to 40% wastage if we can't calculate R² (e.g., only one month of data)
+                    waste_factor = 0.5  # Default to 50% waste if we don't have enough data to calculate R²
+                    # This is a very rough heuristic and can be adjusted based on domain knowledge or further analysis.
                     
                 waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4 # Projected 4-month wastage
-                col3.metric("Projected 4-Month Wastage", f"RM {waste:,.2f}", delta="-High Risk", delta_color="inverse")
+                col3.metric("Projected 4-Month Wastage",
+                            f"RM {waste:,.2f}",
+                            delta="-High Risk",
+                            delta_color="inverse",
+                            help="Estimated cost of inaction over the next 4 months based on current inefficiencies."
+                        )
             except:
                 col3.metric("Projected 4-Month Wastage", "Error")
 
@@ -181,8 +176,10 @@ with st.spinner("Loading page...", show_time=True):
                     labels={"Percent_Utilize": "Avg Utilization (%)"},
                     title="Classroom Demand Trend", markers=True
                 )
-                fig1.update_layout(
-                    title=dict(text="Classroom Demand Trend", font=dict(size=20), x=0.1),
+                fig1.update_layout(title=dict(
+                        font=dict(size=20),
+                        x=0.1
+                    ),
                     xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
                     yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
                     legend=dict(title=dict(text="Type", font=dict(size=18)), font=dict(size=16))

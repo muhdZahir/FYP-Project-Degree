@@ -1,4 +1,4 @@
-from core.imports import st, pd, time, db, os
+from core.imports import st, pd, time, db
 
 # Initialize session state for persistence across reruns
 if 'edit_success' not in st.session_state:
@@ -7,14 +7,6 @@ if 'edit_pending' not in st.session_state:
     st.session_state['edit_pending'] = None
 if 'delete_pending' not in st.session_state:
     st.session_state['delete_pending'] = None
-
-def inject_custom_css(css_file_path):
-    #Injects custom CSS from a local file into the Streamlit app.
-    try:
-        with open(css_file_path) as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.error(f"Error: CSS file not found at {css_file_path}")
 
 def save_batch_name(old_name, new_name):
     """Perform the actual batch name update operation."""
@@ -54,10 +46,12 @@ def delete_data(data_type, batch_name):
             st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
 
+            # If classroom data is already cleared, clear the batch record as well to keep the database clean
             if db.energy_batch_unique(batch_name):
                 db.clear_batch(batch_name)
                 st.session_state['batch'] = None
                 st.session_state['batch_name'] = None
+                st.session_state['show'] = False
 
             st.session_state.class_df = pd.DataFrame()
             st.session_state['delete_pending'] = None # Reset the flag after deletion
@@ -66,10 +60,12 @@ def delete_data(data_type, batch_name):
             st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
             
+            # If energy data is already cleared, clear the batch record as well to keep the database clean
             if db.class_batch_unique(batch_name):
                 db.clear_batch(batch_name)
                 st.session_state['batch'] = None
                 st.session_state['batch_name'] = None
+                st.session_state['show'] = False
             
             st.session_state.energy_df = pd.DataFrame()
             st.session_state['delete_pending'] = None # Reset the flag after deletion
@@ -92,12 +88,6 @@ class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
-    # Define the relative path to your CSS file
-    css_path = os.path.join("assets", "style.css")
-
-    # Inject the CSS
-    inject_custom_css(css_path)
-
     st.title("MANAGE DATA RECORDS")
     st.write(f"Manage your data records stored in the system. You can view the data, edit the batch name, clear old data, and maintain an organized database for analysis.\n")
     st.write(f"Choose the semester data batch stored in the system for management.\n")
@@ -178,7 +168,9 @@ with st.spinner("Loading page...", show_time=True):
 
             if 'class_df' in locals() and not class_df.empty:
                 st.subheader(f"Classroom Data Records")
-                st.dataframe(class_df)
+                # Display the classroom data with formatted column names for better readability and only essential columns
+                class_df_renamed = class_df.rename(columns=lambda x: x.replace("_", " ").title())
+                st.dataframe(class_df_renamed[["Classroom Id", "Floor", "Capacity", "Scheduled Hours", "Actual Occupancy", "Day", "Time Slot", "Week"]])
 
                 if st.session_state['delete_pending'] == "Classroom":
                     confirm_delete("Classroom", batch_name)
@@ -190,7 +182,9 @@ with st.spinner("Loading page...", show_time=True):
 
             if 'energy_df' in locals() and not energy_df.empty:
                 st.subheader(f"Energy Data Records")
-                st.dataframe(energy_df)
+                # Display the energy data with formatted column names for better readability and only essential columns
+                energy_df_renamed = energy_df.rename(columns=lambda x: x.replace("_", " ").title())
+                st.dataframe(energy_df_renamed[["Floor", "Month", "Energy Kwh", "Energy Cost"]])
 
                 if st.session_state['delete_pending'] == "Energy":
                     confirm_delete("Energy", batch_name)

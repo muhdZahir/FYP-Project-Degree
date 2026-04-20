@@ -1,4 +1,4 @@
-from core.imports import st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
+from core.imports import os, st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
 
 db.init_db()
 
@@ -14,11 +14,17 @@ if 'batch_name' not in st.session_state:
     st.session_state["batch_name"] = None
 if 'show' not in st.session_state:
     st.session_state['show'] = False
-
-available_batches = db.get_unique_batches()            
+    
+def inject_custom_css(css_file_path):
+    #Injects custom CSS from a local file into the Streamlit app.
+    try:
+        with open(css_file_path) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error(f"Error: CSS file not found at {css_file_path}")
 
 def login():
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image("assets/URO_logo.png")
     
@@ -54,6 +60,14 @@ def logout():
         # clear all session state then rerun
         st.session_state.clear()
         st.rerun()
+
+# Define the relative path to your CSS file
+css_path = os.path.join("assets", "style.css")
+
+# Inject the CSS
+inject_custom_css(css_path)
+
+available_batches = db.get_unique_batches()            
 
 login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
