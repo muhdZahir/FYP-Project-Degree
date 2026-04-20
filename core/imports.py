@@ -10,5 +10,4 @@ import sqlite3  # For database operations, using SQLite for simplicity
 import core.database as db  # Importing your database.py
 
 import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
-# pip install -U scikit-learn
-from sklearn.linear_model import LinearRegression # For linear regression modeling
+from sklearn.linear_model import LinearRegression # pip install scikit-learn | LinearRegression is use to do linear regression analysis

@@ -59,6 +59,7 @@ def logout():
     if st.button("Log out"):
         # clear all session state then rerun
         st.session_state.clear()
+        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
         st.rerun()
 
 # Define the relative path to your CSS file

@@ -43,6 +43,7 @@ def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
     with st.spinner("Clearing " + data_type + " data..."):
         if data_type == "Classroom" and db.clear_classroom_data(batch_name):
+            st.cache_data.clear()  # Clear cached data to ensure UI updates with the cleared data
             st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
 
@@ -57,6 +58,7 @@ def delete_data(data_type, batch_name):
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
         elif data_type == "Energy" and db.clear_energy_data(batch_name):
+            st.cache_data.clear()  # Clear cached data to ensure UI updates with the cleared data
             st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
             
