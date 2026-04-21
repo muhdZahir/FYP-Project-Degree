@@ -1,21 +1,20 @@
 # Business logic + text generation
 from core.imports import st
 from core.processing import format_floor_name, compute_rooms_difference
-from core.config import THRESHOLDS
 
 # Severity Assessment based on how far below average the worst room is
 # This is a simple heuristic: if it's more than 50% below average, we consider it critical.
 def classify_utilization_severity(worst_diff, fifth_diff):
     # If even the 5th worst room is also underperforming, then it's a critical issue that needs immediate attention.
-    if worst_diff < THRESHOLDS["utilization"]["critical_gap"] and fifth_diff < THRESHOLDS["utilization"]["critical_gap"]:
+    if worst_diff < -50 and fifth_diff < -50:
         severity = "Critical"
     # If the worst room is underutilized but the 5th worst room is close to average, then it's a moderate issue that should be
     # monitored and addressed soon.
-    elif worst_diff < THRESHOLDS["utilization"]["critical_gap"] and fifth_diff >= THRESHOLDS["utilization"]["critical_gap"]:
+    elif worst_diff < -50 and fifth_diff >= -50:
         severity = "Moderate"
     # If the worst room is underutilized but it's not drastically below average and the 5th worst room is also close to average,
     # then it's a low issue that can be monitored and addressed if it gets worse.
-    elif worst_diff >= THRESHOLDS["utilization"]["critical_gap"] and fifth_diff >= THRESHOLDS["utilization"]["critical_gap"]:
+    elif worst_diff >= -50 and fifth_diff >= -50:
         severity = "Low"
     else:
         severity = "Unknown"
@@ -27,15 +26,15 @@ def classify_utilization_severity(worst_diff, fifth_diff):
 def classify_utilization_pattern(peak, lowest):
     # If the peak utilization is above 80% and the lowest utilization is below 20%, we can say it's a "High Variance" pattern,
     # indicating a lot of wasted electricity on empty floors.
-    if peak > THRESHOLDS["heatmap"]["high_peak"] and lowest < THRESHOLDS["heatmap"]["low_empty"]:
+    if peak > 80 and lowest < 20:
         pattern = "High Variance"
     # if the peak is high but the lowest is not extremely low, we can say it's a "Moderate Variance" pattern, indicating some
     # wasted electricity on empty floors.
-    elif peak > THRESHOLDS["heatmap"]["high_peak"] and lowest >= THRESHOLDS["heatmap"]["high_peak"]:
+    elif peak > 80 and lowest >= 80:
         pattern = "Moderate Variance"
     # if the peak is not very high and the lowest is also not very low, we can say it's a "Low Variance" pattern, indicating a fairly
     # balanced timetable with less wasted electricity on empty floors.
-    elif peak <= THRESHOLDS["heatmap"]["high_peak"] and lowest >= THRESHOLDS["heatmap"]["high_peak"]:
+    elif peak <= 80 and lowest >= 80:
         pattern = "Low Variance"
     else:
         pattern = "Unknown"
@@ -45,7 +44,7 @@ def classify_utilization_pattern(peak, lowest):
 # Determine variation level based on CV thresholds
 def classify_cv(cv):
     # A CV above 0.3 is often considered high variability, indicating a large disparity in energy costs between floors.
-    if cv > THRESHOLDS["energy"]["cv_high"]:
+    if cv > 0.3:
         level = "High"
         text = f"""
         The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **high variance** in energy cost between the floors.
@@ -55,7 +54,7 @@ def classify_cv(cv):
         **What to do:** Check the highest-consuming floor immediately. Group their classes together or adjust the AC timers.
         """
     # A CV between 0.2 and 0.3 is considered moderate variability, indicating some disparity in energy costs between floors.
-    elif cv >= THRESHOLDS["energy"]["cv_moderate"] and cv <= THRESHOLDS["energy"]["cv_high"]:
+    elif cv >= 0.2 and cv <= 0.3:
         level = "Moderate"
         text = f"""
         The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **moderate variance** in energy cost between the floors.

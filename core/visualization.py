@@ -8,7 +8,7 @@ def style_chart(fig, title_x):
             font=dict(size=20),   # ← change size here
             x=title_x                 # ← position the title
         ),
-        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15), type='category'), # ← change x axis font (title and tick) size
+        xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
         yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
         coloraxis_colorbar=dict(title_font=dict(size=14), tickfont=dict(size=15)) # ← change legend (color lables) font size
     )
@@ -25,6 +25,9 @@ def plot_underutilized_rooms(df, n):
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
         labels={"Classroom_ID": "Classroom ID","Percent_Utilize": "Utilization (%)"}
+    )
+    fig.update_layout(
+        xaxis=dict(type='category'), # ← change x axis font (title and tick) size
     )
     return style_chart(fig, 0.25)
 
@@ -75,12 +78,35 @@ def plot_correlation(corr_df, color, text):
         hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns]
     )
     fig = style_chart(fig, 0.2)
-    fig.update_layout(
-        xaxis=dict(type='-'), # ← change x axis font (title and tick) size
-    )
 
     # Add trendline trace
     line_data = corr_df.sort_values("Actual_Occupancy")
     fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     return fig
+
+# plot next semester classroom demand
+def plot_next_classroom_demand(combined):
+    fig = px.line(
+        combined,
+        x="Week",
+        y="Percent_Utilize",
+        color="Type", 
+        labels={"Percent_Utilize": "Avg Utilization (%)"},
+        title="Classroom Demand Trend",
+        markers=True
+    )
+    return style_chart(fig, 0.1)
+
+# plot next month energy cost
+def plot_next_energy_cost(combined):
+    fig = px.line(
+        combined,
+        x="Month_Num",
+        y="Energy_Cost",
+        color="Type", 
+        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
+        title="Energy Cost Trend",
+        markers=True
+    )
+    return style_chart(fig, 0.2)

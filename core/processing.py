@@ -46,6 +46,10 @@ def normalize_month(val):
         return month_abbr_map[s_lower]
     return s  # fallback: keep as-is
 
+def center_button():
+    col1, col2, col3 = st.columns([0.25, 1, 0.3])
+    return col2
+
 # Calculate utilization per Room
 @st.cache_data
 def compute_utilization(df):

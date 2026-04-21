@@ -1,32 +1,10 @@
-from core.imports import st, pd, np, px, calendar, LinearRegression
+from core.imports import st, pd, np, LinearRegression
+from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button
+from core.visualization import plot_next_classroom_demand, plot_next_energy_cost
 
 # Initialize data containers
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
-
-def map_week_to_month(week):
-    try:
-        w = int(week)
-        if w <= 4: return "1"
-        elif w <= 8: return "2"
-        elif w <= 12: return "3"
-        elif w <= 16: return "4"
-    except:
-        return None
-    return None
-
-def normalize_month(val):
-    if pd.isna(val): return None
-    if isinstance(val, (int, np.integer)): return str(int(val))
-    s = str(val).strip()
-    if s.isdigit(): return str(int(s))
-    # Map month names if necessary
-    month_map = {m.lower(): str(i) for i, m in enumerate(calendar.month_name) if m}
-    month_abbr = {m.lower(): str(i) for i, m in enumerate(calendar.month_abbr) if m}
-    s_low = s.lower()
-    if s_low in month_map: return month_map[s_low]
-    if s_low in month_abbr: return month_abbr[s_low]
-    return s
 
 with st.spinner("Loading page...", show_time=True):
     st.title("OPTIMIZATION RECOMMENDATIONS")
@@ -43,9 +21,7 @@ with st.spinner("Loading page...", show_time=True):
     # Pre-process class data
     if not class_df.empty:
         try:
-            class_df["Utilization"] = class_df["Actual_Occupancy"] / class_df["Capacity"]
-            class_df.loc[class_df["Actual_Occupancy"] == 0, "Utilization"] = 0
-            class_df["Percent_Utilize"] = class_df["Utilization"] * 100
+            class_df = compute_utilization(class_df)
             
             if "Week" in class_df.columns:
                 weekly = class_df.groupby("Week")["Percent_Utilize"].mean().reset_index()
@@ -68,7 +44,7 @@ with st.spinner("Loading page...", show_time=True):
 
     if not class_df.empty or not energy_df.empty:
         st.divider()
-        col1, col2, col3 = st.columns([0.25, 1, 0.3])
+        col2 = center_button()
         with col2:
             if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
                 st.session_state['show'] = True
@@ -170,20 +146,10 @@ with st.spinner("Loading page...", show_time=True):
             try:
                 historical = weekly.copy()
                 historical["Type"] = "Historical"
-                combined = pd.concat([historical, future_weeks_df], ignore_index=True)
-                fig1 = px.line(
-                    combined, x="Week", y="Percent_Utilize", color="Type", 
-                    labels={"Percent_Utilize": "Avg Utilization (%)"},
-                    title="Classroom Demand Trend", markers=True
-                )
-                fig1.update_layout(title=dict(
-                        font=dict(size=20),
-                        x=0.1
-                    ),
-                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                    legend=dict(title=dict(text="Type", font=dict(size=18)), font=dict(size=16))
-                )
+                combined_class = pd.concat([historical, future_weeks_df], ignore_index=True)
+                
+                # Visualize next sem classroom demand
+                fig1 = plot_next_classroom_demand(combined_class)
                 chart_col1.plotly_chart(fig1, width='stretch')
             except Exception as e:
                 chart_col1.error(f"Chart Error: {e}")
@@ -196,17 +162,9 @@ with st.spinner("Loading page...", show_time=True):
                 monthly_plot["Type"] = "Historical"
                 pred_row = pd.DataFrame({"Month_Num": [next_m], "Energy_Cost": [pred_e], "Type": ["Prediction"]})
                 combined_energy = pd.concat([monthly_plot, pred_row], ignore_index=True)
-                fig2 = px.line(
-                    combined_energy, x="Month_Num", y="Energy_Cost", color="Type", 
-                    labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
-                    title="Energy Cost Trend", markers=True
-                )
-                fig2.update_layout(
-                    title=dict(text="Energy Cost Trend", font=dict(size=20), x=0.2),
-                    xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                    yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)),
-                    legend=dict(title=dict(text="Type", font=dict(size=18)), font=dict(size=16))
-                )
+
+                # Visualize next month energy cost
+                fig2 = plot_next_energy_cost(combined_energy)
                 chart_col2.plotly_chart(fig2, width='stretch')
             except Exception as e:
                 chart_col2.error(f"Chart Error: {e}")
