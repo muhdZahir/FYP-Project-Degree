@@ -198,6 +198,8 @@ with st.spinner("Loading page...", show_time=True):
             class_df['Time_Slot'] = class_df['Time_Slot'].astype(str).str.strip() # Remove leading/trailing whitespace
             class_df['Time_Slot'] = class_df['Time_Slot'].str.replace('–', '-') # Replace en dash with hyphen if present
             class_df['Time_Slot_invalid'] = ~class_df['Time_Slot'].str.contains(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}$') # Simple regex to check format like "10:00-12:00 OR "9:00–11:00"
+            class_df = class_df[~class_df['Time_Slot_invalid']] # Drop invalid time slots
+            class_df = class_df.drop(columns=['Time_Slot_invalid'])
 
         # Flag rows where Capacity is invalid (negative or 0)
         class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)
@@ -211,14 +213,13 @@ with st.spinner("Loading page...", show_time=True):
         class_df = class_df[# Drop Capacity is invalid (negative or 0) or Actual Occupancy is invalid (negative or greater than capacity)
             ~class_df['Capacity_invalid'] & ~class_df['ActOccu_invalid'] &
             ~class_df['Week_invalid'] & # Drop invalid week numbers
-            ~class_df['Time_Slot_invalid'] & # Drop invalid time slots
             ~class_df['Duplicate_class'] # Drop duplicate lessons in the same time period
         ]
 
         # Remove the temporary cleaned column
         class_df = class_df.drop(
             columns=['Capacity_clean', 'Scheduled_clean', 'ActOccu_clean', 'Week_clean',
-                     'Capacity_invalid', 'ActOccu_invalid', 'Week_invalid', 'Time_Slot_invalid',
+                     'Capacity_invalid', 'ActOccu_invalid', 'Week_invalid',
                      'Duplicate_class']
         )
 
