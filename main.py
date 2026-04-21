@@ -76,7 +76,7 @@ logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
 manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
-analysis_page = st.Page("pages/analysis.py", title="Analysis", icon=":material/analytics:")
+analysis_page = st.Page("pages/folder/app.py", title="Analysis", icon=":material/analytics:")
 optimize_page = st.Page("pages/optimize.py", title="Optimization", icon=":material/auto_fix_high:")
 
 st.html("""

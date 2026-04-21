@@ -120,15 +120,13 @@ if uploaded_files:
         corr_energy["Month"] = corr_energy["Month"].apply(normalize_month)
 
     # Classroom side
-    class_grouped = corr_class.groupby(["Floor", "Month"]).agg({
-        "Actual_Occupancy": "sum",
-        "Scheduled_Hours": "sum",
-        "Capacity": "sum"
-    }).reset_index()
-
-    class_grouped["Usage"] = (
-        class_grouped["Actual_Occupancy"] * class_grouped["Scheduled_Hours"] / (class_grouped["Capacity"] * class_grouped["Scheduled_Hours"].replace(0, np.nan))
+    corr_class["Occupancy_Hours"] = (
+    corr_class["Actual_Occupancy"] * corr_class["Scheduled_Hours"]
     )
+
+    class_grouped = corr_class.groupby(["Floor", "Month"]).agg({
+        "Occupancy_Hours": "sum"
+    }).reset_index()
 
     # Energy side
     energy_grouped = corr_energy.groupby(["Floor", "Month"]).agg({
@@ -138,10 +136,10 @@ if uploaded_files:
     # Merge
     corr_df = pd.merge(class_grouped, energy_grouped, on=["Floor", "Month"])
 
-    corr = corr_df["Usage"].corr(corr_df["Energy_Cost"])
+    corr = corr_df["Occupancy_Hours"].corr(corr_df["Energy_Cost"])
     st.write(f"Correlation: {corr:.2f}")
 
-    X = corr_df["Usage"].values.reshape(-1, 1)
+    X = corr_df["Occupancy_Hours"].values.reshape(-1, 1)
     y = corr_df["Energy_Cost"].values
 
     model = LinearRegression()
@@ -150,15 +148,15 @@ if uploaded_files:
 
     fig2 = px.scatter(
         corr_df,
-        x="Usage",
+        x="Occupancy_Hours",
         y="Energy_Cost",
         color="Floor",
         title="Utilization × Scheduled Hours vs Energy Consumption",
     )
 
     # Add trendline trace
-    line = corr_df.sort_values("Usage")
-    fig2.add_traces(px.line(line, x="Usage", y="Predicted").data[0])
+    line = corr_df.sort_values("Occupancy_Hours")
+    fig2.add_traces(px.line(line, x="Occupancy_Hours", y="Predicted").data[0])
     fig2.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
 
     st.plotly_chart(fig2, width="stretch")
