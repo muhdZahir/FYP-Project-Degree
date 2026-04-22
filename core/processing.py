@@ -51,9 +51,9 @@ def center_button():
     return col2
 
 # Calculate utilization per Room
-@st.cache_data
-def compute_utilization(_df):
-    df = _df.copy()
+# --- [EDITED: Deleted @st.cache_data and removed the underscore] ---
+def compute_utilization(df):
+    df = df.copy()
     try:
         df["Utilization"] = df["Actual_Occupancy"] / df["Capacity"]
         df.loc[df["Actual_Occupancy"] == 0, "Utilization"] = 0
