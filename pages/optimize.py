@@ -5,6 +5,7 @@ from core.visualization import plot_next_classroom_demand, plot_next_energy_cost
 # Initialize data containers
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()
+weekly = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
     st.title("OPTIMIZATION RECOMMENDATIONS")
