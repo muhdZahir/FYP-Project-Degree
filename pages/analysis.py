@@ -17,7 +17,9 @@ def run_classroom_analysis(class_df):
     st.subheader("Worst Performing Rooms")
     with st.expander("🔍 View AI Analysis Logic (Data Sources, Charts & Math)"):
             st.markdown("""
-            **📉 The 'Ghost Rooms' (Highest Wasted Space)** 💡 **What this means:** These are rooms that are almost empty all the time. If we move these classes, we can turn off the AC in those large rooms entirely.  
+            **📉 The 'Ghost Rooms' (Highest Wasted Space)** 
+                        
+            💡 **What this means:** These are rooms that are almost empty all the time. If we move these classes, we can turn off the AC in those large rooms entirely.  
             
             > 📂 **Data Source:** Classroom Data  
             > 📊 **Chart Selection:** Bar Chart  
@@ -58,7 +60,9 @@ def run_classroom_analysis(class_df):
     st.subheader("Utilization Heatmap (Floor vs Time)")
     with st.expander("🔍 View AI Analysis Logic (Data Sources, Charts & Math)"):
             st.markdown("""
-            **🔥 Busiest Zones vs ❄️ Wasted Zones** 💡 **What this means:** Red areas show packed schedules. Green areas mean we are burning electricity for empty floors.  
+            **🔥 Busiest Zones vs ❄️ Wasted Zones**         
+                
+            💡 **What this means:** Red areas show packed schedules. Green areas mean we are burning electricity for empty floors.  
             
             > 📂 **Data Source:** Classroom Data (Floor & Time)  
             > 📊 **Chart Selection:** Color-Coded Heatmap  
@@ -101,7 +105,9 @@ def run_energy_analysis(energy_df):
     st.subheader("Energy Cost Analysis")
     with st.expander("🔍 View AI Analysis Logic (Data Sources, Charts & Math)"):
             st.markdown("""
-            **⚡ Monthly Energy Cost per Floor** 💡 **What this means:** This tracks your electricity spending over time. A flat line means stable usage, but a sudden jump means a floor suddenly started wasting power.  
+            **⚡ Monthly Energy Cost per Floor**
+                        
+            💡 **What this means:** This tracks your electricity spending over time. A flat line means stable usage, but a sudden jump means a floor suddenly started wasting power.  
             
             > 📂 **Data Source:** Energy Data (Monthly)  
             > 📊 **Chart Selection:** Line Chart  
@@ -129,7 +135,9 @@ def run_energy_analysis(energy_df):
     st.subheader("Energy Cost Contribution by Floor")
     with st.expander("🔍 View AI Analysis Logic (Data Sources, Charts & Math)"):
             st.markdown("""
-            **🍰 Energy Cost Contribution by Floor** 💡 **What this means:** This shows exactly who is eating the biggest slice of your budget. If a floor with very few students takes up a huge chunk, you have a major leak.  
+            **🍰 Energy Cost Contribution by Floor** 
+                        
+            💡 **What this means:** This shows exactly who is eating the biggest slice of your budget. If a floor with very few students takes up a huge chunk, you have a major leak.  
             
             > 📂 **Data Source:** Energy Data  
             > 📊 **Chart Selection:** Pie Chart  
@@ -291,7 +299,9 @@ with st.spinner("Loading page...", show_time=True):
             st.subheader("Correlation Analysis")
             with st.expander("🔍 View AI Analysis Logic (Data Sources, Charts & Math)"):
                 st.markdown("""
-            **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running blindly in empty rooms.  
+            **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 
+                            
+            💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running blindly in empty rooms.  
             
             > 📂 **Data Source:** Combined Classroom & Energy Data  
             > 📊 **Chart Selection:** Scatter Plot with a Trendline  
