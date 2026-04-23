@@ -173,67 +173,14 @@ with st.spinner("Loading page...", show_time=True):
             chart_col2.info("No energy data available to visualize cost trends.")
 
         # ---------------------------------------------------------
-        # OPTIMIZATION STEPS
+        # OPTIMIZATION STEPS (Executive Action Plan - Balanced Metrics)
         # ---------------------------------------------------------
         st.divider()
-        st.header("Optimization Recommendations")
+        st.header("Executive Action Plan")
+        st.write("Follow these priorities to stop wastage without sacrificing schedule comfort.")
 
-        # --- STEP 1: ROOM SIZING ---
-        # NEW: The 'help' parameter acts as your Heuristic Dictionary for the panel, providing users with clear rules and logic behind the recommendations. This is where you can educate users on how to interpret the results and what actions to take.
-        st.subheader("Step 1: Check Room Sizing (Space Leak Detection)", help="Rule: Flags rooms performing below campus average AND under 60% absolute utilization.")
-        if not class_df.empty:
-            try:
-                r_avg = class_df.groupby('Classroom_ID')['Percent_Utilize'].mean().reset_index()
-                c_mean = r_avg['Percent_Utilize'].mean()
-                c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
-
-                # THE FIX: Only flag if it is below average AND objectively bad (under 60%)
-                ghosts = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
-                ##ghosts = r_avg[r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))] old conservative logic that flagged rooms that were just below average but not necessarily bad
-                
-                # Add severity tiers to prioritize the worst offenders, instead of flagging all rooms below the threshold as equally bad
-                if len(ghosts) >= 3:
-                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    # Estimate loss: roughly RM 5 per wasted percentage point per room
-                    est_loss = (100 - w_room['Percent_Utilize']) * 5.0
-                    st.error(f"🚨 **WASTED SPACE:** {len(ghosts)} rooms are way too big for the number of students. "
-                             f"For example, Room {w_room['Classroom_ID']} is only {w_room['Percent_Utilize']:.1f}% full. "
-                             f"Move these classes to smaller rooms to save Aircond costs. **(Est. Saving: RM {est_loss:.2f}/mo per room)**")
-                elif len(ghosts) > 0:
-                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    est_loss = (100 - w_room['Percent_Utilize']) * 5.0
-                    st.warning(f"⚠️ **WASTED SPACE:** Room {w_room['Classroom_ID']} is quite empty (only {w_room['Percent_Utilize']:.1f}% full). "
-                               f"Consider moving this class to a smaller room. **(Est. Saving: RM {est_loss:.2f}/mo per room)**")
-                else:
-                    st.success("✅ **GOOD:** All classes are in the right room sizes. No wasted space.")
-            except: pass
-        else:
-            st.info("Upload classroom data to check if your rooms are too big.")
-
-        # --- STEP 2: CLASS GROUPING ---
-        st.subheader("Step 2: Check Class Grouping (Same Time & Floor), Optimize Scheduling (Zone Consolidation)", help="Rule: Flags floors operating with ≤2 classes per time slot OR total campus utilization < 30%.")
-        if not class_df.empty:
-            try:
-                t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
-                ghost_slots = t_floor[t_floor['Count'] <= 2]
-                # THE FIX: Check overall campus utilization to catch "balanced disasters"
-                overall_util = class_df["Percent_Utilize"].mean()
-
-                if len(ghost_slots) >= 3 or overall_util < 30.0:
-                    st.error(f"🚨 **SCATTERED TIMETABLE:** The schedule is too messy. Overall campus usage is very low ({overall_util:.1f}%). "
-                             f"Group the classes onto a few active floors and completely shut down the empty floors.")
-                elif len(ghost_slots) > 0:
-                    w_slot = ghost_slots.iloc[0]
-                    st.warning(f"⚠️ **EMPTY FLOOR:** Floor {w_slot['Floor']} only has {w_slot['Count']} class(es) running at {w_slot['Time_Slot']}. "
-                               f"Move this class to a busier floor so you can turn off the lights and AC here.")
-                else:
-                    st.success("✅ **GOOD:** Classes are grouped nicely. No empty floors are wasting electricity.")
-            except: pass
-        else:
-            st.info("Upload classroom data to check for scattered timetables.")
-
-        # --- STEP 3: FINANCIAL AUDIT ---
-        st.subheader("Step 3: Check Electricity Bill Matching (Financial Audit)", help="Rule: Flags floors consuming >15% more budget than their actual student capacity share.")
+        # --- STEP 1: FINANCIAL AUDIT ---
+        st.subheader("🔴 Priority 1: Stop Financial Leaks", help="The system flags an imbalance when a floor's electricity budget consumption heavily outweighs its student population.")
         if not class_df.empty and not energy_df.empty:
             try:
                 f_eng = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
@@ -244,22 +191,69 @@ with st.spinner("Loading page...", show_time=True):
                 t3 = pd.merge(f_eng, f_occ, on='Floor')
                 t3['Gap'] = t3['Cost_Pct'] - t3['Occ_Pct']
                 
-                # THE FIX: Catch floors stealing budget OR catch a totally broken campus baseline
                 overall_util = class_df["Percent_Utilize"].mean()
-                avg_floor_cost = f_eng['Energy_Cost'].mean()
                 
                 if t3['Gap'].max() > 15.0:
                     w_leak = t3.sort_values(by='Gap', ascending=False).iloc[0]
-                    st.error(f"🚨 **MONEY LEAK:** Floor {int(w_leak['Floor'])} takes up {w_leak['Cost_Pct']:.1f}% of the electricity bill, "
-                             f"but only has {w_leak['Occ_Pct']:.1f}% of the students. Someone left the AC or lights running 24/7.")
-                elif overall_util < 30.0 and avg_floor_cost > 5000:
-                    st.error(f"🚨 **AUTOPILOT AC LEAK:** The campus is mostly empty (only {overall_util:.1f}% full), but the electricity bills "
-                             f"are still extremely high across all floors. Check your central AC timers immediately.")
-                elif t3['Gap'].max() > 8.0:
-                    w_leak = t3.sort_values(by='Gap', ascending=False).iloc[0]
-                    st.warning(f"⚠️ **MONEY LEAK:** Floor {int(w_leak['Floor'])} is using slightly more electricity than it should. Keep an eye on it.")
+                    actual_cost = w_leak['Energy_Cost']
+                    floor_students = int(w_leak['Actual_Occupancy'])
+                    
+                    st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) for only **{floor_students} students** (**{w_leak['Occ_Pct']:.1f}%** of total campus).\n\n"
+                             f"🎯 **Action:** Send maintenance to Floor {int(w_leak['Floor'])}. The AC is running at maximum capacity for a nearly empty floor.")
+                elif overall_util < 30.0:
+                    total_campus_bill = f_eng['Energy_Cost'].sum()
+                    st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet the centralized AC is running as if the building is fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
+                             f"🎯 **Action:** Override the centralized Building Management System immediately.")
                 else:
-                    st.success("✅ **GOOD:** Your electricity bills match your student attendance perfectly.")
-            except: pass
+                    st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
+            except Exception as e: 
+                pass
         else:
-            st.info("Upload both classroom and energy data to check for hidden money leaks.")
+            st.info("Please upload Classroom and Energy data for a financial audit.")
+
+        # --- STEP 2: CLASS GROUPING ---
+        st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)", help="The system looks for isolated schedules where the whole floor's AC is turned on for just 1 or 2 classes.")
+        if not class_df.empty:
+            try:
+                t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
+                ghost_slots = t_floor[t_floor['Count'] <= 2]
+                
+                if len(ghost_slots) >= 3:
+                    st.error(f"🚨 **AC WASTAGE:** We have too many isolated classes scattered across empty floors. We are cooling entire building wings for almost nobody.\n\n"
+                             f"🎯 **Action:** Group schedules on the lower floors and completely shut down the upper floors.")
+                elif len(ghost_slots) > 0:
+                    w_slot = ghost_slots.iloc[0]
+                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running full AC for only **{w_slot['Count']} class(es)** during {w_slot['Time_Slot']}.\n\n"
+                               f"🎯 **Action:** Relocate this class to an already active floor.")
+                else:
+                    st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting AC.")
+            except: pass
+
+        # --- STEP 3: ROOM SIZING ---
+        st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)", help="The system compares the physical chair count of a room against the actual number of students sitting in them.")
+        if not class_df.empty:
+            try:
+                # Group by room and get both percentage AND hard numbers
+                r_avg = class_df.groupby('Classroom_ID').agg(
+                    Percent_Utilize=('Percent_Utilize', 'mean'),
+                    Avg_Students=('Actual_Occupancy', 'mean'),
+                    Room_Size=('Capacity', 'max') 
+                ).reset_index()
+                
+                c_mean = r_avg['Percent_Utilize'].mean()
+                c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
+                
+                ghosts = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
+                
+                if len(ghosts) >= 3:
+                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
+                    st.error(f"🚨 **SPACE WASTAGE:** {len(ghosts)} rooms are consistently empty.\n\n"
+                             f"📉 **The Reality:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                             f"🎯 **Action:** Move this class to a smaller room to reduce AC and lighting load.")
+                elif len(ghosts) > 0:
+                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
+                    st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                               f"🎯 **Action:** Consider swapping this room next semester.")
+                else:
+                    st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")
+            except: pass

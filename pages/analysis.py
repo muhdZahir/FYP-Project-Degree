@@ -15,6 +15,8 @@ def run_classroom_analysis(class_df):
     # ------------------------------------------
     # added an interactive slider to let users choose how many underutilized rooms they want to view
     st.subheader("Worst Performing Rooms")
+    st.subheader("📉 The 'Ghost Rooms' (Highest Wasted Space)")
+    st.caption("💡 **What this means:** These are rooms that are almost empty all the time. If we move these classes, we can turn off the AC in those large rooms entirely.")
     n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=50, value=5, step=1)
     max_rooms = df["Classroom_ID"].nunique()
     n_rooms = min(n_rooms, max_rooms)  # Ensure n_rooms doesn't exceed the number of available rooms
@@ -32,7 +34,7 @@ def run_classroom_analysis(class_df):
     # ==========================================
     # Findings: Top 5 Underutilized Rooms
     # ==========================================
-    st.markdown("Findings: Worst Performing Rooms")
+    st.markdown("Findings: Worst Performing Rooms ie: The 'Ghost Rooms'")
     with st.expander("Show details"):
         # Data Extraction & Baseline Calculation
         campus_avg = df["Percent_Utilize"].mean()
@@ -47,6 +49,8 @@ def run_classroom_analysis(class_df):
     # Heatmap: Floor vs Time Slot
     # ------------------------------------------
     st.subheader("Utilization Heatmap (Floor vs Time)")
+    st.subheader("🔥 Busiest Zones vs ❄️ Wasted Zones")
+    st.caption("💡 **What this means:** Red areas show packed schedules. Green areas mean we are burning electricity for empty floors.")
     # Pivot data for heatmap
     heatmap_data = get_heatmap_data(df)
     heatmap_pivot = get_heatmap_pivot(heatmap_data)
@@ -252,7 +256,9 @@ with st.spinner("Loading page...", show_time=True):
         # ==========================================
         if not class_df.empty and not energy_df.empty:
             st.header("Correlation Analysis")
-            st.write("Analyzing the relationship between Total Occupancy (from Classrooms) and Total Energy Cost.")
+            st.subheader("📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)", help="Correlation measures if our electric bill goes up or down based on human presence. If the value is low, it means our building is running on its own regardless of whether people are there.")
+            st.caption("💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running in empty rooms.")
+            #st.write("Analyzing the relationship between Total Occupancy (from Classrooms) and Total Energy Cost.")
 
             with st.spinner("Analyzing data...", show_time=True):
                 run_correlation_analysis(class_df, energy_df)
