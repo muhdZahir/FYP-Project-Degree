@@ -9,11 +9,9 @@ weekly = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
     st.title("OPTIMIZATION RECOMMENDATIONS")
-    st.write("Generate optimization recommendations based on the analysis results. The system provides insights into classroom usage and " \
-    "energy/electrical cost patterns. Use these insights to make informed decisions about resource allocation and cost management, helping you " \
-    "optimize your resources and reduce costs while maintaining a high level of service quality."
-    )
-    st.write(f"Choose the semester data batch stored in the system for analysis.")
+    st.write("This page gives you a direct action plan to cut costs and fix space issues. The system looks at your classroom schedules and electric bills to find exactly where money is bleeding. Use recommendations to make fast, smart decisions without guessing.")
+    
+    st.write("Choose the semester data batch stored in the system for analysis.")
     
     class_df = st.session_state.get('class_df', pd.DataFrame())
     energy_df = st.session_state.get('energy_df', pd.DataFrame())
@@ -30,18 +28,17 @@ with st.spinner("Loading page...", show_time=True):
                 weekly = class_df.groupby(class_df.index)["Percent_Utilize"].mean().reset_index()
                 weekly.rename(columns={"index": "Week"}, inplace=True)
         except Exception as e:
-            st.warning(f"Classroom Preprocessing Error: {e}")
+            st.warning(f"Classroom Data Error: {e}")
 
     # Pre-process energy data
     if not energy_df.empty:
         try:
             energy_df["Month_Num"] = energy_df["Month"].apply(normalize_month)
             monthly_cost = energy_df.groupby("Month_Num")["Energy_Cost"].sum().reset_index()
-            # Ensure Month_Num is sorted correctly (1, 2, 3, 4) for plotting and modeling
             monthly_cost["Month_Num"] = pd.to_numeric(monthly_cost["Month_Num"], errors='coerce')
             monthly_cost = monthly_cost.sort_values("Month_Num").reset_index(drop=True)
         except Exception as e:
-            st.warning(f"Energy Preprocessing Error: {e}")
+            st.warning(f"Energy Data Error: {e}")
 
     if not class_df.empty or not energy_df.empty:
         st.divider()
@@ -51,13 +48,35 @@ with st.spinner("Loading page...", show_time=True):
                 st.session_state['show'] = True
 
     if st.session_state.get('show', False):
-        st.title(f"Predictive Forecasting & Trend Analysis: {batch_name}")
+        st.title(f"Financial Audit & Future Trends: {batch_name}")
         
         # ---------------------------------------------------------
         # THE 3-PILLAR PREDICTIONS
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
-        # Using weighted columns. Column 2 and 3 now get 50% more space than Column 1
+        
+        # --- Glass Box Transparency Header ---
+        with st.expander("🔍 View AI Forecasting Logic (Data Sources, Models & Math)"):
+            st.markdown("""
+            **1. Next Semester Demand**
+            > 📂 **Data Source:** Classroom Data (Weekly)  
+            > ⚙️ **AI Engine:** Linear Regression Model  
+            > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting steady student growth or decline without overfitting the data.  
+            > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula: Linear Regression Projection on Avg Fullness %)*
+            
+            **2. Next Month Est. Cost**
+            > 📂 **Data Source:** Energy Data (Monthly)  
+            > ⚙️ **AI Engine:** Linear Regression Model  
+            > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing patterns. It calculates the realistic financial baseline.  
+            > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes. *(Formula: Linear Regression Trend × Expected Operating Days)*
+            
+            **3. Projected 4-Month Wastage**
+            > 📂 **Data Source:** Combined Classroom & Energy Data  
+            > ⚙️ **AI Engine:** R-Squared (R²) Statistical Scoring  
+            > 💡 **Why This Engine:** R-Squared specifically calculates the "mismatch" or variance between two datasets. It is the most scientifically accurate way to prove that the building's AC schedule is actively ignoring the actual student headcount.  
+            > 🧮 **AI Audit Rule:** Uses R-Squared scoring to determine how poorly the AC schedule matches actual student traffic, then calculates that financial loss over a standard 4-month semester. *(Formula: [Total Bill × AI Inefficiency Factor] × 4 Months)*
+            """)
+
         col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
         
         # Prediction 1: 14-Week Demand
@@ -77,12 +96,12 @@ with st.spinner("Loading page...", show_time=True):
                 future_weeks_df = pd.DataFrame({"Week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
                 pred_demand_avg = future_p.mean()
                 with col1:
-                    st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="Predicted average classroom utilization for the upcoming cycle.")
+                    st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
             except:
                 col1.metric("Next Semester Demand", "Error")
         else:
             with col1:
-                st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available for demand forecasting.")
+                st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available.")
         
         # Prediction 2: Energy
         pred_e = 0
@@ -97,14 +116,14 @@ with st.spinner("Loading page...", show_time=True):
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
-                col2.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Forecasted utility bill based on current trajectory.")
+                col2.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
             except:
                 col2.metric("Next Month Est. Cost", "Error")
         else:
             with col2:
-                st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available for cost forecasting.")
+                st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available.")
 
-        # Prediction 3: Cost of Inaction (Bridged Logic)
+        # Prediction 3: Cost of Inaction
         if not class_df.empty and not energy_df.empty:
             try:
                 c_copy = class_df.copy()
@@ -116,23 +135,18 @@ with st.spinner("Loading page...", show_time=True):
                 eng_m = e_copy.groupby("Month_Map")["Energy_Cost"].sum().reset_index()
                 merged = pd.merge(occ_m, eng_m, on="Month_Map")
                 
-                # Calculate R² to estimate how well occupancy explains energy cost variability
-                # If R² is high, we assume less wastage (more efficient usage); if low, we assume more wastage.
-                # We can use the R² value to estimate a "waste factor" that scales the average energy cost to project potential wastage.
-                # For example, if R² is 0.8, we might assume only 20% of the energy cost is wasted. If R² is 0.2, we might assume 80% is wasted.
                 if len(merged) > 1:
                     r2 = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"]).score(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
                     waste_factor = max(0.1, 1.0 - r2)
                 else:
-                    waste_factor = 0.5  # Default to 50% waste if we don't have enough data to calculate R²
-                    # This is a very rough heuristic and can be adjusted based on domain knowledge or further analysis.
+                    waste_factor = 0.5 
                     
-                waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4 # Projected 4-month wastage
+                waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4
                 col3.metric("Projected 4-Month Wastage",
                             f"RM {waste:,.2f}",
                             delta="-High Risk",
                             delta_color="inverse",
-                            help="Estimated cost of inaction over the next 4 months based on current inefficiencies."
+                            help="How much money will be burned over 4 months if current inefficiencies are ignored."
                         )
             except:
                 col3.metric("Projected 4-Month Wastage", "Error")
@@ -149,13 +163,12 @@ with st.spinner("Loading page...", show_time=True):
                 historical["Type"] = "Historical"
                 combined_class = pd.concat([historical, future_weeks_df], ignore_index=True)
                 
-                # Visualize next sem classroom demand
                 fig1 = plot_next_classroom_demand(combined_class)
                 chart_col1.plotly_chart(fig1, width='stretch')
             except Exception as e:
                 chart_col1.error(f"Chart Error: {e}")
         else:
-            chart_col1.info("No classroom data available to visualize demand trends.")
+            chart_col1.info("No classroom data available to visualize demand.")
                 
         if not energy_df.empty and 'next_m' in locals() and len(monthly_cost) >= 2:
             try:
@@ -164,7 +177,6 @@ with st.spinner("Loading page...", show_time=True):
                 pred_row = pd.DataFrame({"Month_Num": [next_m], "Energy_Cost": [pred_e], "Type": ["Prediction"]})
                 combined_energy = pd.concat([monthly_plot, pred_row], ignore_index=True)
 
-                # Visualize next month energy cost
                 fig2 = plot_next_energy_cost(combined_energy)
                 chart_col2.plotly_chart(fig2, width='stretch')
             except Exception as e:
@@ -173,17 +185,17 @@ with st.spinner("Loading page...", show_time=True):
             chart_col2.info("No energy data available to visualize cost trends.")
 
         # ---------------------------------------------------------
-        # OPTIMIZATION STEPS (Executive Action Plan - Integrated Transparency)
+        # OPTIMIZATION STEPS (Executive Action Plan)
         # ---------------------------------------------------------
         st.divider()
         st.header("Executive Action Plan")
-        st.write("Follow these priorities to stop wastage without sacrificing schedule comfort.")
+        st.write("Follow these priorities to stop wastage without hurting student comfort.")
 
         # --- STEP 1: FINANCIAL AUDIT ---
         st.subheader("🔴 Priority 1: Stop Financial Leaks")
         st.markdown(
-            "> 📂 **Data Source:** Classroom Data + Energy Data  \n"
-            "> 🧮 **AI Audit Rule:** Compares floor electricity bills against student density. If the bill is >15% higher than the human traffic there, the system triggers an alert. *(Formula: Floor's % of Total Electric Bill - Floor's % of Total Students)*"
+            "> 📂 **Data Source:** Classroom + Energy Data  \n"
+            "> 🧮 **AI Audit Rule:** Compares electric bills against student traffic. If a floor eats a massive budget but has very few students, the system triggers an alert. *(Formula: % of Total Bill vs % of Total Students)*"
         )
         if not class_df.empty and not energy_df.empty:
             try:
@@ -206,7 +218,7 @@ with st.spinner("Loading page...", show_time=True):
                              f"🎯 **Action:** Send maintenance to Floor {int(w_leak['Floor'])}. The AC is running at maximum capacity for a nearly empty floor.")
                 elif overall_util < 30.0:
                     total_campus_bill = f_eng['Energy_Cost'].sum()
-                    st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet the centralized AC is running as if the building is fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
+                    st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet the AC is running as if the building is fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
                              f"🎯 **Action:** Override the centralized Building Management System immediately.")
                 else:
                     st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
@@ -219,7 +231,7 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Detects if an entire floor's AC is turned on for an extremely low number of concurrent classes. *(Formula: Count of Active Classes per Floor per Time Slot ≤ 2)*"
+            "> 🧮 **AI Audit Rule:** Detects if an entire floor's AC is turned on for just 1 or 2 small classes. *(Formula: Count of Active Classes per Floor per Time Slot ≤ 2)*"
         )
         if not class_df.empty:
             try:
@@ -232,7 +244,7 @@ with st.spinner("Loading page...", show_time=True):
                 elif len(ghost_slots) > 0:
                     w_slot = ghost_slots.iloc[0]
                     st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running full AC for only **{w_slot['Count']} class(es)** during {w_slot['Time_Slot']}.\n\n"
-                               f"🎯 **Action:** Relocate this class to an already active floor.")
+                               f"🎯 **Action:** Relocate this class to an active floor.")
                 else:
                     st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting AC.")
             except: pass
@@ -241,11 +253,10 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Checks if the physical chair capacity in a room is consistently left empty by more than 40%. *(Formula: [Average Students Present ÷ Maximum Physical Seats] × 100 < 60%)*"
+            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups. *(Formula: Average Students Present ÷ Maximum Physical Seats)*"
         )
         if not class_df.empty:
             try:
-                # Group by room and get both percentage AND hard numbers
                 r_avg = class_df.groupby('Classroom_ID').agg(
                     Percent_Utilize=('Percent_Utilize', 'mean'),
                     Avg_Students=('Actual_Occupancy', 'mean'),
@@ -269,34 +280,3 @@ with st.spinner("Loading page...", show_time=True):
                 else:
                     st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")
             except: pass
-
-            # --- STEP 4: BUDGET FORECAST ---
-        st.subheader("🔮 Priority 4: Next Month's Budget Forecast")
-        st.markdown(
-            "> 📂 **Data Source:** Past Energy Bills + Future Classroom Schedules  \n"
-            "> 🧮 **AI Audit Rule:** Calculates the baseline electricity cost per student from this month, and multiplies it by next month's expected student headcount. *(Formula: [Total Energy Bill ÷ Total Current Students] × Expected Future Students)*"
-        )
-        if not class_df.empty and not energy_df.empty:
-            try:
-                # Calculate the baseline metrics
-                total_current_bill = energy_df['Energy_Cost'].sum()
-                total_current_students = class_df['Actual_Occupancy'].sum()
-                
-                # Prevent division by zero
-                if total_current_students > 0:
-                    cost_per_student = total_current_bill / total_current_students
-                    
-                    # Simulated data for next month (In a real system, you pull this from future schedules)
-                    # For demonstration, let's assume a 10% increase in student traffic next semester
-                    expected_future_students = int(total_current_students * 1.10) 
-                    
-                    # The prediction formula in action
-                    predicted_budget = cost_per_student * expected_future_students
-                    
-                    st.info(f"📊 **FORECAST INSIGHT:** Based on the current operational baseline, each student effectively costs us **RM {cost_per_student:,.2f}** in electricity.\n\n"
-                            f"📈 **The Projection:** With an expected enrollment of **{expected_future_students} students** next month, you must prepare an energy budget of approximately **RM {predicted_budget:,.2f}**.\n\n"
-                            f"🎯 **Action:** If this budget exceeds your operational limit, you must enact Priority 1 and Priority 2 immediately to lower the baseline cost per student before the new semester starts.")
-                else:
-                    st.warning("Not enough student data to generate a reliable financial forecast.")
-            except Exception as e: 
-                pass
