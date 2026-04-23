@@ -173,14 +173,18 @@ with st.spinner("Loading page...", show_time=True):
             chart_col2.info("No energy data available to visualize cost trends.")
 
         # ---------------------------------------------------------
-        # OPTIMIZATION STEPS (Executive Action Plan - Balanced Metrics)
+        # OPTIMIZATION STEPS (Executive Action Plan - Integrated Transparency)
         # ---------------------------------------------------------
         st.divider()
         st.header("Executive Action Plan")
         st.write("Follow these priorities to stop wastage without sacrificing schedule comfort.")
 
         # --- STEP 1: FINANCIAL AUDIT ---
-        st.subheader("🔴 Priority 1: Stop Financial Leaks", help="The system flags an imbalance when a floor's electricity budget consumption heavily outweighs its student population.")
+        st.subheader("🔴 Priority 1: Stop Financial Leaks")
+        st.markdown(
+            "> 📂 **Data Source:** Classroom Data + Energy Data  \n"
+            "> 🧮 **AI Audit Rule:** Compares floor electricity bills against student density. If the bill is >15% higher than the human traffic there, the system triggers an alert. *(Formula: Floor's % of Total Electric Bill - Floor's % of Total Students)*"
+        )
         if not class_df.empty and not energy_df.empty:
             try:
                 f_eng = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
@@ -212,7 +216,11 @@ with st.spinner("Loading page...", show_time=True):
             st.info("Please upload Classroom and Energy data for a financial audit.")
 
         # --- STEP 2: CLASS GROUPING ---
-        st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)", help="The system looks for isolated schedules where the whole floor's AC is turned on for just 1 or 2 classes.")
+        st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)")
+        st.markdown(
+            "> 📂 **Data Source:** Classroom Data only  \n"
+            "> 🧮 **AI Audit Rule:** Detects if an entire floor's AC is turned on for an extremely low number of concurrent classes. *(Formula: Count of Active Classes per Floor per Time Slot ≤ 2)*"
+        )
         if not class_df.empty:
             try:
                 t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
@@ -230,7 +238,11 @@ with st.spinner("Loading page...", show_time=True):
             except: pass
 
         # --- STEP 3: ROOM SIZING ---
-        st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)", help="The system compares the physical chair count of a room against the actual number of students sitting in them.")
+        st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
+        st.markdown(
+            "> 📂 **Data Source:** Classroom Data only  \n"
+            "> 🧮 **AI Audit Rule:** Checks if the physical chair capacity in a room is consistently left empty by more than 40%. *(Formula: [Average Students Present ÷ Maximum Physical Seats] × 100 < 60%)*"
+        )
         if not class_df.empty:
             try:
                 # Group by room and get both percentage AND hard numbers
