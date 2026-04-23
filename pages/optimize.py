@@ -179,7 +179,8 @@ with st.spinner("Loading page...", show_time=True):
         st.header("Optimization Recommendations")
 
         # --- STEP 1: ROOM SIZING ---
-        st.subheader("Step 1: Check Room Sizing (Space Leak Detection)")
+        # NEW: The 'help' parameter acts as your Heuristic Dictionary for the panel, providing users with clear rules and logic behind the recommendations. This is where you can educate users on how to interpret the results and what actions to take.
+        st.subheader("Step 1: Check Room Sizing (Space Leak Detection)", help="Rule: Flags rooms performing below campus average AND under 60% absolute utilization.")
         if not class_df.empty:
             try:
                 r_avg = class_df.groupby('Classroom_ID')['Percent_Utilize'].mean().reset_index()
@@ -193,13 +194,16 @@ with st.spinner("Loading page...", show_time=True):
                 # Add severity tiers to prioritize the worst offenders, instead of flagging all rooms below the threshold as equally bad
                 if len(ghosts) >= 3:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
+                    # Estimate loss: roughly RM 5 per wasted percentage point per room
+                    est_loss = (100 - w_room['Percent_Utilize']) * 5.0
                     st.error(f"🚨 **WASTED SPACE:** {len(ghosts)} rooms are way too big for the number of students. "
                              f"For example, Room {w_room['Classroom_ID']} is only {w_room['Percent_Utilize']:.1f}% full. "
-                             f"Move these classes to smaller rooms to save Aircond costs.")
+                             f"Move these classes to smaller rooms to save Aircond costs. **(Est. Saving: RM {est_loss:.2f}/mo per room)**")
                 elif len(ghosts) > 0:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
+                    est_loss = (100 - w_room['Percent_Utilize']) * 5.0
                     st.warning(f"⚠️ **WASTED SPACE:** Room {w_room['Classroom_ID']} is quite empty (only {w_room['Percent_Utilize']:.1f}% full). "
-                               f"Consider moving this class to a smaller room.")
+                               f"Consider moving this class to a smaller room. **(Est. Saving: RM {est_loss:.2f}/mo per room)**")
                 else:
                     st.success("✅ **GOOD:** All classes are in the right room sizes. No wasted space.")
             except: pass
@@ -207,7 +211,7 @@ with st.spinner("Loading page...", show_time=True):
             st.info("Upload classroom data to check if your rooms are too big.")
 
         # --- STEP 2: CLASS GROUPING ---
-        st.subheader("Step 2: Check Class Grouping (Same Time & Floor), Optimize Scheduling (Zone Consolidation)")
+        st.subheader("Step 2: Check Class Grouping (Same Time & Floor), Optimize Scheduling (Zone Consolidation)", help="Rule: Flags floors operating with ≤2 classes per time slot OR total campus utilization < 30%.")
         if not class_df.empty:
             try:
                 t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
@@ -229,7 +233,7 @@ with st.spinner("Loading page...", show_time=True):
             st.info("Upload classroom data to check for scattered timetables.")
 
         # --- STEP 3: FINANCIAL AUDIT ---
-        st.subheader("Step 3: Check Electricity Bill Matching (Financial Audit)")
+        st.subheader("Step 3: Check Electricity Bill Matching (Financial Audit)", help="Rule: Flags floors consuming >15% more budget than their actual student capacity share.")
         if not class_df.empty and not energy_df.empty:
             try:
                 f_eng = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
