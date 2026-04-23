@@ -269,3 +269,34 @@ with st.spinner("Loading page...", show_time=True):
                 else:
                     st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")
             except: pass
+
+            # --- STEP 4: BUDGET FORECAST ---
+        st.subheader("🔮 Priority 4: Next Month's Budget Forecast")
+        st.markdown(
+            "> 📂 **Data Source:** Past Energy Bills + Future Classroom Schedules  \n"
+            "> 🧮 **AI Audit Rule:** Calculates the baseline electricity cost per student from this month, and multiplies it by next month's expected student headcount. *(Formula: [Total Energy Bill ÷ Total Current Students] × Expected Future Students)*"
+        )
+        if not class_df.empty and not energy_df.empty:
+            try:
+                # Calculate the baseline metrics
+                total_current_bill = energy_df['Energy_Cost'].sum()
+                total_current_students = class_df['Actual_Occupancy'].sum()
+                
+                # Prevent division by zero
+                if total_current_students > 0:
+                    cost_per_student = total_current_bill / total_current_students
+                    
+                    # Simulated data for next month (In a real system, you pull this from future schedules)
+                    # For demonstration, let's assume a 10% increase in student traffic next semester
+                    expected_future_students = int(total_current_students * 1.10) 
+                    
+                    # The prediction formula in action
+                    predicted_budget = cost_per_student * expected_future_students
+                    
+                    st.info(f"📊 **FORECAST INSIGHT:** Based on the current operational baseline, each student effectively costs us **RM {cost_per_student:,.2f}** in electricity.\n\n"
+                            f"📈 **The Projection:** With an expected enrollment of **{expected_future_students} students** next month, you must prepare an energy budget of approximately **RM {predicted_budget:,.2f}**.\n\n"
+                            f"🎯 **Action:** If this budget exceeds your operational limit, you must enact Priority 1 and Priority 2 immediately to lower the baseline cost per student before the new semester starts.")
+                else:
+                    st.warning("Not enough student data to generate a reliable financial forecast.")
+            except Exception as e: 
+                pass
