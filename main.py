@@ -1,4 +1,5 @@
 from core.imports import os, st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
+from pages.dashboard import login
 
 db.init_db()
 
@@ -23,37 +24,6 @@ def inject_custom_css(css_file_path):
     except FileNotFoundError:
         st.error(f"Error: CSS file not found at {css_file_path}")
 
-def login():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("assets/URO_logo.png")
-    
-    st.title("URO: University Resource Optimization")
-    st.info("Login to Your App")
-
-    with st.form(key="login_form"):
-        username = st.text_input(label="Username", placeholder="Enter your username")
-        password = st.text_input(label="Password", placeholder="Enter your password", type='password')
-
-        submit_button = st.form_submit_button("Log in")
-
-    if submit_button:
-        if check_login(username, password):
-            st.rerun()
-        else:
-            st.error("Invalid username or password. Please try again.")
-
-def check_login(username, password):
-    if username == "staff" and password == "1234staff": #staff login
-        role = "IT Staff"
-        st.session_state['user_role'] = role
-        return True
-    if username == "admin" and password == "4321admin": #admin login
-        role = "Manager"
-        st.session_state['user_role'] = role
-        return True
-    return False
-
 def logout():
     st.write("Logging out...")
     if st.button("Log out"):
@@ -72,7 +42,6 @@ available_batches = db.get_unique_batches()
 
 login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
-
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
 manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
@@ -108,16 +77,13 @@ elif st.session_state['user_role'] == "Manager":
             logout_page,
         ],
     )
-    if pg in [dashboard_page, logout_page]:
-        if st.session_state["batch"] is None:
-            st.session_state['batch_name'] = st.session_state["batch"]
-    elif pg in [analysis_page, optimize_page]:
+    if available_batches:
+        if st.session_state["batch"] is None or st.session_state["batch"] not in available_batches:
+            st.session_state["batch"] = st.session_state["batch_name"]
+
+    if pg in [analysis_page, optimize_page]:
         if available_batches:
-            if (
-                st.session_state["batch"] is None or
-                st.session_state["batch"] not in available_batches
-            ):
-                st.session_state["batch"] = st.session_state["batch_name"]
+            st.sidebar.write("Load data batch for analysis and optimization.")
 
             st.sidebar.selectbox(
                 "Select Data Batch",
@@ -126,7 +92,7 @@ elif st.session_state['user_role'] == "Manager":
             )
 
         if not available_batches:
-            st.warning("No data found in database. Please upload and save files first.")
+            st.sidebar.warning("No data found in database. Please upload and save files first.")
         else:            
             if st.sidebar.button("Load Data", key="load_db_btn"):
                 if st.session_state["batch"] is None:
@@ -143,6 +109,11 @@ elif st.session_state['user_role'] == "Manager":
                         st.session_state['show'] = False 
                         st.toast(f"Batch '{st.session_state['batch']}' Loaded Successfully.", icon="✅")
 else:
-    pg = st.navigation([login_page])
+    pg = st.navigation(
+        [
+            dashboard_page,
+            login_page
+        ]
+    )
 
 pg.run()

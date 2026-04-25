@@ -9,9 +9,9 @@ weekly = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
     st.title("OPTIMIZATION RECOMMENDATIONS")
-    st.write("This page gives you a direct action plan to cut costs and fix space issues. The system looks at your classroom schedules and electric bills to find exactly where money is bleeding. Use recommendations to make fast, smart decisions without guessing.")
-    
-    st.write("Choose the semester data batch stored in the system for analysis.")
+    st.write("This page gives you a direct action plan to cut costs and fix space issues. The system looks at your classroom schedules and electric " \
+    "bills to find exactly where money is bleeding. Use recommendations to make fast, smart decisions without guessing.")
+    st.write("Choose the semester data batch stored in the system for optimization.")
     
     class_df = st.session_state.get('class_df', pd.DataFrame())
     energy_df = st.session_state.get('energy_df', pd.DataFrame())

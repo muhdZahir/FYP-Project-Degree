@@ -29,4 +29,3 @@ elif st.session_state['user_role'] == "Manager":
         **resource allocation** and **cost management**. Overall, the University Resource Optimization system aims to help educational institutions optimize
         their resources and reduce costs while maintaining a high level of service quality.
     """)
-
