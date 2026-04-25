@@ -37,7 +37,6 @@ def confirm_edit_batch_name(old_name, new_name):
 def cancel_edit_batch_name():
     """Cancels the batch name edit action and resets the input field."""
     st.session_state['edit_pending'] = None
-    st.session_state['edit_batch_name'] = st.session_state['batch_name']  # Reset input field to original name
 
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
@@ -55,6 +54,7 @@ def delete_data(data_type, batch_name):
                 st.session_state['show'] = False
 
             st.session_state.class_df = pd.DataFrame()
+            st.session_state['edit_pending'] = None
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
         elif data_type == "Energy" and db.clear_energy_data(batch_name):
@@ -70,6 +70,7 @@ def delete_data(data_type, batch_name):
                 st.session_state['show'] = False
             
             st.session_state.energy_df = pd.DataFrame()
+            st.session_state['edit_pending'] = None
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
 def confirm_delete(data_type, batch_name):
@@ -122,6 +123,8 @@ with st.spinner("Loading page...", show_time=True):
                 st.session_state["class_df"] = pd.DataFrame()
                 st.session_state["energy_df"] = pd.DataFrame()
                 st.session_state["batch_name"] = None
+                st.session_state['edit_pending'] = None
+                st.session_state['delete_pending'] = None
                 st.session_state['show'] = False
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
@@ -129,6 +132,8 @@ with st.spinner("Loading page...", show_time=True):
                     st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
                     st.session_state["energy_df"] = db.load_from_db("Energy", st.session_state['batch'])
                     st.session_state["batch_name"] = st.session_state['batch']
+                    st.session_state['edit_pending'] = None
+                    st.session_state['delete_pending'] = None
                     st.session_state['show'] = True
                     st.toast("Data loaded successfully.", icon="✅")
 

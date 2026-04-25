@@ -40,13 +40,20 @@ energy_df = pd.DataFrame()
 with st.spinner("Loading page...", show_time=True):
     st.title("UPLOAD FILES")
 
-    #Introduction of the system
-    st.write(
-        f"2 files are needed to analyze; 1 contains the necessary columns for classroom and 1 for energy.\n"
-        f"\nSystem will identify only 1 dataset for each classroom and energy. Other files will be ignored.\n"
-        f"\nIf you need to clear the uploaded files, click the 'Clear Files' button below.\n"
-        f"\nBelow are examples of classroom and energy data; each with their respective columns.\n"
-    )
+    st.markdown(f"""
+                Upload raw Excel/CSV files and save them to the database.
+
+                Instructions on how to upload:
+                
+                1. Two files are needed to upload, one for **classroom** and one for **energy**.
+                2. Click the "Browse files" button and select the files you want to upload.
+                3. System will identify only **one** dataset for each classroom and energy. Other files will be **ignored**.
+                4. Enter a **Batch Name** (e.g., Sem 1 2024) and click the "Save Data" button to save.
+                5. Click the 'Clear Files' button to clear all uploaded data.
+
+                It is important that both classroom and energy files are uploaded with the necessary columns.\n
+                Below are examples of classroom and energy data; each with their respective columns.
+            """)
 
     class_example = {
         "Classroom_ID": ["1901", "802"],
@@ -71,7 +78,7 @@ with st.spinner("Loading page...", show_time=True):
     st.write("Example of energy data table")
     st.dataframe(_energy)
 
-    st.write(f"Upload raw Excel/CSV files to analyze and save them to the database.")
+    st.write(f"After uploading, system will **preprocessed** the data to ensure coherence. Read the notes below for more details.")
 
     with st.expander("Data Preprocessing Notes", icon="⚠️"):
         st.warning(f"Dataset may differ from the original uploaded files after preprocessing. Please review the data and ensure it is correct before saving to the database.")
@@ -79,7 +86,7 @@ with st.spinner("Loading page...", show_time=True):
                 f"- Dropped rows with any missing values.\n\n"
                 f"**CLASSROOM DATA:**\n"
                 f"- Dropped rows with non-numeric values in **'Capacity'**, **'Scheduled_Hours'**, and **'Actual_Occupancy'**.\n"
-                f"- Dropped rows where **'Capacity'** is negative or 0, or **'Actual_Occupancy'** is negative or greater than **'Capacity'**.\n"
+                f"- Dropped rows where **'Capacity'** is negative or 0, **'Actual_Occupancy'** is negative or greater than **'Capacity'**.\n"
                 f"- Standardized **'Day'** to 3-letter format and dropped invalid days.\n"
                 f"- Dropped rows with invalid time slot format (e.g., not like '10:00-12:00').\n"
                 f"- Dropped rows with invalid week numbers (not between 1-16).\n"
