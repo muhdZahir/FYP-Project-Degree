@@ -1,5 +1,4 @@
 from core.imports import os, st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
-from pages.dashboard import login
 
 db.init_db()
 
@@ -23,6 +22,37 @@ def inject_custom_css(css_file_path):
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
     except FileNotFoundError:
         st.error(f"Error: CSS file not found at {css_file_path}")
+
+def login():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("assets/URO_logo.png")
+    
+    st.title("URO: University Resource Optimization")
+    st.info("Login to Your App")
+
+    with st.form(key="login_form"):
+        username = st.text_input(label="Username", placeholder="Enter your username")
+        password = st.text_input(label="Password", placeholder="Enter your password", type='password')
+
+        submit_button = st.form_submit_button("Log in")
+
+    if submit_button:
+        if check_login(username, password):
+            st.rerun()
+        else:
+            st.error("Invalid username or password. Please try again.")
+
+def check_login(username, password):
+    if username == "staff" and password == "1234staff": #staff login
+        role = "IT Staff"
+        st.session_state['user_role'] = role
+        return True
+    if username == "admin" and password == "4321admin": #admin login
+        role = "Manager"
+        st.session_state['user_role'] = role
+        return True
+    return False
 
 def logout():
     st.write("Logging out...")
@@ -82,7 +112,9 @@ elif st.session_state['user_role'] == "Manager":
             st.session_state["batch"] = st.session_state["batch_name"]
 
     if pg in [analysis_page, optimize_page]:
-        if available_batches:
+        if not available_batches:
+            st.sidebar.warning("No data found in database. Please upload and save files first.")
+        else:
             st.sidebar.write("Load data batch for analysis and optimization.")
 
             st.sidebar.selectbox(
@@ -91,9 +123,6 @@ elif st.session_state['user_role'] == "Manager":
                 key="batch"
             )
 
-        if not available_batches:
-            st.sidebar.warning("No data found in database. Please upload and save files first.")
-        else:            
             if st.sidebar.button("Load Data", key="load_db_btn"):
                 if st.session_state["batch"] is None:
                     st.toast("Choose a data batch and click 'Load Data'.")
