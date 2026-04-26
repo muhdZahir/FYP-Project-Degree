@@ -59,19 +59,19 @@ with st.spinner("Loading page...", show_time=True):
         with st.expander("🔍 View AI Forecasting Logic (Data Sources, Models & Math)"):
             st.markdown("""
             **1. Next Semester Demand**
-            > 📂 **Data Source:** Classroom Data (Weekly)  
+            > 📂 **Data Source:** Classroom Data *(Columns: Week, Percent_Utilize)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting steady student growth or decline without overfitting the data.  
             > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula: Linear Regression Projection on Avg Fullness %)*
             
             **2. Next Month Est. Cost**
-            > 📂 **Data Source:** Energy Data (Monthly)  
+            > 📂 **Data Source:** Energy Data *(Columns: Month, Energy_Cost)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing patterns. It calculates the realistic financial baseline.  
             > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes. *(Formula: Linear Regression Trend × Expected Operating Days)*
             
             **3. Projected 4-Month Wastage**
-            > 📂 **Data Source:** Combined Classroom & Energy Data  
+            > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
             > ⚙️ **AI Engine:** R-Squared (R²) Statistical Scoring  
             > 💡 **Why This Engine:** R-Squared specifically calculates the "mismatch" or variance between two datasets. It is the most scientifically accurate way to prove that the building's AC schedule is actively ignoring the actual student headcount.  
             > 🧮 **AI Audit Rule:** Uses R-Squared scoring to determine how poorly the AC schedule matches actual student traffic, then calculates that financial loss over a standard 4-month semester. *(Formula: [Total Bill × AI Inefficiency Factor] × 4 Months)*
@@ -165,6 +165,7 @@ with st.spinner("Loading page...", show_time=True):
                 
                 fig1 = plot_next_classroom_demand(combined_class)
                 chart_col1.plotly_chart(fig1, width='stretch')
+                chart_col1.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
                 chart_col1.error(f"Chart Error: {e}")
         else:
@@ -179,6 +180,7 @@ with st.spinner("Loading page...", show_time=True):
 
                 fig2 = plot_next_energy_cost(combined_energy)
                 chart_col2.plotly_chart(fig2, width='stretch')
+                chart_col2.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
                 chart_col2.error(f"Chart Error: {e}")
         else:
