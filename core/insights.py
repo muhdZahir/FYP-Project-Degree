@@ -169,71 +169,59 @@ def underutilized_rooms_findings(worst, second, fifth, avg):
     
     # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
     worst_wasted_space = 100 - worst['Percent_Utilize']
-    severity = classify_utilization_severity(worst_diff,fifth_diff)
+    # Business logic + text generation
+from core.imports import st
+from core.processing import format_floor_name, compute_rooms_difference
+import pandas as pd
+
+# NOTE: The classify_utilization_severity function has been completely deleted.
+
+# ---------------------------------------------------------
+# 1. Display underutilized rooms findings (Bar Chart)
+# ---------------------------------------------------------
+def underutilized_rooms_findings(worst, second, fifth, avg):    
+    # Calculate Difference (Delta) from Campus Average
+    worst_diff, second_diff, fifth_diff = compute_rooms_difference(
+        worst["Percent_Utilize"], second["Percent_Utilize"], fifth["Percent_Utilize"], avg
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            label=f"Most Critical: Room {worst['Classroom_ID']}",
+            value=f"{worst['Percent_Utilize']:.2f}%",
+            delta=f"{worst_diff:.2f}% vs Avg",
+            delta_color="normal" 
+        )
+    with col2:
+        st.metric(
+            label=f"2nd Worst: Room {second['Classroom_ID']}",
+            value=f"{second['Percent_Utilize']:.2f}%",
+            delta=f"{second_diff:.2f}% vs Avg",
+            delta_color="normal"
+        )
+    with col3:
+        st.metric(
+            label=f"5th Worst: Room {fifth['Classroom_ID']}",
+            value=f"{fifth['Percent_Utilize']:.2f}%",
+            delta=f"{fifth_diff:.2f}% vs Avg",
+            delta_color="normal"
+        )
     
-    # Text Findings based on severity
-    # The text findings will explain the situation and provide actionable recommendations based on the severity level of
-    # the worst-performing room.
-    # If the worst room is critically underutilized and even the 5th worst room is also underperforming, then it's a critical issue that
-    # needs immediate attention.
-    if severity == "Critical":
-        st.markdown(f"""
-        **Observation: Rooms are too big for the classes**
-
-        The campus average utilization is **{avg:.2f}%**. But the worst performing rooms are wasting a lot of space:
-        
-        - **Room {worst['Classroom_ID']}** is only **{worst['Percent_Utilize']:.2f}%** full. 
-        - This means the room is **{worst_wasted_space:.2f}% empty air**, but we are still paying the full price to air-condition it.
-        - Even the 5th worst room (**Room {fifth['Classroom_ID']}**) is operating **{abs(fifth_diff):.2f}% below** the normal campus
-        average.
-
-        **What to do:** The university is bleeding money on these specific rooms. We need to stop putting small classes into **Room
-        {worst['Classroom_ID']}** immediately. Move these students to a smaller room to stop wasting electricity on empty space.
-        """)
-    # If the worst room is underutilized but the 5th worst room is close to average, then it's a moderate issue that should be
-    # monitored and addressed soon.
-    elif severity == "Moderate":
-        st.markdown(f"""
-        **Observation: Some rooms are underutilized**
-
-        The campus average utilization is **{avg:.2f}%**. However, the worst performing room(s) is a major problem:
-        
-        - **Room {worst['Classroom_ID']}**) is only **{worst['Percent_Utilize']:.2f}%** full. 
-        - This means the room is **{worst_wasted_space:.2f}% empty air**, but we are still paying the full price to air-condition it.
-        - However, the 5th worst room (**Room {fifth['Classroom_ID']}**) is operating close to the campus average, only
-        **{abs(fifth_diff):.2f}% below** the normal campus average.
-
-        **What to do:** Room {worst['Classroom_ID']} is a major problem. We need to stop putting small classes into this room
-        immediately. Move these students to a smaller room to stop wasting electricity on empty space.
-        """)
-    # If the worst room is underutilized but it's not drastically below average and the 5th worst room is also close to average,
-    # then it's a low issue that can be monitored and addressed if it gets worse.
-    elif severity == "Low":
-        st.markdown(f"""
-        **Observation: Underutilization is present but not critical**
-
-        The campus average utilization is **{avg:.2f}%**. Most rooms are performing decently, but there are a few underperformers:
-                                
-        - **Room {worst['Classroom_ID']}** is only **{worst['Percent_Utilize']:.2f}%** full.
-        - This means the room is **{worst_wasted_space:.2f}% empty air**. However, it's not a critical issue yet since it's not
-        drastically below average.
-        - Even the 5th worst room (**Room {fifth['Classroom_ID']}**) is operating close to the campus average, only
-        **{abs(fifth_diff):.2f}% below** the normal campus average.
-
-        **What to do:** Room {worst['Classroom_ID']} is underperforming, but it's not a critical issue yet. We can monitor this room and see if we can move a few classes to improve its utilization.
-        """)
-    else:
-        st.markdown(f"""
-        **Observation: Utilization pattern is unclear**
-
-        The campus average utilization is **{avg:.2f}%**. The worst performing room is **Room {worst['Classroom_ID']}**, which is
-        only **{worst['Percent_Utilize']:.2f}%** full. This means the room is **{worst_wasted_space:.2f}% empty air**. However, the
-        severity of this issue is currently unclear because the 5th worst room (**Room {fifth['Classroom_ID']}**) is operating close to
-        the campus average, only **{abs(fifth_diff):.2f}% below** the normal campus average.
-
-        **What to do:** The utilization pattern is unclear, so we recommend doing a deeper analysis of the timetable and classroom usage to
-        identify any potential issues or areas for improvement.
-        """)
+    # Extract Exact Hard Numbers for the Worst Room
+    worst_students = int(worst.get('Actual_Occupancy', 0))
+    worst_capacity = int(worst.get('Capacity', 0))
+    worst_wasted_space = 100 - worst['Percent_Utilize']
+    
+    # Single, Undeniable Layman Finding (No dynamic if/else needed)
+    st.markdown(f"""
+    **Observation: Massive Space Wastage**<br><br>
+    The campus is running at an average of **{avg:.2f}%** full. But we are bleeding money on specific empty rooms:<br><br>
+    - **Room {worst['Classroom_ID']}** has **{worst_capacity} physical seats**, but it is usually occupied by only **{worst_students} students** (**{worst['Percent_Utilize']:.1f}%** full).<br>
+    - This means **{worst_wasted_space:.1f}%** of the room is just empty air that we are paying to cool down for no reason.<br><br>
+    **What to do:** Stop putting small classes into Room {worst['Classroom_ID']} immediately. Move these {worst_students} students to a smaller room so we can completely shut off the AC and lights in this large space.
+    """, unsafe_allow_html=True)
 
 # Display floor x time findings
 def heatmap_findings(peak, lowest):
