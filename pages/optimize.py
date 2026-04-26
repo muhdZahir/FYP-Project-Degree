@@ -11,7 +11,7 @@ with st.spinner("Loading page...", show_time=True):
     st.title("OPTIMIZATION RECOMMENDATIONS")
     st.write("This page gives you a direct action plan to cut costs and fix space issues. The system looks at your classroom schedules and electric " \
     "bills to find exactly where money is bleeding. Use recommendations to make fast, smart decisions without guessing.")
-    st.write("Choose the semester data batch stored in the system for optimization.")
+    st.write("Choose the semester data Batch stored in the system for optimization.")
     
     class_df = st.session_state.get('class_df', pd.DataFrame())
     energy_df = st.session_state.get('energy_df', pd.DataFrame())
@@ -61,20 +61,26 @@ with st.spinner("Loading page...", show_time=True):
             **1. Next Semester Demand**
             > 📂 **Data Source:** Classroom Data *(Columns: Week, Percent_Utilize)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
-            > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting steady student growth or decline without overfitting the data.  
-            > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula: Linear Regression Projection on Avg Fullness %)*
+            > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting
+            steady student growth or decline without overfitting the data.  
+            > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula:
+            Linear Regression Projection on Avg Fullness %)*
             
             **2. Next Month Est. Cost**
             > 📂 **Data Source:** Energy Data *(Columns: Month, Energy_Cost)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
-            > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing patterns. It calculates the realistic financial baseline.  
-            > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes. *(Formula: Linear Regression Trend × Expected Operating Days)*
+            > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing
+            patterns. It calculates the realistic financial baseline.  
+            > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes.
+            *(Formula: Linear Regression Trend × Expected Operating Days)*
             
             **3. Projected 4-Month Wastage**
             > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
             > ⚙️ **AI Engine:** R-Squared (R²) Statistical Scoring  
-            > 💡 **Why This Engine:** R-Squared specifically calculates the "mismatch" or variance between two datasets. It is the most scientifically accurate way to prove that the building's AC schedule is actively ignoring the actual student headcount.  
-            > 🧮 **AI Audit Rule:** Uses R-Squared scoring to determine how poorly the AC schedule matches actual student traffic, then calculates that financial loss over a standard 4-month semester. *(Formula: [Total Bill × AI Inefficiency Factor] × 4 Months)*
+            > 💡 **Why This Engine:** R-Squared specifically calculates the "mismatch" or variance between two datasets. It is the most scientifically
+            accurate way to prove that the building's AC schedule is actively ignoring the actual student headcount.  
+            > 🧮 **AI Audit Rule:** Uses R-Squared scoring to determine how poorly the AC schedule matches actual student traffic, then calculates that
+            financial loss over a standard 4-month semester. *(Formula: [Total Bill × AI Inefficiency Factor] × 4 Months)*
             """)
 
         col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
@@ -197,7 +203,8 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🔴 Priority 1: Stop Financial Leaks")
         st.markdown(
             "> 📂 **Data Source:** Classroom + Energy Data  \n"
-            "> 🧮 **AI Audit Rule:** Compares electric bills against student traffic. If a floor eats a massive budget but has very few students, the system triggers an alert. *(Formula: % of Total Bill vs % of Total Students)*"
+            "> 🧮 **AI Audit Rule:** Compares electric bills against student traffic. If a floor eats a massive budget but has very few students, the " \
+            "system triggers an alert. *(Formula: % of Total Bill vs % of Total Students)*"
         )
         if not class_df.empty and not energy_df.empty:
             try:
@@ -216,11 +223,13 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['Energy_Cost']
                     floor_students = int(w_leak['Actual_Occupancy'])
                     
-                    st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) for only **{floor_students} students** (**{w_leak['Occ_Pct']:.1f}%** of total campus).\n\n"
+                    st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) \
+                             for only **{floor_students} students** (**{w_leak['Occ_Pct']:.1f}%** of total campus).\n\n"
                              f"🎯 **Action:** Send maintenance to Floor {int(w_leak['Floor'])}. The AC is running at maximum capacity for a nearly empty floor.")
                 elif overall_util < 30.0:
                     total_campus_bill = f_eng['Energy_Cost'].sum()
-                    st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet the AC is running as if the building is fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
+                    st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet the AC is running as if the building is \
+                             fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
                              f"🎯 **Action:** Override the centralized Building Management System immediately.")
                 else:
                     st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
@@ -233,7 +242,8 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Detects if an entire floor's AC is turned on for just 1 or 2 small classes. *(Formula: Count of Active Classes per Floor per Time Slot ≤ 2)*"
+            "> 🧮 **AI Audit Rule:** Detects if an entire floor's AC is turned on for just 1 or 2 small classes. *(Formula: Count of Active Classes per " \
+            "Floor per Time Slot ≤ 2)*"
         )
         if not class_df.empty:
             try:
@@ -241,11 +251,13 @@ with st.spinner("Loading page...", show_time=True):
                 ghost_slots = t_floor[t_floor['Count'] <= 2]
                 
                 if len(ghost_slots) >= 3:
-                    st.error(f"🚨 **AC WASTAGE:** We have too many isolated classes scattered across empty floors. We are cooling entire building wings for almost nobody.\n\n"
+                    st.error(f"🚨 **AC WASTAGE:** We have too many isolated classes scattered across empty floors. We are cooling entire building wings for \
+                             almost nobody.\n\n"
                              f"🎯 **Action:** Group schedules on the lower floors and completely shut down the upper floors.")
                 elif len(ghost_slots) > 0:
                     w_slot = ghost_slots.iloc[0]
-                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running full AC for only **{w_slot['Count']} class(es)** during {w_slot['Time_Slot']}.\n\n"
+                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running full AC for only **{w_slot['Count']} class(es)** during \
+                               {w_slot['Time_Slot']}.\n\n"
                                f"🎯 **Action:** Relocate this class to an active floor.")
                 else:
                     st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting AC.")
@@ -255,7 +267,8 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups. *(Formula: Average Students Present ÷ Maximum Physical Seats)*"
+            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups. *(Formula: Average Students Present ÷ Maximum Physical " \
+            "Seats)*"
         )
         if not class_df.empty:
             try:
@@ -273,11 +286,13 @@ with st.spinner("Loading page...", show_time=True):
                 if len(ghosts) >= 3:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
                     st.error(f"🚨 **SPACE WASTAGE:** {len(ghosts)} rooms are consistently empty.\n\n"
-                             f"📉 **The Reality:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                             f"📉 **The Reality:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only \
+                             **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                              f"🎯 **Action:** Move this class to a smaller room to reduce AC and lighting load.")
                 elif len(ghosts) > 0:
                     w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                    st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
+                               by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"🎯 **Action:** Consider swapping this room next semester.")
                 else:
                     st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")

@@ -1,4 +1,5 @@
 from core.imports import st, pd, time, db
+from core.processing import is_valid_batch_name, normalize_batch_name
 
 # Initialize session state for persistence across reruns
 if 'edit_success' not in st.session_state:
@@ -93,7 +94,9 @@ energy_df = pd.DataFrame()
 with st.spinner("Loading page...", show_time=True):
     st.title("MANAGE DATA RECORDS")
     st.write(f"Manage your data records stored in the system. You can view the data, edit the batch name, clear old data, and maintain an organized database for analysis.\n")
-    st.write(f"Choose the semester data batch stored in the system for management.\n")
+    st.write(f"Choose the semester data Batch stored in the system for management.\n")
+    st.caption("Batch name is a label that groups related data together. It identifies a specific dataset period — usually a semester and year.")
+    st.write("")
 
     available_batches = db.get_unique_batches()
 
@@ -114,7 +117,8 @@ with st.spinner("Loading page...", show_time=True):
             "Select Data Batch:",
             available_batches,
             index=0,
-            key="batch"
+            key="batch",
+            width=500
         )
 
         if st.button("Load Data", key="load_db_btn"):
@@ -151,7 +155,8 @@ with st.spinner("Loading page...", show_time=True):
                     f"Make sure to double-check the data before confirming deletion.\n")
             
             # update batch name and save to db if user edits the batch name
-            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name)
+            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name, width=500)
+            new_batch_name = normalize_batch_name(new_batch_name)
             if st.session_state['edit_pending'] == "Batch Name":
                 confirm_edit_batch_name(batch_name, new_batch_name)
             else:
@@ -161,13 +166,15 @@ with st.spinner("Loading page...", show_time=True):
                         st.rerun()
                     
                     if new_batch_name is None or new_batch_name.strip() == "":
-                        st.error("Batch name cannot be empty. Please enter a valid name.")
+                        st.error("Batch name cannot be empty. Please enter a valid name.", width=500)
                     elif new_batch_name == batch_name:
-                        st.info("Batch name is unchanged. No update occurred.")
+                        st.info("Batch name is unchanged. No update occurred.", width=500)
+                    elif not is_valid_batch_name(new_batch_name):
+                        st.error("Invalid Batch name. Use: 'Sem X YYYY' (e.g., Sem 1 2024)", width=500)
                     else:
                         if new_batch_name != batch_name:
                             if not db.batch_unique(new_batch_name):
-                                st.error(f"A batch with the name '{new_batch_name}' already exists. Please choose a different name.")
+                                st.error(f"A Batch with the name '{new_batch_name}' already exists. Please choose a different name.")
                             else:
                                 st.session_state['edit_pending'] = "Batch Name"
                                 # Rerunning immediately after setting the flag updates the UI to show the confirmation

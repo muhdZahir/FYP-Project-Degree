@@ -144,16 +144,16 @@ def load_from_db(table_name, batch_name):
             df = pd.read_sql_query(
                 "SELECT Classroom.Classroom_ID, Classroom.Floor, Classroom.Capacity, Classroom.Scheduled_Hours, Classroom.Actual_Occupancy, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "
                 "FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
-                                   conn,
-                                   params=(batch_name,)
-                                   )
+                conn,
+                params=(batch_name,)
+                )
         elif table_name == 'Energy':
             df = pd.read_sql_query(
                 "SELECT Energy.Floor, Energy.Month, Energy.Energy_kWh, Energy.Energy_Cost, Batch.Batch_Name "
                 "FROM Energy INNER JOIN Batch ON Energy.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
-                                   conn,
-                                   params=(batch_name,)
-                                   )
+                conn,
+                params=(batch_name,)
+                )
 
         return df
     finally:

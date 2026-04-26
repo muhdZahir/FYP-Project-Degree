@@ -2,25 +2,6 @@
 from core.imports import st
 from core.processing import format_floor_name, compute_rooms_difference
 
-# Severity Assessment based on how far below average the worst room is
-# This is a simple heuristic: if it's more than 50% below average, we consider it critical.
-def classify_utilization_severity(worst_diff, fifth_diff):
-    # If even the 5th worst room is also underperforming, then it's a critical issue that needs immediate attention.
-    if worst_diff < -50 and fifth_diff < -50:
-        severity = "Critical"
-    # If the worst room is underutilized but the 5th worst room is close to average, then it's a moderate issue that should be
-    # monitored and addressed soon.
-    elif worst_diff < -50 and fifth_diff >= -50:
-        severity = "Moderate"
-    # If the worst room is underutilized but it's not drastically below average and the 5th worst room is also close to average,
-    # then it's a low issue that can be monitored and addressed if it gets worse.
-    elif worst_diff >= -50 and fifth_diff >= -50:
-        severity = "Low"
-    else:
-        severity = "Unknown"
-    
-    return severity
-
 # Determine Utilization Pattern
 # We can categorize the utilization pattern based on the difference between peak and lowest utilization.
 def classify_utilization_pattern(peak, lowest):
@@ -50,8 +31,6 @@ def classify_cv(cv):
         The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **high variance** in energy cost between the floors.
         This means there is a **huge difference in electricity bills** between the floors. 
         Some floors are burning way more electricity than others. This usually means someone is leaving the AC running too long, or there are classes scattered across large spaces.
-
-        **What to do:** Check the highest-consuming floor immediately. Group their classes together or adjust the AC timers.
         """
     # A CV between 0.2 and 0.3 is considered moderate variability, indicating some disparity in energy costs between floors.
     elif cv >= 0.2 and cv <= 0.3:
@@ -60,8 +39,6 @@ def classify_cv(cv):
         The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **moderate variance** in energy cost between the floors.
         This means there is a **moderate difference in electricity bills** between the floors. 
         The energy usage is mostly okay, but some floors are slightly higher than normal.
-
-        **What to do:** Keep an eye on the top-consuming floor and see if you can move a few classes to save energy.
         """
     # A CV below 0.2 is considered low variability, indicating a fairly balanced energy cost between floors.
     else:
@@ -69,8 +46,6 @@ def classify_cv(cv):
         text = f"""
         The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **low variance** in energy cost between the floors.
         This means there is a **low difference in electricity bills**, meaning the power usage is very balanced across all floors.
-
-        **What to do:** The electricity is well-managed right now. No major changes needed.
         """
     return level, text
 
@@ -136,53 +111,11 @@ def classify_correlation(r2_score, baseline, slope):
 
     return headline, strength_text, slope_text, baseline_text, insight_extra
 
-# Display underutilized rooms findings
-def underutilized_rooms_findings(worst, second, fifth, avg):    
+# Display underutilized rooms findings (Bar Chart)
+def underutilized_rooms_findings(worst, second, best, avg):    
     # Calculate Difference (Delta) from Campus Average
-    worst_diff, second_diff, fifth_diff = compute_rooms_difference(
-        worst["Percent_Utilize"], second["Percent_Utilize"], fifth["Percent_Utilize"], avg
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(
-            label=f"Most Critical: Room {worst['Classroom_ID']}",
-            value=f"{worst['Percent_Utilize']:.2f}%",
-            delta=f"{worst_diff:.2f}% vs Avg",
-            delta_color="normal" # Up = Green, Down = Red (Danger)
-        )
-    with col2:
-        st.metric(
-            label=f"2nd Worst: Room {second['Classroom_ID']}",
-            value=f"{second['Percent_Utilize']:.2f}%",
-            delta=f"{second_diff:.2f}% vs Avg",
-            delta_color="normal"
-        )
-    with col3:
-        st.metric(
-            label=f"5th Worst: Room {fifth['Classroom_ID']}",
-            value=f"{fifth['Percent_Utilize']:.2f}%",
-            delta=f"{fifth_diff:.2f}% vs Avg",
-            delta_color="normal"
-        )
-    
-    # Calculate Total Wasted Space for the Worst Room (100% - Utilized%)
-    worst_wasted_space = 100 - worst['Percent_Utilize']
-    # Business logic + text generation
-from core.imports import st
-from core.processing import format_floor_name, compute_rooms_difference
-import pandas as pd
-
-# NOTE: The classify_utilization_severity function has been completely deleted.
-
-# ---------------------------------------------------------
-# 1. Display underutilized rooms findings (Bar Chart)
-# ---------------------------------------------------------
-def underutilized_rooms_findings(worst, second, fifth, avg):    
-    # Calculate Difference (Delta) from Campus Average
-    worst_diff, second_diff, fifth_diff = compute_rooms_difference(
-        worst["Percent_Utilize"], second["Percent_Utilize"], fifth["Percent_Utilize"], avg
+    worst_diff, second_diff, best_diff = compute_rooms_difference(
+        worst["Percent_Utilize"], second["Percent_Utilize"], best["Percent_Utilize"], avg
     )
 
     col1, col2, col3 = st.columns(3)
@@ -203,9 +136,9 @@ def underutilized_rooms_findings(worst, second, fifth, avg):
         )
     with col3:
         st.metric(
-            label=f"5th Worst: Room {fifth['Classroom_ID']}",
-            value=f"{fifth['Percent_Utilize']:.2f}%",
-            delta=f"{fifth_diff:.2f}% vs Avg",
+            label=f"Best Utilized: Room {best['Classroom_ID']}",
+            value=f"{best['Percent_Utilize']:.2f}%",
+            delta=f"{best_diff:.2f}% vs Avg",
             delta_color="normal"
         )
     
@@ -216,12 +149,14 @@ def underutilized_rooms_findings(worst, second, fifth, avg):
     
     # Single, Undeniable Layman Finding (No dynamic if/else needed)
     st.markdown(f"""
-    **Observation: Massive Space Wastage**<br><br>
-    The campus is running at an average of **{avg:.2f}%** full. But we are bleeding money on specific empty rooms:<br><br>
-    - **Room {worst['Classroom_ID']}** has **{worst_capacity} physical seats**, but it is usually occupied by only **{worst_students} students** (**{worst['Percent_Utilize']:.1f}%** full).<br>
-    - This means **{worst_wasted_space:.1f}%** of the room is just empty air that we are paying to cool down for no reason.<br><br>
-    **What to do:** Stop putting small classes into Room {worst['Classroom_ID']} immediately. Move these {worst_students} students to a smaller room so we can completely shut off the AC and lights in this large space.
-    """, unsafe_allow_html=True)
+    **Observation: Massive Space Wastage**
+    
+    The campus is running at an average of **{avg:.2f}%** full. But we are bleeding money on specific empty rooms:
+
+    - **Room {worst['Classroom_ID']}** has **{worst_capacity} physical seats**, but it is usually occupied by only **{worst_students} students**
+    (**{worst['Percent_Utilize']:.1f}%** full).
+    - This means **{worst_wasted_space:.1f}%** of the room is just empty air that we are paying to cool down for no reason.
+    """)
 
 # Display floor x time findings
 def heatmap_findings(peak, lowest):
@@ -261,10 +196,6 @@ def heatmap_findings(peak, lowest):
         utilization.
         - Because the classes are scattered, the building management has to turn on the central AC for the entire floor just for one or two
         isolated classes.
-
-        **What to do:** Look at the isolated classes on **{low_floor}** at **{lowest['Time_Slot']}**. Move these few
-        classes to a busier floor. Once they are moved, we can completely shut down the electricity and AC for {low_floor}
-        during that time.
         """)
     elif utilization_pattern == "Moderate Variance":
         st.markdown(f"""
@@ -277,9 +208,6 @@ def heatmap_findings(peak, lowest):
         utilization.
         - Because the classes are scattered, the building management has to turn on the central AC for the entire floor just for one or two
         isolated classes.
-
-        **What to do:** Look at the isolated classes on **{low_floor}** at **{lowest['Time_Slot']}**. If possible, move these few
-        classes to a busier floor. This will help us save some electricity and reduce wasted AC on empty floors.
         """)
     elif utilization_pattern == "Low Variance":
         st.markdown(f"""
@@ -293,9 +221,6 @@ def heatmap_findings(peak, lowest):
         utilization.
         - Because the classes are relatively well-distributed, the building management can optimize AC usage without worrying about isolated
         classes on empty floors.
-
-        **What to do:** The timetable is fairly balanced, so there are no critical issues. We can monitor the utilization patterns and look
-        for any emerging "Ghost Zones" in the future.
         """)
     else:
         st.markdown(f"""
@@ -304,9 +229,6 @@ def heatmap_findings(peak, lowest):
         The utilization pattern is currently unclear. We have a peak utilization of **{peak_utilize:.2f}%** on 
         {peak_floor} at {peak['Time_Slot']}, but the lowest utilization is only **{lowest_utilize:.2f}%** on
         {low_floor} at {lowest['Time_Slot']}. 
-
-        **What to do:** The utilization pattern is unclear, so we recommend doing a deeper analysis of the timetable and classroom usage to
-        identify any potential issues or areas for improvement.
         """)
 
 # Display monthly energy cost findings

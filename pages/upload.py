@@ -1,4 +1,5 @@
 from core.imports import st, pd,os, time, db, calendar
+from core.processing import is_valid_batch_name, normalize_batch_name
 # to read excel, install 'pip install openpyxl'
 
 # Initialize upload-specific session keys
@@ -6,6 +7,8 @@ if 'class_file' not in st.session_state:
     st.session_state.class_file = None
 if 'energy_file' not in st.session_state:
     st.session_state.energy_file = None
+if 'save_btn' not in st.session_state:
+    st.session_state["save_btn"] = False
 
 def check_columns(df, required_cols): #function to check column
     return [col for col in required_cols if col not in df.columns]
@@ -266,37 +269,45 @@ with st.spinner("Loading page...", show_time=True):
     if 'class_df' in locals() and not class_df.empty or 'energy_df' in locals() and not energy_df.empty:
         st.divider()
         st.write("💾 Save to System Memory")
-        col1, col2 = st.columns([3, 1])
+        st.caption("Batch name is a label that groups related data together. It identifies a specific dataset period — usually a semester and year.")
+        col1, col2 = st.columns([1, 1])
         with col1:
             batch_name = st.text_input("Batch Name (e.g., Sem 1 2024)", placeholder="Enter a name to tag this data...")
         with col2:
             st.write("") # Spacer
             st.write("")
-            save_btn = st.button("Save Data", key="green")
+            st.session_state["save_btn"] = st.button("Save Data", key="green")
         
-        if save_btn and batch_name:
-            saved_c = False
-            saved_e = False
-            
-            if not class_df.empty:
-                if not db.class_batch_unique(batch_name):
-                    st.error("❌ This batch name already exists in Classroom Data. Please use a unique batch name.")
-                else:
-                    if db.save_to_db(class_df, "Classroom", batch_name):
-                        saved_c = True
+        if st.session_state["save_btn"]:
+            batch_name = normalize_batch_name(batch_name)
+            if is_valid_batch_name(batch_name):
+                saved_c = False
+                saved_e = False
+                
+                if not class_df.empty:
+                    if not db.class_batch_unique(batch_name):
+                        st.error("❌ This Batch name already exists in Classroom Data. Please use a unique Batch name.")
+                    else:
+                        if db.save_to_db(class_df, "Classroom", batch_name):
+                            saved_c = True
 
-            if not energy_df.empty:
-                if not db.energy_batch_unique(batch_name):
-                    st.error("❌ This batch name already exists in Energy Data. Please use a unique batch name.")
-                else:
-                    if db.save_to_db(energy_df, "Energy", batch_name):
-                        saved_e = True
+                if not energy_df.empty:
+                    if not db.energy_batch_unique(batch_name):
+                        st.error("❌ This Batch name already exists in Energy Data. Please use a unique Batch name.")
+                    else:
+                        if db.save_to_db(energy_df, "Energy", batch_name):
+                            saved_e = True
 
-            if saved_c:
-                st.success(f"Successfully saved batch '{batch_name}' classroom data to database!")
+                if saved_c:
+                    st.success(f"Successfully saved Batch '{batch_name}' classroom data to database!")
 
-            if saved_e:
-                st.success(f"Successfully saved batch '{batch_name}' energy data to database!")
+                if saved_e:
+                    st.success(f"Successfully saved Batch '{batch_name}' energy data to database!")
 
-        elif save_btn and not batch_name:
-            st.error("Please enter a Batch Name before saving.")
+            elif batch_name == "":
+                with col1:
+                    st.error("Please enter a Batch Name before saving.")
+        
+            elif not is_valid_batch_name(batch_name):
+                with col1:
+                    st.error("Invalid Batch name. Use: 'Sem X YYYY' (e.g., Sem 1 2024)")
