@@ -96,9 +96,11 @@ def compute_contribution(df, total):
 # Group by Room to get average utilization
 def get_room_stats(df):
     return (
-        df.groupby("Classroom_ID")["Percent_Utilize"]
-        .mean()
-        .reset_index()
+        df.groupby("Classroom_ID").agg({
+            "Actual_Occupancy": "mean",
+            "Capacity": "first",  # or 'mean' or 'max'
+            "Percent_Utilize": "mean"
+        }).reset_index()
     )
 
 # Pivot data for heatmap

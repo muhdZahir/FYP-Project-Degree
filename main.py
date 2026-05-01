@@ -75,6 +75,7 @@ logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
 manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
+view_page = st.Page("pages/view.py", title="View Data", icon=":material/storage:")
 analysis_page = st.Page("pages/analysis.py", title="Analysis", icon=":material/analytics:")
 optimize_page = st.Page("pages/optimize.py", title="Optimization", icon=":material/auto_fix_high:")
 
@@ -102,6 +103,7 @@ elif st.session_state['user_role'] == "Manager":
     pg = st.navigation(
         [
             dashboard_page,
+            view_page,
             analysis_page,
             optimize_page,
             logout_page,
@@ -111,11 +113,11 @@ elif st.session_state['user_role'] == "Manager":
         if st.session_state["batch"] is None or st.session_state["batch"] not in available_batches:
             st.session_state["batch"] = st.session_state["batch_name"]
 
-    if pg in [analysis_page, optimize_page]:
+    if pg in [view_page, analysis_page, optimize_page]:
         if not available_batches:
             st.sidebar.warning("No data found in database. Please upload and save files first.")
         else:
-            st.sidebar.write("Load data batch for analysis and optimization.")
+            st.sidebar.write("Load data batch.")
 
             st.sidebar.selectbox(
                 "Select Data Batch",

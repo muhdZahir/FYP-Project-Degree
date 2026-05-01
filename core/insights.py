@@ -2,66 +2,14 @@
 from core.imports import st
 from core.processing import format_floor_name, compute_rooms_difference
 
-# Determine Utilization Pattern
-# We can categorize the utilization pattern based on the difference between peak and lowest utilization.
-def classify_utilization_pattern(peak, lowest):
-    # If the peak utilization is above 80% and the lowest utilization is below 20%, we can say it's a "High Variance" pattern,
-    # indicating a lot of wasted electricity on empty floors.
-    if peak > 80 and lowest < 20:
-        pattern = "High Variance"
-    # if the peak is high but the lowest is not extremely low, we can say it's a "Moderate Variance" pattern, indicating some
-    # wasted electricity on empty floors.
-    elif peak > 80 and lowest >= 80:
-        pattern = "Moderate Variance"
-    # if the peak is not very high and the lowest is also not very low, we can say it's a "Low Variance" pattern, indicating a fairly
-    # balanced timetable with less wasted electricity on empty floors.
-    elif peak <= 80 and lowest >= 80:
-        pattern = "Low Variance"
+# Determine correlation text
+def interpret_cv(cv):
+    if cv < 0.2:
+        return "relatively uniform distribution"
+    elif cv < 0.5:
+        return "moderate variation in distribution"
     else:
-        pattern = "Unknown"
-    
-    return pattern
-
-# Determine variation level based on CV thresholds
-def classify_cv(cv):
-    # A CV above 0.3 is often considered high variability, indicating a large disparity in energy costs between floors.
-    if cv > 0.3:
-        level = "High"
-        text = f"""
-        The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **high variance** in energy cost between the floors.
-        This means there is a **huge difference in electricity bills** between the floors. 
-        Some floors are burning way more electricity than others. This usually means someone is leaving the AC running too long, or there are classes scattered across large spaces.
-        """
-    # A CV between 0.2 and 0.3 is considered moderate variability, indicating some disparity in energy costs between floors.
-    elif cv >= 0.2 and cv <= 0.3:
-        level = "Moderate"
-        text = f"""
-        The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **moderate variance** in energy cost between the floors.
-        This means there is a **moderate difference in electricity bills** between the floors. 
-        The energy usage is mostly okay, but some floors are slightly higher than normal.
-        """
-    # A CV below 0.2 is considered low variability, indicating a fairly balanced energy cost between floors.
-    else:
-        level = "Low"
-        text = f"""
-        The coefficient of variation (CV) between the floors is **{cv:.2f}**, which indicates a **low variance** in energy cost between the floors.
-        This means there is a **low difference in electricity bills**, meaning the power usage is very balanced across all floors.
-        """
-    return level, text
-
-# Determine cost range difference
-def classify_range(range, percent):
-    if range > 1000:
-        range_text = f"Additionally, the difference between the highest and lowest floors is quite large at RM {range:,.2f}, which indicates a \
-        significant disparity in energy usage. (approximately **{percent:.2f}%** higher between the highest and lowest floors)"
-    elif range >= 500 and range <= 1000:
-        range_text = f"Additionally, the difference between the highest and lowest floors is moderate at RM {range:,.2f}, which indicates \
-        some disparity in energy usage. (approximately **{percent:.2f}%** higher between the highest and lowest floors)"
-    else:
-        range_text = f"Additionally, the difference between the highest and lowest floors is small at RM {range:,.2f}, which indicates a \
-        fairly balanced energy usage. (approximately **{percent:.2f}%** higher between the highest and lowest floors)"
-
-    return range_text
+        return "wide variation in distribution"
 
 # Determine correlation findings
 def classify_correlation(r2_score, baseline, slope):
@@ -89,16 +37,16 @@ def classify_correlation(r2_score, baseline, slope):
     # 3. Special “autopilot” trigger
     # -----------------------------
     if r2_score < 0.3 and baseline > 0.5:
-        headline = "**Observation: Energy usage is likely operating independently of occupancy (Autopilot behavior detected)**"
+        headline = "### **Observation: Energy usage is likely operating independently of occupancy (Autopilot behavior detected)**"
         insight_extra = "This strongly suggests that systems such as air conditioning may be running continuously regardless of actual classroom usage."
     elif r2_score < 0.3:
-        headline = "**Observation: Weak alignment between occupancy and energy usage**"
+        headline = "### **Observation: Weak alignment between occupancy and energy usage**"
         insight_extra = "This indicates that factors other than occupancy play a significant role in driving energy consumption."
     elif baseline > 0.5:
-        headline = "**Observation: High baseline energy consumption detected**"
+        headline = "### **Observation: High baseline energy consumption detected**"
         insight_extra = "A large portion of energy cost appears to be fixed, regardless of how many students are present."
     else:
-        headline = "**Observation: Energy usage generally follows occupancy patterns**"
+        headline = "### **Observation: Energy usage generally follows occupancy patterns**"
         insight_extra = "Energy consumption appears to scale reasonably with classroom usage."
 
     # -----------------------------
@@ -142,20 +90,34 @@ def underutilized_rooms_findings(worst, second, best, avg):
             delta_color="normal"
         )
     
-    # Extract Exact Hard Numbers for the Worst Room
+    # Extract Exact Value for the Worst Room
     worst_students = int(worst.get('Actual_Occupancy', 0))
     worst_capacity = int(worst.get('Capacity', 0))
-    worst_wasted_space = 100 - worst['Percent_Utilize']
-    
-    # Single, Undeniable Layman Finding (No dynamic if/else needed)
-    st.markdown(f"""
-    **Observation: Massive Space Wastage**
-    
-    The campus is running at an average of **{avg:.2f}%** full. But we are bleeding money on specific empty rooms:
+    worst_util = worst['Percent_Utilize']
+    worst_unused = 100 - worst_util
 
-    - **Room {worst['Classroom_ID']}** has **{worst_capacity} physical seats**, but it is usually occupied by only **{worst_students} students**
-    (**{worst['Percent_Utilize']:.1f}%** full).
-    - This means **{worst_wasted_space:.1f}%** of the room is just empty air that we are paying to cool down for no reason.
+    # Extract Exact Value for the Best Room
+    best_students = int(best.get('Actual_Occupancy', 0))
+    best_capacity = int(best.get('Capacity', 0))
+    best_util = best['Percent_Utilize']
+    best_unused = 100 - best_util
+
+    st.markdown(f"""
+    ### **Observation: Classroom Utilization Overview**
+
+    The campus average utilization is **{avg:.2f}%**.
+
+    **Lowest Utilized Room**
+    - **Room {worst['Classroom_ID']}** has a seating capacity of **{worst_capacity}**, with an average occupancy of **{worst_students} students**.
+    - This corresponds to a utilization rate of **{worst_util:.1f}%**, leaving **{worst_unused:.1f}%** of capacity unused.
+
+    **Highest Utilized Room**
+    - **Room {best['Classroom_ID']}** has a seating capacity of **{best_capacity}**, with an average occupancy of **{best_students} students**.
+    - This corresponds to a utilization rate of **{best_util:.1f}%**, with **{best_unused:.1f}%** of capacity unoccupied.
+
+    **Context**
+    - The difference between the lowest and highest utilized rooms is **{best_util - worst_util:.1f} percentage points**.
+    - This indicates variation in how classroom capacity is being used across the campus.
     """)
 
 # Display floor x time findings
@@ -180,56 +142,28 @@ def heatmap_findings(peak, lowest):
         st.metric("Floor Level", f"{low_floor}")
         st.write(f"**Utilization:** {lowest_utilize:.2f}%")
     
-    utilization_pattern = classify_utilization_pattern(peak_utilize, lowest_utilize)
+    # Calculate variation (simple and factual)
+    util_gap = peak_utilize - lowest_utilize
 
-    # Text Findings based on Utilization Pattern
-    # The text findings will explain the utilization pattern and provide actionable recommendations based on whether it's a high variance,
-    # moderate variance, or low variance pattern.
-    if utilization_pattern == "High Variance":
-        st.markdown(f"""
-        **Observation: Wasted Electricity on empty floors**
+    st.markdown(f"""
+    ### **Observation: Utilization Across Time and Floors**
 
-        The current timetable is scattered. We have busy areas like **{peak_floor}** at **{peak['Time_Slot']}**
-        (**{peak_utilize:.2f}%** full), but we also have "Ghost Zones":
-        
-        - During **{lowest['Time_Slot']}**, **{low_floor}** drops to a terrible **{lowest_utilize:.2f}%**
-        utilization.
-        - Because the classes are scattered, the building management has to turn on the central AC for the entire floor just for one or two
-        isolated classes.
-        """)
-    elif utilization_pattern == "Moderate Variance":
-        st.markdown(f"""
-        **Observation: Wasted Electricity on some floors**
+    The highest observed utilization occurs at:
+    - **{peak_floor}** during **{peak['Time_Slot']}**, with **{peak_utilize:.2f}%** utilization.
 
-        The current timetable is somewhat scattered. We have busy areas like **{peak_floor}** at **{peak['Time_Slot']}**
-        (**{peak_utilize:.2f}%** full), but we also have some quiet zones:
-        
-        - During **{lowest['Time_Slot']}**, **{low_floor}** drops to a low **{lowest_utilize:.2f}%**
-        utilization.
-        - Because the classes are scattered, the building management has to turn on the central AC for the entire floor just for one or two
-        isolated classes.
-        """)
-    elif utilization_pattern == "Low Variance":
-        st.markdown(f"""
-        **Observation: Electricity usage is fairly balanced**
-        
-        The current timetable is fairly well-organized. We have busy areas like **{peak_floor}** at **{peak['Time_Slot']}**
-        (**{peak_utilize:.2f}%** full), but even the quietest zones like **{low_floor}** at 
-        **{lowest['Time_Slot']}** are reasonably utilized.
+    The lowest observed utilization occurs at:
+    - **{low_floor}** during **{lowest['Time_Slot']}**, with **{lowest_utilize:.2f}%** utilization.
 
-        - During **{lowest['Time_Slot']}**, **{low_floor}** still maintains a decent **{lowest_utilize:.2f}%**
-        utilization.
-        - Because the classes are relatively well-distributed, the building management can optimize AC usage without worrying about isolated
-        classes on empty floors.
-        """)
-    else:
-        st.markdown(f"""
-        **Observation: Utilization pattern is unclear**
+    **Comparison**
+    - The difference between peak and lowest utilization is **{util_gap:.2f} percentage points**.
 
-        The utilization pattern is currently unclear. We have a peak utilization of **{peak_utilize:.2f}%** on 
-        {peak_floor} at {peak['Time_Slot']}, but the lowest utilization is only **{lowest_utilize:.2f}%** on
-        {low_floor} at {lowest['Time_Slot']}. 
-        """)
+    **Interpretation**
+    - Utilization levels vary across different floors and time slots.
+    - Some floor-time combinations operate at higher occupancy levels, while others show lower usage.
+
+    **Note**
+    - This analysis reflects occupancy patterns only and does not directly account for operational factors such as energy usage or scheduling constraints.
+    """)
 
 # Display monthly energy cost findings
 def monthly_energy_cost_findings(monthly_sorted,df):
@@ -290,22 +224,35 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     # Text Findings based on monthly energy cost
     # The text findings will explain the energy cost patterns and the contributing floors during those months.
     st.markdown(f"""
-    **Observations: Electrical Cost Patterns**
+    ### **Observation: Monthly Energy Cost Distribution**
 
-    **{high_month['Month']} recorded the highest total energy cost** of **RM {high_month['Energy_Cost']:,.2f}**.
+    - The **highest total energy cost** was recorded in **{high_month['Month']}**, at **RM {high_month['Energy_Cost']:,.2f}**.
+    - The **second highest** was **{second_high_month['Month']}**, at **RM {second_high_month['Energy_Cost']:,.2f}**.
+    - The **lowest** was **{low_month['Month']}**, at **RM {low_month['Energy_Cost']:,.2f}**.
 
-    - The **highest contributing floor** during this month was **{high_floor_name_high}**, with **RM {high_floor_high_month['Energy_Cost']:,.2f}**.
-    - The **lowest contributing floor** was **{low_floor_name_high}**, with **RM {low_floor_high_month['Energy_Cost']:,.2f}**.
+    **Comparison**
+    - The difference between the highest and second highest month is **RM {difference:,.2f}**.
 
-    **{second_high_month['Month']} recorded the second highest energy cost** of **RM {second_high_month['Energy_Cost']:,.2f}**.
+    #### **Floor-Level Breakdown**
 
-    - The **highest contributing floor** during this month was **{high_floor_name_second}**, with **RM {high_floor_second_month['Energy_Cost']:,.2f}**.
-    - The **lowest contributing floor** was **{low_floor_name_second}**, with **RM {low_floor_second_month['Energy_Cost']:,.2f}**.
+    **{high_month['Month']} (Highest Month)**
+    - Highest floor-level cost: **{high_floor_name_high}** (RM {high_floor_high_month['Energy_Cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_high}** (RM {low_floor_high_month['Energy_Cost']:,.2f})
 
-    **{low_month['Month']} recorded the lowest total energy cost** of **RM {low_month['Energy_Cost']:,.2f}**.
+    **{second_high_month['Month']} (Second Highest)**
+    - Highest floor-level cost: **{high_floor_name_second}** (RM {high_floor_second_month['Energy_Cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_second}** (RM {low_floor_second_month['Energy_Cost']:,.2f})
 
-    - The **highest contributing floor** during this month was **{high_floor_name_low}**, with **RM {high_floor_low_month['Energy_Cost']:,.2f}**.
-    - The **lowest contributing floor** was **{low_floor_name_low}**, with **RM {low_floor_low_month['Energy_Cost']:,.2f}**.
+    **{low_month['Month']} (Lowest Month)**
+    - Highest floor-level cost: **{high_floor_name_low}** (RM {high_floor_low_month['Energy_Cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_low}** (RM {low_floor_low_month['Energy_Cost']:,.2f})
+
+    **Interpretation**
+    - Energy costs vary across months and across floors within each month.
+    - Certain floors consistently account for higher portions of total cost within a given month.
+
+    **Note**
+    - These observations reflect recorded energy costs and do not directly indicate the underlying causes (e.g., occupancy levels, equipment usage, or operational settings).
     """)
 
 # Display energy cost contribution findings
@@ -345,36 +292,27 @@ def pie_findings(floor_energy_cost):
         )
 
     cv = std_dev / avg_cost
+    share_gap = dominant_floor["Contribution (%)"] - least_floor["Contribution (%)"]
     
-    variation_lvl, variation_text = classify_cv(cv)
-    
-    if variation_lvl == "High":
-        st.markdown(f"""
-        **Observation: High Disparity in Energy Cost Between Floors**
+    st.markdown(f"""
+    ### **Observation: Energy Cost Distribution by Floor**
 
-        The energy cost distribution across floors is highly unbalanced. The dominant floor, {dom_floor}, contributes a significant
-        **{dominant_floor['Contribution (%)']:.2f}%** of the total energy cost, while the least contributing floor, {lst_floor},
-        only contributes **{least_floor['Contribution (%)']:.2f}%**.
-        """)
-    elif variation_lvl == "Moderate":
-        st.markdown(f"""
-        **Observation: Moderate Disparity in Energy Cost Between Floors**
+    - The highest contributing floor is **{dom_floor}**, accounting for **{dominant_floor['Contribution (%)']:.2f}%** of total energy cost.
+    - The lowest contributing floor is **{lst_floor}**, accounting for **{least_floor['Contribution (%)']:.2f}%**.
 
-        The energy cost distribution across floors is somewhat unbalanced. The dominant floor, {dom_floor}, contributes a significant
-        **{dominant_floor['Contribution (%)']:.2f}%** of the total energy cost, while the least contributing floor, {lst_floor},
-        only contributes **{least_floor['Contribution (%)']:.2f}%**.
-        """)
-    else:
-        st.markdown(f"""
-        **Observation: Low Disparity in Energy Cost Between Floors**
+    **Distribution Metrics**
+    - Average floor-level cost: **RM {avg_cost:,.2f}**
+    - Difference in contribution: **{share_gap:.2f}%**
+    - Difference in cost between top and lowest floor: **RM {range_diff:,.2f}** (**{percent_diff:.2f}% difference**)
 
-        The energy cost distribution across floors is fairly balanced. The dominant floor, {dom_floor}, contributes a reasonable
-        **{dominant_floor['Contribution (%)']:.2f}%** of the total energy cost, while the least contributing floor, {lst_floor},
-        contributes **{least_floor['Contribution (%)']:.2f}%**.
-        """)
-    range_text = classify_range(range_diff, percent_diff)
-    st.markdown(range_text)
-    st.markdown(variation_text)
+    **Interpretation**
+    - The distribution shows **{interpret_cv(cv)}** across floors.
+    - Energy cost distribution varies across floors.
+    - The difference between the highest and lowest contributing floors indicates how costs are spread within the building.
+
+    **Note**
+    - These values describe cost distribution only and do not directly indicate underlying causes such as occupancy levels or equipment usage.
+    """)
 
 # Display correlation findings
 def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):

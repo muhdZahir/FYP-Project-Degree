@@ -46,8 +46,11 @@ def run_classroom_analysis(class_df):
     # ==========================================
     # Findings: Worst Performing Rooms
     # ==========================================
-    st.subheader("Findings: Worst Performing Rooms")
+    st.write("#### Findings: Worst Performing Rooms")
     with st.expander("Show details"):
+        # Compute percentile for each room
+        room_stats["percentile"] = room_stats["Percent_Utilize"].rank(pct=True)
+
         # Data Extraction & Baseline Calculation
         rooms_utilize = room_stats.sort_values("Percent_Utilize", ascending=True)
         campus_avg = df["Percent_Utilize"].mean()
@@ -87,7 +90,7 @@ def run_classroom_analysis(class_df):
     # ==========================================
     # Findings: Utilization Heatmap
     # ==========================================
-    st.subheader("Findings: Floor vs Time Utilization")
+    st.write("#### Findings: Floor vs Time Utilization")
     with st.expander("Show details"):
         # Data Extraction
         peak_usage = heatmap_data.loc[heatmap_data["Percent_Utilize"].idxmax()]
@@ -134,7 +137,7 @@ def run_energy_analysis(energy_df):
     # ==========================================
     # Findings: Monthly Energy Cost per Floor
     # ==========================================
-    st.subheader("Findings: Monthly Energy Cost per Floor")
+    st.write("#### Findings: Monthly Energy Cost per Floor")
     with st.expander("Show details"):
         # Sort by energy cost (descending)
         monthly_sorted = monthly_energy.sort_values(by="Energy_Cost", ascending=False)
@@ -173,7 +176,7 @@ def run_energy_analysis(energy_df):
     # ==========================================
     # Findings: Energy Cost Contribution
     # ==========================================
-    st.subheader("Findings: Energy Cost Contribution by Floor")
+    st.write("#### Findings: Energy Cost Contribution by Floor")
     with st.expander("Show details"):
         # Calculate percentage contribution
         floor_energy_cost = compute_contribution(floor_energy_cost, total_energy_cost)
@@ -247,7 +250,7 @@ def run_correlation_analysis(class_df, energy_df):
         # ==========================================
         # Findings: Correlation Analysis
         # ==========================================
-        st.subheader("Findings: Occupancy vs Energy Cost Correlation")
+        st.write("#### Findings: Occupancy vs Energy Cost Correlation")
         with st.expander("Show details"):
             # Statistical Calculations
             r2_score = model.score(X, y)
@@ -314,19 +317,18 @@ with st.spinner("Loading page...", show_time=True):
             st.subheader("Correlation Analysis")
             with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
                 st.markdown("""
-            **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 
-                            
-            💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running blindly in
-            empty rooms.  
-            
-            > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
-            > 📊 **Chart Selection:** Scatter Plot with a Trendline  
-            > 💡 **Why this Chart:** It proves if your electric bill is actually following your students. A straight line means your building is smart;
-            scattered dots mean your building is wasting money.  
-            > 🧮 **Audit Rule:** Measures if electric bills go up and down based on actual human traffic, or if they stay high even when the campus is empty.
-            *(Formula: Correlation between Energy Cost and Actual Student Count)*
-            """)
-            #st.write("Analyzing the relationship between Total Occupancy (from Classrooms) and Total Energy Cost.")
+                **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 
+                                
+                💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running blindly in
+                empty rooms.  
+                
+                > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
+                > 📊 **Chart Selection:** Scatter Plot with a Trendline  
+                > 💡 **Why this Chart:** It proves if your electric bill is actually following your students. A straight line means your building is smart;
+                scattered dots mean your building is wasting money.  
+                > 🧮 **Audit Rule:** Measures if electric bills go up and down based on actual human traffic, or if they stay high even when the campus is empty.
+                *(Formula: Correlation between Energy Cost and Actual Student Count)*
+                """)
 
             with st.spinner("Analyzing data...", show_time=True):
                 run_correlation_analysis(class_df, energy_df)
