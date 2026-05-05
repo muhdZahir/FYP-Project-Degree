@@ -270,7 +270,11 @@ def pie_findings(floor_energy_cost):
     min_cost = floor_energy_cost["Energy_Cost"].min()
     range_diff = max_cost - min_cost
 
-    percent_diff = ((max_cost - min_cost) / min_cost) * 100
+    # Prevent division by zero when minimum cost is 0
+    if min_cost == 0:
+        percent_diff = 0.0
+    else:
+        percent_diff = ((max_cost - min_cost) / min_cost) * 100
 
     col1, col2 = st.columns(2)
 
@@ -291,7 +295,7 @@ def pie_findings(floor_energy_cost):
             f"{least_floor['Contribution (%)']:.2f}%"
         )
 
-    cv = std_dev / avg_cost
+    cv = (std_dev / avg_cost) if avg_cost != 0 else 0
     share_gap = dominant_floor["Contribution (%)"] - least_floor["Contribution (%)"]
     
     st.markdown(f"""

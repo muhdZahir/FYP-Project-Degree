@@ -76,11 +76,11 @@ with st.spinner("Loading page...", show_time=True):
             
             **3. Projected 4-Month Wastage**
             > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
-            > ⚙️ **AI Engine:** R-Squared (R²) Statistical Scoring  
-            > 💡 **Why This Engine:** R-Squared specifically calculates the "mismatch" or variance between two datasets. It is the most scientifically
-            accurate way to prove that the building's AC schedule is actively ignoring the actual student headcount.  
-            > 🧮 **AI Audit Rule:** Uses R-Squared scoring to determine how poorly the AC schedule matches actual student traffic, then calculates that
-            financial loss over a standard 4-month semester. *(Formula: [Total Bill × AI Inefficiency Factor] × 4 Months)*
+            > ⚙️ **AI Engine:** Linear Regression + Residual (Extra Cost) Tracking  
+            > 💡 **Why This Engine:** It compares your actual monthly bill with the bill that is expected from student occupancy. Any extra amount above
+            expected is treated as avoidable wastage.  
+            > 🧮 **AI Audit Rule:** Build expected cost line from occupancy, then sum only positive gaps *(Actual Cost - Expected Cost, if positive)* and
+            project for 4 months. *(Formula: Avg Monthly Extra Cost × 4 Months)*
             """)
 
         col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
@@ -103,8 +103,9 @@ with st.spinner("Loading page...", show_time=True):
                 pred_demand_avg = future_p.mean()
                 with col1:
                     st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
-            except:
+            except Exception as e:
                 col1.metric("Next Semester Demand", "Error")
+                st.warning(f"Unable to estimate next semester demand: {e}")
         else:
             with col1:
                 st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available.")
@@ -123,8 +124,9 @@ with st.spinner("Loading page...", show_time=True):
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
                 col2.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
-            except:
+            except Exception as e:
                 col2.metric("Next Month Est. Cost", "Error")
+                st.warning(f"Unable to estimate next month cost: {e}")
         else:
             with col2:
                 st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available.")
@@ -139,23 +141,29 @@ with st.spinner("Loading page...", show_time=True):
                 
                 occ_m = c_copy.groupby("Month_Map")["Actual_Occupancy"].sum().reset_index()
                 eng_m = e_copy.groupby("Month_Map")["Energy_Cost"].sum().reset_index()
-                merged = pd.merge(occ_m, eng_m, on="Month_Map")
-                
-                if len(merged) > 1:
-                    r2 = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"]).score(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
-                    waste_factor = max(0.1, 1.0 - r2)
+                merged = pd.merge(occ_m, eng_m, on="Month_Map").dropna(subset=["Actual_Occupancy", "Energy_Cost"])
+
+                if len(merged) >= 2:
+                    waste_model = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
+                    merged["Expected_Cost"] = waste_model.predict(merged[["Actual_Occupancy"]])
+                    merged["Extra_Cost"] = (merged["Energy_Cost"] - merged["Expected_Cost"]).clip(lower=0)
+                    avg_monthly_extra_cost = merged["Extra_Cost"].mean()
+                    waste = avg_monthly_extra_cost * 4
                 else:
-                    waste_factor = 0.5 
-                    
-                waste = (energy_df["Energy_Cost"].mean() * waste_factor) * 4
+                    # Fallback if overlap is too little: use a conservative 10% of average monthly bill
+                    avg_monthly_extra_cost = energy_df["Energy_Cost"].mean() * 0.10
+                    waste = avg_monthly_extra_cost * 4
+
                 col3.metric("Projected 4-Month Wastage",
                             f"RM {waste:,.2f}",
                             delta="-High Risk",
                             delta_color="inverse",
-                            help="How much money will be burned over 4 months if current inefficiencies are ignored."
+                            help="Estimated avoidable cost over 4 months, based on extra bill above expected usage."
                         )
-            except:
+                st.caption(f"Simple logic: average monthly extra cost is RM {avg_monthly_extra_cost:,.2f}; projected semester wastage = monthly extra × 4.")
+            except Exception as e:
                 col3.metric("Projected 4-Month Wastage", "Error")
+                st.warning(f"Unable to estimate wastage: {e}")
 
         # ---------------------------------------------------------
         # VISUALIZING THE TRENDS
@@ -233,8 +241,8 @@ with st.spinner("Loading page...", show_time=True):
                              f"🎯 **Action:** Override the centralized Building Management System immediately.")
                 else:
                     st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
-            except Exception as e: 
-                pass
+            except Exception as e:
+                st.warning(f"Financial audit could not be completed: {e}")
         else:
             st.info("Please upload Classroom and Energy data for a financial audit.")
 
@@ -261,7 +269,8 @@ with st.spinner("Loading page...", show_time=True):
                                f"🎯 **Action:** Relocate this class to an active floor.")
                 else:
                     st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting AC.")
-            except: pass
+            except Exception as e:
+                st.warning(f"Class grouping check could not be completed: {e}")
 
         # --- STEP 3: ROOM SIZING ---
         st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
@@ -296,4 +305,5 @@ with st.spinner("Loading page...", show_time=True):
                                f"🎯 **Action:** Consider swapping this room next semester.")
                 else:
                     st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")
-            except: pass
+            except Exception as e:
+                st.warning(f"Room sizing check could not be completed: {e}")
