@@ -232,13 +232,13 @@ with st.spinner("Loading page...", show_time=True):
                     floor_students = int(w_leak['Actual_Occupancy'])
                     
                     st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) \
-                             for only **{floor_students} students** (**{w_leak['Occ_Pct']:.1f}%** of total campus).\n\n"
-                             f"🎯 **Action:** Send maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
+                             for only an attendance of **{floor_students:,} students** (**{w_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
+                             f"🎯 **Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
                 elif overall_util < 30.0:
                     total_campus_bill = f_eng['Energy_Cost'].sum()
                     st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet electricity is running as if the building is \
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
-                             f"🎯 **Action:** Override the centralized Building Management System immediately.")
+                             f"🎯 **Action:** Consider overriding the centralized Building Management System.")
                 else:
                     st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
             except Exception as e:
@@ -255,18 +255,26 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty:
             try:
-                t_floor = class_df.groupby(['Floor', 'Time_Slot']).size().reset_index(name='Count')
-                ghost_slots = t_floor[t_floor['Count'] <= 2]
-                
-                if len(ghost_slots) >= 3:
-                    st.error(f"🚨 **ELECTRICITY WASTAGE:** We have too many isolated classes scattered across empty floors. We are cooling entire building wings for \
-                             almost nobody.\n\n"
-                             f"🎯 **Action:** Group schedules on the lower floors and completely shut down the upper floors.")
-                elif len(ghost_slots) > 0:
-                    w_slot = ghost_slots.iloc[0]
-                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running full electricity for only **{w_slot['Count']} class(es)** during \
+                t_floor = class_df.groupby(
+                    ['Floor', 'Time_Slot']
+                ).size().reset_index(name='Count')
+
+                low_activity_slots = t_floor[t_floor['Count'] <= 2]
+
+                if len(low_activity_slots) >= 3:
+                    affected_floors = ", ".join(
+                        low_activity_slots['Floor']
+                        .astype(str)
+                        .unique()
+                    )
+                    st.error(f"🚨 **ELECTRICITY WASTAGE:** {len(low_activity_slots)} floor-time slots show very low class activity.\n\n"
+                             f"📍 **Affected Floors:** {affected_floors}\n\n"
+                             f"🎯 **Action:** Consider scheduling lectures on the lower floors and completely shut down the upper floors.")
+                elif len(low_activity_slots) > 0:
+                    w_slot = low_activity_slots.iloc[0]
+                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running electricity for only **{w_slot['Count']} class(es)** during \
                                {w_slot['Time_Slot']}.\n\n"
-                               f"🎯 **Action:** Relocate this class to an active floor.")
+                               f"🎯 **Action:** Consider relocating the class(es) to an active floor.")
                 else:
                     st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting electricity.")
             except Exception as e:
@@ -276,8 +284,8 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups. *(Formula: Average Students Present ÷ Maximum Physical " \
-            "Seats)*"
+            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups and below 60% utilization rate. *(Formula: Average Students " \
+            "Present ÷ Maximum Physical Seats)*"
         )
         if not class_df.empty:
             try:
@@ -290,20 +298,24 @@ with st.spinner("Loading page...", show_time=True):
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
-                ghosts = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
-                
-                if len(ghosts) >= 3:
-                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
-                    st.error(f"🚨 **SPACE WASTAGE:** {len(ghosts)} rooms are consistently empty.\n\n"
-                             f"📉 **The Reality:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied by only \
-                             **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
-                             f"🎯 **Action:** Move this class to a smaller room to reduce electricity and lighting load.")
-                elif len(ghosts) > 0:
-                    w_room = ghosts.sort_values(by='Percent_Utilize').iloc[0]
+                low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
+                if not low_util_rooms.empty:
+                    w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
+
+                if len(low_util_rooms) >= 3:
+                    room_list = ", ".join(
+                                    low_util_rooms['Classroom_ID'].astype(str)
+                                )
+                    st.error(f"🚨 **SPACE WASTAGE:** {len(low_util_rooms)} rooms are consistently empty.\n\n"
+                             f"📍 **Underutilized Rooms:** {room_list}\n\n"
+                             f"📉 **Reality:** For example, room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
+                             by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                             f"🎯 **Action:** Consider moving the lectures in these rooms to smaller rooms to reduce electricity and lighting load.")
+                elif len(low_util_rooms) > 0:
                     st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
-                               f"🎯 **Action:** Consider swapping this room next semester.")
+                               f"🎯 **Action:** Consider swapping this room with suited lecture next semester.")
                 else:
-                    st.success("✅ **EFFICIENT:** All classes are placed in correctly sized rooms. No space wastage.")
+                    st.success("✅ **EFFICIENT:** All lectures are placed in correctly sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
