@@ -227,7 +227,7 @@ with st.spinner("Loading page...", show_time=True):
                 
                 overall_util = class_df["Percent_Utilize"].mean()
                 
-                if merged_data['Gap'].max() > 15.0:
+                if merged_data['Gap'].max() > 15.0: # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves serious wastage (e.g. aircons left running on empty floors).
                     worst_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
                     actual_cost = worst_leak['Energy_Cost']
                     floor_students = int(worst_leak['Actual_Occupancy'])
@@ -299,6 +299,8 @@ with st.spinner("Loading page...", show_time=True):
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
+                # Kenapa 60%? The industry sweet spot (TEFMA standard) is 60%-75%. 
+                # 35% is too low (misses wasted space) and 75% is too strict (flags everything).
                 low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
                 if not low_util_rooms.empty:
                     w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
