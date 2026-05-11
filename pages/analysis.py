@@ -282,6 +282,9 @@ with st.spinner("Loading page...", show_time=True):
         with col2:
             if st.button(label="Start Analyzing", width="stretch", icon=":material/analytics:", key="blue"):
                 st.session_state['show'] = True
+    else:
+        st.divider()
+        st.warning("⚠️ **Wait! You haven't loaded any data yet.**\n\nPlease look at the left sidebar, select a **Data Batch**, and click **Load Data** to start your analysis.")
 
     if st.session_state.get('show', False):
         st.title(f"Data Analysis & Insights: {batch_name}")

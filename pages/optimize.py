@@ -46,6 +46,9 @@ with st.spinner("Loading page...", show_time=True):
         with col2:
             if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
                 st.session_state['show'] = True
+    else:
+        st.divider()
+        st.warning("⚠️ **Wait! You haven't loaded any data yet.**\n\nPlease look at the left sidebar, select a **Data Batch**, and click **Load Data** to start optimizing.")
 
     if st.session_state.get('show', False):
         st.title(f"Financial Audit & Future Trends: {batch_name}")
@@ -227,14 +230,16 @@ with st.spinner("Loading page...", show_time=True):
                 
                 overall_util = class_df["Percent_Utilize"].mean()
                 
-                if merged_data['Gap'].max() > 15.0: # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves serious wastage (e.g. aircons left running on empty floors).
-                    worst_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
-                    actual_cost = worst_leak['Energy_Cost']
-                    floor_students = int(worst_leak['Actual_Occupancy'])
+                # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves 
+                # serious wastage (e.g. aircons left running on empty floors).
+                if merged_data['Gap'].max() > 15.0:
+                    w_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
+                    actual_cost = w_leak['Energy_Cost']
+                    floor_students = int(w_leak['Actual_Occupancy'])
                     
-                    st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(worst_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{worst_leak['Cost_Pct']:.1f}%** of budget) \
-                             for only an attendance of **{floor_students:,} students** (**{worst_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
-                             f"🎯 **Action:** Consider sending maintenance to Floor {int(worst_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
+                    st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) \
+                             for only an attendance of **{floor_students:,} students** (**{w_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
+                             f"🎯 **Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
                 elif overall_util < 30.0:
                     total_campus_bill = floor_energy['Energy_Cost'].sum()
                     st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet electricity is running as if the building is \
@@ -298,14 +303,13 @@ with st.spinner("Loading page...", show_time=True):
                 
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
-                
                 # Kenapa 60%? The industry sweet spot (TEFMA standard) is 60%-75%. 
                 # 35% is too low (misses wasted space) and 75% is too strict (flags everything).
                 low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
+                
                 if not low_util_rooms.empty:
                     w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
 
-                if len(low_util_rooms) >= 3:
                     room_list = ", ".join(
                                     low_util_rooms['Classroom_ID'].astype(str)
                                 )
