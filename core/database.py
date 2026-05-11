@@ -197,7 +197,7 @@ def get_unique_batches():
         # Check if table exists first by trying to query it
         batches = pd.read_sql("SELECT Batch_Name FROM Batch", conn)
         return batches["Batch_Name"].tolist()
-    except:
+    except Exception as e: # We only catch normal errors here, so system stops are not ignored
         return []
     finally:
         conn.close()
