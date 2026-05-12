@@ -305,8 +305,9 @@ with st.spinner("Loading page...", show_time=True):
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
                 low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 50.0)]
+                w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
+
                 if not low_util_rooms.empty:
-                    w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
 
                     room_list = ", ".join(
