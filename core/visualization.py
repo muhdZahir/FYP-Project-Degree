@@ -21,7 +21,7 @@ def plot_underutilized_rooms(df, n):
         x="Classroom_ID",
         y="Percent_Utilize",
         color="Percent_Utilize",
-        color_continuous_scale="Reds_r", # Red = Low utilization
+        color_continuous_scale="Reds",
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
         labels={"Classroom_ID": "Classroom ID","Percent_Utilize": "Utilization (%)"}
@@ -36,7 +36,7 @@ def plot_heatmap(df):
     fig = px.imshow(
         df,
         labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
-        color_continuous_scale="RdYlGn", 
+        color_continuous_scale="Reds", 
         title="Avg Utilization Rate (%) by Floor and Time"
     )
     return style_chart(fig, 0.25)

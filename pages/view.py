@@ -20,6 +20,9 @@ with st.spinner("Loading page...", show_time=True):
         with col2:
             if st.button(label="View Data", width="stretch", icon=":material/view_list:", key="blue"):
                 st.session_state['show'] = True
+    else:
+        st.divider()
+        st.warning("⚠️ **Wait! You haven't loaded any data yet.**\n\nPlease look at the left sidebar, select a **Data Batch**, and click **Load Data** to start your analysis.")
 
     if st.session_state.get('show', False):
         st.subheader(f"Data Records for Batch: {batch_name}")

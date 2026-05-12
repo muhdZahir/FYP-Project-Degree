@@ -268,7 +268,7 @@ with st.spinner("Loading page...", show_time=True):
                         .unique()
                     )
                     st.error(f"🚨 **ELECTRICITY WASTAGE:** {len(low_activity_slots)} floor-time slots show very low class activity.\n\n"
-                             f"📍 **Affected Floors:** {affected_floors}\n\n"
+                             f"📍 **Underutilized Floors:** {affected_floors}\n\n"
                              f"🎯 **Action:** Consider scheduling lectures on the lower floors and completely shut down the upper floors.")
                 elif len(low_activity_slots) > 0:
                     w_slot = low_activity_slots.iloc[0]
@@ -284,8 +284,8 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟢 Priority 3: Fix Room Sizing (Space Optimization)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups and below 60% utilization rate. *(Formula: Average Students " \
-            "Present ÷ Maximum Physical Seats)*"
+            "> 🧮 **AI Audit Rule:** Checks if large rooms are consistently booked for tiny groups and below 50% utilization rate. *(Formula: Average " \
+            "Students Present ÷ Maximum Physical Seats)*"
         )
         if not class_df.empty:
             try:
@@ -298,9 +298,10 @@ with st.spinner("Loading page...", show_time=True):
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
-                low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
+                low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 50.0)]
                 if not low_util_rooms.empty:
                     w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
+                    b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
 
                 if len(low_util_rooms) >= 3:
                     room_list = ", ".join(
@@ -308,13 +309,14 @@ with st.spinner("Loading page...", show_time=True):
                                 )
                     st.error(f"🚨 **SPACE WASTAGE:** {len(low_util_rooms)} rooms are consistently empty.\n\n"
                              f"📍 **Underutilized Rooms:** {room_list}\n\n"
-                             f"📉 **Reality:** For example, room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
-                             by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                             f"📉 **Reality:** For example, room {w_room['Classroom_ID']} and room {b_room['Classroom_ID']} has **{int(w_room['Room_Size'])} \
+                             seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
+                             (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
                              f"🎯 **Action:** Consider moving the lectures in these rooms to smaller rooms to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
                     st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
-                               f"🎯 **Action:** Consider swapping this room with suited lecture next semester.")
+                               f"🎯 **Action:** Consider swapping this room for lecture with an appropriate number of students next semester.")
                 else:
                     st.success("✅ **EFFICIENT:** All lectures are placed in correctly sized rooms. No space wastage.")
             except Exception as e:

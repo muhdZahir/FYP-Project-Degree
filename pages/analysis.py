@@ -11,9 +11,9 @@ def run_classroom_analysis(class_df):
     st.metric("Average Classroom Utilization", f"{avg_util:.2f}%")
 
     # ------------------------------------------
-    # Bar Chart: Worst Performing Rooms
+    # Bar Chart: Worst Utilized Rooms
     # ------------------------------------------
-    st.subheader("Worst Performing Rooms")
+    st.subheader("Worst Utilized Rooms")
     with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
             st.markdown("""
             **📉 The 'Ghost Rooms' (Highest Wasted Space)** 
@@ -44,9 +44,9 @@ def run_classroom_analysis(class_df):
     st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
 
     # ==========================================
-    # Findings: Worst Performing Rooms
+    # Findings: Worst Utilized Rooms
     # ==========================================
-    st.write("#### Findings: Worst Performing Rooms")
+    st.write("#### Findings: Worst Utilized Rooms")
     with st.expander("Show details"):
         # Compute percentile for each room
         room_stats["percentile"] = room_stats["Percent_Utilize"].rank(pct=True)
