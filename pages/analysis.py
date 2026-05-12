@@ -69,7 +69,7 @@ def run_classroom_analysis(class_df):
             st.markdown("""
             **🔥 Busiest Zones vs ❄️ Wasted Zones**         
                 
-            💡 **What this means:** Red areas show packed schedules. Green areas mean we are burning electricity for empty floors.  
+            💡 **What this means:** Red areas show packed schedules. White areas mean we are burning electricity for empty floors.  
             
             > 📂 **Data Source:** Classroom Data *(Columns: Floor, Time_Slot, Percent_Utilize)*  
             > 📊 **Chart Selection:** Color-Coded Heatmap  

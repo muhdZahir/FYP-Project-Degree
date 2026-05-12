@@ -231,7 +231,7 @@ with st.spinner("Loading page...", show_time=True):
                 overall_util = class_df["Percent_Utilize"].mean()
                 
                 # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves 
-                # serious wastage (e.g. aircons left running on empty floors).
+                # serious wastage (e.g. airconds left running on empty floors).
                 if merged_data['Gap'].max() > 15.0:
                     w_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
                     actual_cost = w_leak['Energy_Cost']
@@ -265,7 +265,7 @@ with st.spinner("Loading page...", show_time=True):
                     ['Floor', 'Time_Slot']
                 ).size().reset_index(name='Count')
 
-                low_activity_slots = t_floor[t_floor['Count'] <= 2]
+                low_activity_slots = t_floor[t_floor['Count'] <= 5]
 
                 if len(low_activity_slots) >= 3:
                     affected_floors = ", ".join(
@@ -304,12 +304,15 @@ with st.spinner("Loading page...", show_time=True):
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
-                low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 50.0)]
-                w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
-
+                # Kenapa 60%? The industry sweet spot (TEFMA standard) is 60%-75%. 
+                # 35% is too low (misses wasted space) and 75% is too strict (flags everything).
+                low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
+                
                 if not low_util_rooms.empty:
+                    w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
+                    
+                if len(low_util_rooms) >= 3:
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
-
                     room_list = ", ".join(
                                     low_util_rooms['Classroom_ID'].astype(str)
                                 )
@@ -320,6 +323,7 @@ with st.spinner("Loading page...", show_time=True):
                              (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
                              f"🎯 **Action:** Consider moving the lectures in these rooms to smaller rooms to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
+                    w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
                     st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"🎯 **Action:** Consider swapping this room for lecture with an appropriate number of students next semester.")
