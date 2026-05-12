@@ -46,6 +46,9 @@ with st.spinner("Loading page...", show_time=True):
         with col2:
             if st.button(label="Generate Optimization Audit", width="stretch", icon=":material/auto_fix_high:", key="blue"):
                 st.session_state['show'] = True
+    else:
+        st.divider()
+        st.warning("⚠️ **Wait! You haven't loaded any data yet.**\n\nPlease look at the left sidebar, select a **Data Batch**, and click **Load Data** to start optimizing.")
 
     if st.session_state.get('show', False):
         st.title(f"Financial Audit & Future Trends: {batch_name}")
@@ -216,18 +219,21 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty and not energy_df.empty:
             try:
-                f_eng = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
-                f_eng['Cost_Pct'] = (f_eng['Energy_Cost'] / f_eng['Energy_Cost'].sum()) * 100
-                f_occ = class_df.groupby('Floor')['Actual_Occupancy'].sum().reset_index()
-                f_occ['Occ_Pct'] = (f_occ['Actual_Occupancy'] / f_occ['Actual_Occupancy'].sum()) * 100
+                # We changed short variable names to full English words so it is easier to understand
+                floor_energy = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
+                floor_energy['Cost_Pct'] = (floor_energy['Energy_Cost'] / floor_energy['Energy_Cost'].sum()) * 100
+                floor_occupancy = class_df.groupby('Floor')['Actual_Occupancy'].sum().reset_index()
+                floor_occupancy['Occ_Pct'] = (floor_occupancy['Actual_Occupancy'] / floor_occupancy['Actual_Occupancy'].sum()) * 100
                 
-                t3 = pd.merge(f_eng, f_occ, on='Floor')
-                t3['Gap'] = t3['Cost_Pct'] - t3['Occ_Pct']
+                merged_data = pd.merge(floor_energy, floor_occupancy, on='Floor')
+                merged_data['Gap'] = merged_data['Cost_Pct'] - merged_data['Occ_Pct']
                 
                 overall_util = class_df["Percent_Utilize"].mean()
                 
-                if t3['Gap'].max() > 15.0:
-                    w_leak = t3.sort_values(by='Gap', ascending=False).iloc[0]
+                # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves 
+                # serious wastage (e.g. aircons left running on empty floors).
+                if merged_data['Gap'].max() > 15.0:
+                    w_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
                     actual_cost = w_leak['Energy_Cost']
                     floor_students = int(w_leak['Actual_Occupancy'])
                     
@@ -235,7 +241,7 @@ with st.spinner("Loading page...", show_time=True):
                              for only an attendance of **{floor_students:,} students** (**{w_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
                              f"🎯 **Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
                 elif overall_util < 30.0:
-                    total_campus_bill = f_eng['Energy_Cost'].sum()
+                    total_campus_bill = floor_energy['Energy_Cost'].sum()
                     st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet electricity is running as if the building is \
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
                              f"🎯 **Action:** Consider overriding the centralized Building Management System.")
@@ -303,7 +309,6 @@ with st.spinner("Loading page...", show_time=True):
                     w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
 
-                if len(low_util_rooms) >= 3:
                     room_list = ", ".join(
                                     low_util_rooms['Classroom_ID'].astype(str)
                                 )

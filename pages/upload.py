@@ -25,7 +25,7 @@ def normalize_month(x):
     if isinstance(x, (int, float)):
         try:
             return calendar.month_abbr[int(x)]
-        except:
+        except Exception: # We catch normal errors to avoid hiding system stops
             return None
     
     # Case 2: string (Jan, January, etc.)
