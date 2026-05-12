@@ -256,16 +256,22 @@ with st.spinner("Loading page...", show_time=True):
         st.subheader("🟡 Priority 2: Consolidate Floors (Zone Consolidation)")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **AI Audit Rule:** Detects if an entire floor's electricity is turned on for just 1 or 2 small classes. *(Formula: Count of Active Classes per " \
-            "Floor per Time Slot ≤ 2)*"
+            "> 🧮 **AI Audit Rule:** Detects if a floor is highly underutilized during specific times, wasting electricity on centralized cooling/lighting. *(Formula: Active Classrooms vs Total Classrooms on Floor ≤ 20%)*"
         )
         if not class_df.empty:
             try:
-                t_floor = class_df.groupby(
-                    ['Floor', 'Time_Slot']
-                ).size().reset_index(name='Count')
+                # 1. Get total number of unique classrooms per floor
+                floor_capacity = class_df.groupby('Floor')['Classroom_ID'].nunique().reset_index(name='Total_Rooms')
+                
+                # 2. Count unique active classrooms per Day, Time_Slot, and Floor (Avoids overcounting across weeks)
+                t_floor = class_df.groupby(['Day', 'Time_Slot', 'Floor'])['Classroom_ID'].nunique().reset_index(name='Active_Classes')
+                
+                # 3. Merge and calculate utilization percentage
+                t_floor = pd.merge(t_floor, floor_capacity, on='Floor')
+                t_floor['Utilization_Pct'] = (t_floor['Active_Classes'] / t_floor['Total_Rooms']) * 100
 
-                low_activity_slots = t_floor[t_floor['Count'] <= 5]
+                # 4. Filter for low utilization (e.g., 20% or less)
+                low_activity_slots = t_floor[t_floor['Utilization_Pct'] <= 20.0]
 
                 if len(low_activity_slots) >= 3:
                     affected_floors = ", ".join(
@@ -273,13 +279,12 @@ with st.spinner("Loading page...", show_time=True):
                         .astype(str)
                         .unique()
                     )
-                    st.error(f"🚨 **ELECTRICITY WASTAGE:** {len(low_activity_slots)} floor-time slots show very low class activity.\n\n"
+                    st.error(f"🚨 **ELECTRICITY WASTAGE:** {len(low_activity_slots)} floor-time slots show very low utilization (≤ 20% capacity).\n\n"
                              f"📍 **Underutilized Floors:** {affected_floors}\n\n"
-                             f"🎯 **Action:** Consider scheduling lectures on the lower floors and completely shut down the upper floors.")
+                             f"🎯 **Action:** Consider scheduling these isolated classes to other active floors and completely shut down the upper floors.")
                 elif len(low_activity_slots) > 0:
-                    w_slot = low_activity_slots.iloc[0]
-                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running electricity for only **{w_slot['Count']} class(es)** during \
-                               {w_slot['Time_Slot']}.\n\n"
+                    w_slot = low_activity_slots.sort_values(by='Utilization_Pct').iloc[0]
+                    st.warning(f"⚠️ **ISOLATED CLASS:** Floor {w_slot['Floor']} is running electricity for only **{w_slot['Active_Classes']} class(es)** out of **{w_slot['Total_Rooms']} rooms** ({w_slot['Utilization_Pct']:.1f}% used) on **{w_slot['Day']}** during **{w_slot['Time_Slot']}**.\n\n"
                                f"🎯 **Action:** Consider relocating the class(es) to an active floor.")
                 else:
                     st.success("✅ **EFFICIENT:** Timetables are tightly packed. No empty floors are wasting electricity.")
