@@ -18,8 +18,8 @@ def run_classroom_analysis(class_df):
             st.markdown("""
             **📉 The 'Ghost Rooms' (Highest Wasted Space)** 
                         
-            💡 **What this means:** These are rooms that are almost empty all the time. If we move these classes, we can turn off the AC in those large rooms
-            entirely.  
+            💡 **What this means:** These are rooms that are almost empty all the time. If we move these classes, we can turn off the electric power
+            in those large rooms entirely.  
             
             > 📂 **Data Source:** Classroom Data *(Columns: Classroom_ID, Capacity, Actual_Occupancy)*  
             > 📊 **Chart Selection:** Bar Chart  
@@ -74,7 +74,7 @@ def run_classroom_analysis(class_df):
             > 📂 **Data Source:** Classroom Data *(Columns: Floor, Time_Slot, Percent_Utilize)*  
             > 📊 **Chart Selection:** Color-Coded Heatmap  
             > 💡 **Why this Chart:** It acts like a thermal camera for the building. Red means busy, green means dead. It lets you spot completely empty
-            floors that are still running AC at a single glance.  
+            floors that are still running electricity at a single glance.  
             > 🧮 **Audit Rule:** Groups student attendance by floor and time to find "dead zones" where the building is open but nobody is there.
             *(Formula: Total Students grouped by Floor and Time Slot)*
             """)
@@ -321,8 +321,8 @@ with st.spinner("Loading page...", show_time=True):
                 st.markdown("""
                 **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 
                                 
-                💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the AC is running blindly in
-                empty rooms.  
+                💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the electricity
+                is running blindly in empty rooms.  
                 
                 > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
                 > 📊 **Chart Selection:** Scatter Plot with a Trendline  

@@ -219,7 +219,6 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty and not energy_df.empty:
             try:
-                # We changed short variable names to full English words so it is easier to understand
                 floor_energy = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
                 floor_energy['Cost_Pct'] = (floor_energy['Energy_Cost'] / floor_energy['Energy_Cost'].sum()) * 100
                 floor_occupancy = class_df.groupby('Floor')['Actual_Occupancy'].sum().reset_index()
@@ -230,7 +229,7 @@ with st.spinner("Loading page...", show_time=True):
                 
                 overall_util = class_df["Percent_Utilize"].mean()
                 
-                # Kenapa 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves 
+                # Why 15%? 5-10% gap is normal due to heavy equipment like labs. A gap of >15% proves 
                 # serious wastage (e.g. airconds left running on empty floors).
                 if merged_data['Gap'].max() > 15.0:
                     w_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
@@ -246,7 +245,7 @@ with st.spinner("Loading page...", show_time=True):
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
                              f"🎯 **Action:** Consider overriding the centralized Building Management System.")
                 else:
-                    st.success("✅ **BALANCED:** Energy consumption aligns naturally with student density.")
+                    st.success("✅ **BALANCED:** Energy consumption aligns naturally with student attendance.")
             except Exception as e:
                 st.warning(f"Financial audit could not be completed: {e}")
         else:
@@ -270,7 +269,7 @@ with st.spinner("Loading page...", show_time=True):
                 c_mean = r_avg['Percent_Utilize'].mean()
                 c_std = r_avg['Percent_Utilize'].std() if len(r_avg) > 1 else 0
                 
-                # Kenapa 60%? The industry sweet spot (TEFMA standard) is 60%-75%. 
+                # Why 60%? The industry sweet spot (TEFMA standard) is 60%-75%. 
                 # 35% is too low (misses wasted space) and 75% is too strict (flags everything).
                 low_util_rooms = r_avg[(r_avg['Percent_Utilize'] < (c_mean - (c_std * 0.5))) & (r_avg['Percent_Utilize'] < 60.0)]
                 
