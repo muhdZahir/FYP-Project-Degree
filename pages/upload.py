@@ -215,6 +215,7 @@ with st.spinner("Loading page...", show_time=True):
         class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)
         # Flag rows where Actual Occupancy is invalid (negative or greater than capacity)
         class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean'])
+
         # Flag rows duplicate of same data during the same time period
         class_df['Duplicate_class'] = class_df.duplicated(subset=["Classroom_ID", "Week", "Day", "Time_Slot"], keep="first")
 
@@ -244,12 +245,13 @@ with st.spinner("Loading page...", show_time=True):
         energy_df['Energy_clean'] = pd.to_numeric(energy_df['Energy_kWh'], errors='coerce')
         energy_df['Cost_clean'] = pd.to_numeric(energy_df['Energy_Cost'], errors='coerce')
 
-        # Month in numeric to month name conversion (1 or Jan -> Jan)
+        # Month in numeric to month name conversion (1, Jan, January -> Jan)
         energy_df['Month'] = energy_df['Month'].apply(normalize_month)
 
         # Flag rows where Energy_kWh and Energy_Cost are invalid (negative)
         energy_df['Energy_invalid'] = energy_df['Energy_clean'] < 0
         energy_df['Cost_invalid'] = energy_df['Cost_clean'] < 0
+        
         # Flag rows duplicate of same data of a floor during the same month
         energy_df['Duplicate_energy'] = energy_df.duplicated(subset=["Floor", "Month"], keep="first")
 

@@ -247,9 +247,9 @@ with st.spinner("Loading page...", show_time=True):
                 else:
                     st.success("✅ **BALANCED:** Energy consumption aligns naturally with student attendance.")
             except Exception as e:
-                st.warning(f"Financial audit could not be completed: {e}")
+                st.warning(f"Electrical audit could not be completed: {e}")
         else:
-            st.info("Please upload Classroom and Energy data for a financial audit.")
+            st.info("Please upload Classroom and Energy data for optimization audit.")
 
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
         st.subheader("🟢 Check Room Sizing (Classroom Audit)")
