@@ -126,7 +126,8 @@ with st.spinner("Loading page...", show_time=True):
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
                 avg_monthly_cost = energy_df["Energy_Cost"].mean()
-                col2.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
+                with col2:
+                    st.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
             except Exception as e:
                 col2.metric("Next Month Est. Cost", "Error")
                 st.warning(f"Unable to estimate next month cost: {e}")
@@ -238,14 +239,20 @@ with st.spinner("Loading page...", show_time=True):
                     
                     st.error(f"🚨 **BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) \
                              for only an attendance of **{floor_students:,} students** (**{w_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
-                             f"🎯 **Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor.")
+                             f"🎯 **Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor."
+                             f"\n\n💡 **Pro Tip:** If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, this is a clear \
+                             sign of energy wastage. Also, do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 elif overall_util < 30.0:
                     total_campus_bill = floor_energy['Energy_Cost'].sum()
                     st.error(f"🚨 **SYSTEM DISCONNECT:** The campus is practically empty ({overall_util:.1f}% full), yet electricity is running as if the building is \
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
-                             f"🎯 **Action:** Consider overriding the centralized Building Management System.")
+                             f"🎯 **Action:** Consider overriding the centralized Building Management System."
+                             f"\n\n💡 **Pro Tip:** If your campus has a BMS, it should have an override mode for low-occupancy periods. Use it to set a more energy-efficient \
+                             schedule that matches actual student presence. If you don't have a BMS, this is a strong signal to invest in one, as it can automatically adjust \
+                             energy usage based on real-time occupancy. Also, do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 else:
-                    st.success("✅ **BALANCED:** Energy consumption aligns naturally with student attendance.")
+                    st.success(f"✅ **BALANCED:** Energy consumption aligns naturally with student attendance."
+                               f"\n\n💡 **Pro Tip:** A good practice is to do proactive checks to ensure air conditioning and lights are turned off when not in use.")
             except Exception as e:
                 st.warning(f"Electrical audit could not be completed: {e}")
         else:
@@ -275,7 +282,7 @@ with st.spinner("Loading page...", show_time=True):
                 
                 if not low_util_rooms.empty:
                     w_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[0]
-                    
+                
                 if len(low_util_rooms) >= 3:
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
                     room_list = ", ".join(
@@ -286,12 +293,12 @@ with st.spinner("Loading page...", show_time=True):
                              f"📉 **Reality:** For example, room {w_room['Classroom_ID']} and room {b_room['Classroom_ID']} has **{int(w_room['Room_Size'])} \
                              seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
                              (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
-                             f"🎯 **Action:** Consider moving the lectures in these rooms to smaller rooms to reduce electricity and lighting load.")
+                             f"🎯 **Action:** Consider moving the lectures in these rooms to smaller rooms or combining them to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
                     st.warning(f"⚠️ **INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
-                               f"🎯 **Action:** Consider swapping this room for lecture with an appropriate number of students next semester.")
+                               f"🎯 **Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:
-                    st.success("✅ **EFFICIENT:** All lectures are placed in correctly sized rooms. No space wastage.")
+                    st.success("✅ **EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")

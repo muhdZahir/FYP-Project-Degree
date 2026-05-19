@@ -70,6 +70,7 @@ inject_custom_css(css_path)
 
 available_batches = db.get_unique_batches()            
 
+# Define all the pages
 login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
@@ -87,6 +88,7 @@ st.html("""
   </style>
         """)
 
+# Sidebar navigation
 st.logo("assets/URO_logo.png", icon_image="assets/URO_logo.png")
 if st.session_state['user_role'] == "IT Staff":
     st.sidebar.markdown(f"Welcome, **IT Staff**!")
@@ -113,6 +115,7 @@ elif st.session_state['user_role'] == "Manager":
         if st.session_state["batch"] is None or st.session_state["batch"] not in available_batches:
             st.session_state["batch"] = st.session_state["batch_name"]
 
+    # Data loading for view, analysis, optimize pages
     if pg in [view_page, analysis_page, optimize_page]:
         if not available_batches:
             st.sidebar.warning("No data found in database. Please upload and save files first.")
