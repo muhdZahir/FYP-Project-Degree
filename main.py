@@ -89,7 +89,7 @@ st.html("""
         """)
 
 # Sidebar navigation
-st.logo("assets/URO_logo.png", icon_image="assets/URO_logo.png")
+st.logo("assets/URO_small.png", icon_image="assets/URO_small.png")
 if st.session_state['user_role'] == "IT Staff":
     st.sidebar.markdown(f"Welcome, **IT Staff**!")
     pg = st.navigation(
