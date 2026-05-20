@@ -62,6 +62,7 @@ def delete_data(data_type, batch_name):
 
             st.session_state.class_df = pd.DataFrame()
             st.session_state['edit_pending'] = None
+            st.session_state['edit'] = False
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
         elif data_type == "Energy" and db.clear_energy_data(batch_name):
@@ -78,6 +79,7 @@ def delete_data(data_type, batch_name):
             
             st.session_state.energy_df = pd.DataFrame()
             st.session_state['edit_pending'] = None
+            st.session_state['edit'] = False
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
 def confirm_delete(data_type, batch_name):
