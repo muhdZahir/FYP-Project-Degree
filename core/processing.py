@@ -50,18 +50,6 @@ def center_button():
     col1, col2, col3 = st.columns([0.25, 1, 0.3])
     return col2
 
-# Ensure valid batch name
-def is_valid_batch_name(batch_name):
-    pattern = r"^Sem [1-3] \d{4}$"
-    return re.match(pattern, batch_name)
-
-# Normalize user's input
-def normalize_batch_name(batch_name):
-    batch_name = batch_name.strip()
-    batch_name = re.sub(r"\s+", " ", batch_name)  # remove extra spaces
-    batch_name = batch_name.title()  # Sem instead of SEM
-    return batch_name
-
 # Calculate utilization per Room
 def compute_utilization(df):
     df = df.copy()

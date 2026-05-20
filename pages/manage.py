@@ -1,9 +1,10 @@
-from core.imports import st, pd, time, db
-from core.processing import is_valid_batch_name, normalize_batch_name
+from core.imports import st, pd, time, db, datetime, re
 
 # Initialize session state for persistence across reruns
 if 'edit_success' not in st.session_state:
     st.session_state['edit_success'] = False
+if 'edit' not in st.session_state:
+    st.session_state['edit'] = False
 if 'edit_pending' not in st.session_state:
     st.session_state['edit_pending'] = None
 if 'delete_pending' not in st.session_state:
@@ -38,6 +39,7 @@ def confirm_edit_batch_name(old_name, new_name):
 def cancel_edit_batch_name():
     """Cancels the batch name edit action and resets the input field."""
     st.session_state['edit_pending'] = None
+    st.session_state['edit'] = False
 
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
@@ -154,31 +156,73 @@ with st.spinner("Loading page...", show_time=True):
                     f"please note that the delete action is irreversible and will permanently remove the data from the database.\n"
                     f"Make sure to double-check the data before confirming deletion.\n")
             
-            # update batch name and save to db if user edits the batch name
-            new_batch_name = st.text_input("Edit Batch Name:", value=edit_batch_name, width=500)
-            new_batch_name = normalize_batch_name(new_batch_name)
-            if st.session_state['edit_pending'] == "Batch Name":
-                confirm_edit_batch_name(batch_name, new_batch_name)
-            else:
-                if st.button("Save Batch Name", key="green"):
-                    if st.session_state['edit_success']:
-                        st.session_state['edit_success'] = False
-                        st.rerun()
+            if st.session_state['edit'] == True:
+                st.text(f"Edit Batch Name:")
+                # update batch name and save to db if user edits the batch name
+                match = re.match(r"Sem (\d) (\d{4})", batch_name)
+
+                if match:
+                    current_sem = int(match.group(1))
+                    current_year = int(match.group(2))
+                else:
+                    # fallback defaults
+                    current_sem = 1
+                    current_year = datetime.now().year
+
+                col1, col2, col3 = st.columns([0.2, 1, 1])
+                with col1:
+                    st.header("Sem")
+
+                with col2:
+                    sem = st.selectbox(
+                        "Semester", 
+                        [1, 2, 3],
+                        index=[1, 2, 3].index(current_sem),
+                        key="edit_semester"
+                    )
                     
-                    if new_batch_name is None or new_batch_name.strip() == "":
-                        st.error("Batch name cannot be empty. Please enter a valid name.", width=500)
-                    elif new_batch_name == batch_name:
-                        st.info("Batch name is unchanged. No update occurred.", width=500)
-                    elif not is_valid_batch_name(new_batch_name):
-                        st.error("Invalid Batch name. Use: 'Sem X YYYY' (e.g., Sem 1 2024)", width=500)
-                    else:
-                        if new_batch_name != batch_name:
-                            if not db.batch_unique(new_batch_name):
-                                st.error(f"A Batch with the name '{new_batch_name}' already exists. Please choose a different name.")
-                            else:
-                                st.session_state['edit_pending'] = "Batch Name"
-                                # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                with col3:
+                    current_calendar_year = datetime.now().year
+                    year_range = list(range(current_calendar_year - 10, current_calendar_year + 1))
+
+                    year = st.selectbox(
+                        "Year",
+                        year_range,
+                        index=year_range.index(current_year),
+                        key="edit_year"
+                    )
+                new_batch_name = f"Sem {sem} {year}"
+            else:
+                st.text(f"Batch Name: {batch_name}")
+                if st.button("Edit", key="edit_btn"):
+                    st.session_state['edit'] = True
+                    st.rerun()  # Rerun immediately to show the edit UI
+            
+            if st.session_state["edit"] == True:
+                if st.session_state['edit_pending'] == "Batch Name":
+                    confirm_edit_batch_name(batch_name, new_batch_name)
+                else:
+                    col4, col5 = st.columns([1, 1])
+                    with col4:
+                        if st.button("Save Batch Name", key="green"):
+                            if st.session_state['edit_success']:
+                                st.session_state['edit_success'] = False
                                 st.rerun()
+                            
+                            if new_batch_name == batch_name:
+                                st.info("Batch name is unchanged. No update occurred.", width=500)
+                            else:
+                                if new_batch_name != batch_name:
+                                    if not db.batch_unique(new_batch_name):
+                                        st.error(f"A Batch with the name '{new_batch_name}' already exists. Please choose a different name.")
+                                    else:
+                                        st.session_state['edit_pending'] = "Batch Name"
+                                        # Rerunning immediately after setting the flag updates the UI to show the confirmation
+                                        st.rerun()
+                    with col5:
+                        if st.button("Cancel Edit",  on_click=cancel_edit_batch_name, key="cancel_edit_batch_name_btn"):
+                            cancel_edit_batch_name()
+                            st.rerun()  # Rerun immediately to reset the UI
 
             if 'class_df' in locals() and not class_df.empty:
                 st.subheader(f"Classroom Data Records")

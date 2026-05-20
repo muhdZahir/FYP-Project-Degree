@@ -1,5 +1,4 @@
-from core.imports import st, pd,os, time, db, calendar
-from core.processing import is_valid_batch_name, normalize_batch_name
+from core.imports import st, pd,os, time, db, calendar, datetime
 # to read excel, install 'pip install openpyxl'
 
 # Initialize upload-specific session keys
@@ -272,17 +271,26 @@ with st.spinner("Loading page...", show_time=True):
         st.divider()
         st.write("💾 Save to System Memory")
         st.caption("Batch name is a label that groups related data together. It identifies a specific dataset period — usually a semester and year.")
-        col1, col2 = st.columns([1, 1])
+        st.text("Batch Name (e.g., Sem 1 2024)")
+        col1, col2, col3 = st.columns([0.2, 1, 1])
         with col1:
-            batch_name = st.text_input("Batch Name (e.g., Sem 1 2024)", placeholder="Enter a name to tag this data...")
+            st.header("Sem")
+
         with col2:
-            st.write("") # Spacer
-            st.write("")
-            st.session_state["save_btn"] = st.button("Save Data", key="green")
-        
+            sem = st.selectbox("Semester", [1, 2, 3])
+            
+        with col3:
+            current_year = datetime.now().year
+            year = st.selectbox("Year", range(current_year - 10, current_year + 1))
+
+        st.session_state["save_btn"] = st.button("Save Data", key="green")
+        batch_name = f"Sem {sem} {year}"
+
         if st.session_state["save_btn"]:
-            batch_name = normalize_batch_name(batch_name)
-            if is_valid_batch_name(batch_name):
+            if year > current_year:
+                st.warning("Year cannot be in the future.")
+
+            else:
                 saved_c = False
                 saved_e = False
                 
@@ -305,11 +313,3 @@ with st.spinner("Loading page...", show_time=True):
 
                 if saved_e:
                     st.success(f"Successfully saved Batch '{batch_name}' energy data to database!")
-
-            elif batch_name == "":
-                with col1:
-                    st.error("Please enter a Batch Name before saving.")
-        
-            elif not is_valid_batch_name(batch_name):
-                with col1:
-                    st.error("Invalid Batch name. Use: 'Sem X YYYY' (e.g., Sem 1 2024)")
