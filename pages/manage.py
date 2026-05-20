@@ -20,6 +20,7 @@ def save_batch_name(old_name, new_name):
             st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
             st.session_state['edit_pending'] = None  # Reset the flag after saving
             st.session_state['edit_success'] = True
+            st.session_state['edit'] = False
 
             st.toast(f"Batch name updated to '{new_name}'.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
