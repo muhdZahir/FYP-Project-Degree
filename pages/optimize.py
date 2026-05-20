@@ -51,7 +51,7 @@ with st.spinner("Loading page...", show_time=True):
         st.warning("⚠️ **Wait! You haven't loaded any data yet.**\n\nPlease look at the left sidebar, select a **Data Batch**, and click **Load Data** to start optimizing.")
 
     if st.session_state.get('show', False):
-        st.title(f"Financial Audit & Future Trends: {batch_name}")
+        st.title(f"Optimization Audit & Future Trends: {batch_name}")
         
         # ---------------------------------------------------------
         # THE 3-PILLAR PREDICTIONS

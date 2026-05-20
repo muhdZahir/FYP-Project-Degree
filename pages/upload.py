@@ -50,7 +50,7 @@ with st.spinner("Loading page...", show_time=True):
                 1. Two files are needed to upload, one for **classroom** and one for **energy**.
                 2. Click the "Browse files" button and select the files you want to upload.
                 3. System will identify only **one** dataset for each classroom and energy. Other files will be **ignored**.
-                4. Enter a **Batch Name** (e.g., Sem 1 2024) and click the "Save Data" button to save.
+                4. Choose the semester and year for the **Batch Name** (e.g., Sem 1 2024) and click the "Save Data" button to save.
                 5. Click the 'Clear Files' button to clear all uploaded data.
 
                 It is important that both classroom and energy files are uploaded with the necessary columns.\n

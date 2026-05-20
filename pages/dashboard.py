@@ -29,7 +29,7 @@ if st.session_state['user_role'] == "IT Staff":
     Follow these simple steps to get started:
     1. **Go to 'Upload Files'**: Click it on the left sidebar.
     2. **Upload Data**: Select your classroom and energy files.
-    3. **Save Batch**: Give it a name (e.g., 'Sem 1 2026') and click 'Save Data'.
+    3. **Save Batch**: Choose the semester and year for a name (e.g., 'Sem 1 2026') and click 'Save Data'.
     4. **Manage Data**: Use the 'Manage Data' tab if you need to edit or delete records.
     """)
 elif st.session_state['user_role'] == "Manager":

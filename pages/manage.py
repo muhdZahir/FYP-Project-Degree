@@ -155,7 +155,7 @@ with st.spinner("Loading page...", show_time=True):
         edit_batch_name = batch_name
 
         if st.session_state['show']:
-            st.subheader(f"Data Records for Batch: {batch_name}")
+            st.header(f"Data Records for Batch: {batch_name}")
             st.write(f"Review the data records for the selected batch. You can choose to edit the batch name or clear the Classroom or Energy data, but "
                     f"please note that the delete action is irreversible and will permanently remove the data from the database.\n"
                     f"Make sure to double-check the data before confirming deletion.\n")
@@ -197,7 +197,7 @@ with st.spinner("Loading page...", show_time=True):
                     )
                 new_batch_name = f"Sem {sem} {year}"
             else:
-                st.text(f"Batch Name: {batch_name}")
+                st.subheader(f"Batch Name: {batch_name}")
                 if st.button("Edit", key="edit_btn"):
                     st.session_state['edit'] = True
                     st.rerun()  # Rerun immediately to show the edit UI
