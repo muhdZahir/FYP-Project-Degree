@@ -36,10 +36,13 @@ def confirm_edit_batch_name(old_name, new_name):
     with col2:
         st.button("No, Keep Original", on_click=cancel_edit_batch_name, key="cancel_edit_batch_name_btn")
 
+def cancel_edit():
+    """Cancels edit action and resets the input field."""
+    st.session_state['edit'] = False
+
 def cancel_edit_batch_name():
     """Cancels the batch name edit action and resets the input field."""
     st.session_state['edit_pending'] = None
-    st.session_state['edit'] = False
 
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
@@ -220,8 +223,8 @@ with st.spinner("Loading page...", show_time=True):
                                         # Rerunning immediately after setting the flag updates the UI to show the confirmation
                                         st.rerun()
                     with col5:
-                        if st.button("Cancel Edit",  on_click=cancel_edit_batch_name, key="cancel_edit_batch_name_btn"):
-                            cancel_edit_batch_name()
+                        if st.button("Cancel Edit",  on_click=cancel_edit, key="cancel_edit_btn"):
+                            cancel_edit()
                             st.rerun()  # Rerun immediately to reset the UI
 
             if 'class_df' in locals() and not class_df.empty:
