@@ -197,7 +197,7 @@ with st.spinner("Loading page...", show_time=True):
                     )
                 new_batch_name = f"Sem {sem} {year}"
             else:
-                st.text(f"#### **Batch Name**: {batch_name}")
+                st.markdown(f"#### Batch Name: {batch_name}")
                 if st.button("Edit", key="edit_btn"):
                     st.session_state['edit'] = True
                     st.rerun()  # Rerun immediately to show the edit UI
