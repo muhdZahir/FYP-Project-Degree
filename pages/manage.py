@@ -30,7 +30,7 @@ def save_batch_name(old_name, new_name):
 
 def confirm_edit_batch_name(old_name, new_name):
     """Displays the confirmation UI for batch name change."""
-    st.warning(f"Are you sure you want to change the batch name from '{old_name}' to '{new_name}'?")
+    st.warning(f"Are you sure you want to change the batch name from '**{old_name}**' to '**{new_name}**'?")
     col1, col2 = st.columns([1, 1])
     with col1:
         st.button("Yes, Change Name", on_click=save_batch_name, args=(old_name, new_name), key="green")
@@ -197,7 +197,7 @@ with st.spinner("Loading page...", show_time=True):
                     )
                 new_batch_name = f"Sem {sem} {year}"
             else:
-                st.subheader(f"Batch Name: {batch_name}")
+                st.text(f"#### **Batch Name**: {batch_name}")
                 if st.button("Edit", key="edit_btn"):
                     st.session_state['edit'] = True
                     st.rerun()  # Rerun immediately to show the edit UI
