@@ -212,10 +212,10 @@ with st.spinner("Loading page...", show_time=True):
         st.write("Follow these priorities to stop wastage without hurting student comfort.")
 
         # --- STEP 1: ENERGY OPTIMIZATION ---
-        st.subheader("🔴 Check Electricity Bill Matching (Electrical Audit)")
+        st.subheader("🔴 Check Electricity Bill Matching")
         st.markdown(
             "> 📂 **Data Source:** Classroom + Energy Data  \n"
-            "> 🧮 **Audit Rule:** Compares electric bills against student traffic. If a floor eats a massive budget but has very few students, the " \
+            "> 🧮 **Audit Rule:** Compares electric bills against student attendance. If a floor eats a massive budget but has very few students, the " \
             "system triggers an alert. *(Formula: % of Total Bill vs % of Total Students)*"
         )
         if not class_df.empty and not energy_df.empty:
@@ -237,19 +237,20 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['Energy_Cost']
                     floor_students = int(w_leak['Actual_Occupancy'])
                     
-                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}** (**{w_leak['Cost_Pct']:.1f}%** of budget) \
-                             for only an attendance of **{floor_students:,} students** (**{w_leak['Occ_Pct']:.1f}%** of total student attended).\n\n"
-                             f"**Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for a nearly empty floor."
-                             f"\n\n**Pro Tip:** If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, this is a clear \
-                             sign of energy wastage. Also, do proactive checks to ensure air conditioning and lights are turned off when not in use.")
+                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget \
+                             for only an attendance of **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
+                             f"**Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for \
+                             a nearly empty floor. If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, \
+                             this is a clear sign of energy wastage."
+                             f"\n\n**Pro Tip:** Do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 elif overall_util < 30.0:
                     total_campus_bill = floor_energy['Energy_Cost'].sum()
-                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty ({overall_util:.1f}% full), yet electricity is running as if the building is \
+                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only {overall_util:.1f}% utilized, yet electricity is running as if the building is \
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
-                             f"**Action:** Consider overriding the centralized Building Management System."
-                             f"\n\n**Pro Tip:** If your campus has a BMS, it should have an override mode for low-occupancy periods. Use it to set a more energy-efficient \
-                             schedule that matches actual student presence. If you don't have a BMS, this is a strong signal to invest in one, as it can automatically adjust \
-                             energy usage based on real-time occupancy. Also, do proactive checks to ensure air conditioning and lights are turned off when not in use.")
+                             f"**Action:** Consider overriding the centralized Building Management System (BMS). It should have an override mode for low-occupancy periods. \
+                             Use it to set a more energy-efficient schedule that matches actual student presence."
+                             f"\n\n**Pro Tip:** If you don't have a BMS, this is a strong signal to invest in one, as it can automatically adjust energy usage\
+                             based on real-time occupancy. Also, do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 else:
                     st.success(f"**BALANCED:** Energy consumption aligns naturally with student attendance."
                                f"\n\n**Pro Tip:** A good practice is to do proactive checks to ensure air conditioning and lights are turned off when not in use.")
@@ -259,10 +260,10 @@ with st.spinner("Loading page...", show_time=True):
             st.info("Please upload Classroom and Energy data for optimization audit.")
 
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
-        st.subheader("🟢 Check Room Sizing (Classroom Audit)")
+        st.subheader("🟢 Check Room Utilization")
         st.markdown(
             "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **Audit Rule:** Checks if classrooms are consistently used and below 60% utilization rate. *(Formula: Average " \
+            "> 🧮 **Audit Rule:** Checks if classrooms are consistently used for small group of students and below 60% utilization rate. *(Formula: Average " \
             "Students Present ÷ Maximum Physical Seats)*"
         )
         if not class_df.empty:

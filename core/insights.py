@@ -116,7 +116,7 @@ def underutilized_rooms_findings(worst, second, best, avg):
     - This corresponds to a utilization rate of **{best_util:.1f}%**, with **{best_unused:.1f}%** of capacity unoccupied.
 
     **Context**
-    - The difference between the lowest and highest utilized rooms is **{best_util - worst_util:.1f} percentage points**.
+    - The difference between the lowest and highest utilized rooms is **{best_util - worst_util:.1f}%**.
     - This indicates variation in how classroom capacity is being used across the campus.
     """)
 
@@ -155,7 +155,7 @@ def heatmap_findings(peak, lowest):
     - **{low_floor}** during **{lowest['Time_Slot']}**, with **{lowest_utilize:.2f}%** utilization.
 
     **Comparison**
-    - The difference between peak and lowest utilization is **{util_gap:.2f} percentage points**.
+    - The difference between peak and lowest utilization is **{util_gap:.2f}%**.
 
     **Interpretation**
     - Utilization levels vary across different floors and time slots.
@@ -366,9 +366,4 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
     - The model also estimates a baseline cost of **RM {y_intercept:,.2f}**, suggesting {baseline_text}.
 
     {insight_extra}
-
-    **What this means for URO:**
-    - If energy is not strongly tied to occupancy, optimizing schedules alone is not enough—**operational controls (e.g., AC scheduling, zoning)** must be improved.
-    - If baseline costs are high, **reducing always-on systems** becomes a key opportunity for cost savings.
-    - If the relationship is strong, **better class clustering and room utilization** can directly reduce energy consumption.
     """)
