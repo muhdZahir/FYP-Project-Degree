@@ -304,6 +304,7 @@ with st.spinner("Loading page...", show_time=True):
                 st.divider()
         elif class_df.empty:
             st.info(f"No classroom data available for batch {batch_name} to analyze classroom.")
+            st.divider()
 
         # ==========================================
         # ENERGY ANALYSIS
@@ -316,6 +317,7 @@ with st.spinner("Loading page...", show_time=True):
                 st.divider()          
         elif energy_df.empty:
             st.info(f"No energy data available for batch {batch_name} to analyze energy.")
+            st.divider()
 
         # ==========================================
         # CORRELATION ANALYSIS
@@ -340,7 +342,6 @@ with st.spinner("Loading page...", show_time=True):
             with st.spinner("Analyzing data...", show_time=True):
                 run_correlation_analysis(class_df, energy_df)
         elif class_df.empty or energy_df.empty:
-            st.divider()
             if class_df.empty:
                 st.info(f"No classroom data available for batch {batch_name} to correlate.")
             elif energy_df.empty:
