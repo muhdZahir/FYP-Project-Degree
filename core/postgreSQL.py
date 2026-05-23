@@ -57,7 +57,7 @@ def init_db():
     ''')
 
     conn.commit()
-    conn.close()
+    c.close()
 
 def save_to_db(df, table_name, batch_name):
     """Saves a dataframe to the database with a specific batch tag."""
@@ -66,6 +66,7 @@ def save_to_db(df, table_name, batch_name):
         raise ValueError(f"Invalid table name: {table_name}")
 
     conn = get_connection()
+    c = conn.cursor()
 
     try:
         # Ensure batch exists
@@ -73,7 +74,7 @@ def save_to_db(df, table_name, batch_name):
 
         # Get batch_id
         query = """SELECT batch_id FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"""
-        result = conn.execute(query, (batch_name,)).fetchone()
+        result = c.execute(query, (batch_name,)).fetchone()
         batch_id = result[0]
 
         # ==============================
@@ -107,17 +108,18 @@ def save_to_db(df, table_name, batch_name):
         return False
 
     finally:
-        conn.close()
+        c.close()
 
 def save_batch_to_db(batch_name):
     """Saves a new batch name to the Batch table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("INSERT OR IGNORE INTO batch (batch_Name) VALUES (%s)", (batch_name,))
+        c.execute("INSERT OR IGNORE INTO batch (batch_Name) VALUES (%s)", (batch_name,))
         conn.commit()
         return True
     finally:
-        conn.close()
+        c.close()
 
 def get_batch_status(batch_id):
     """Returns (class_exists, energy_exists)"""
@@ -130,7 +132,7 @@ def get_batch_status(batch_id):
     cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_id = %s", (batch_id,))
     energy_exists = cursor.fetchone()[0] > 0
 
-    conn.close()
+    cursor.close()
     return class_exists, energy_exists
 
 @st.cache_data(ttl=3600)
@@ -143,85 +145,92 @@ def load_from_db(table_name, batch_name):
         return pd.DataFrame()
 
     conn = get_connection()
+    c = conn.cursor()
     try:
         # use parameterized query to safely substitute batch_name
         if table_name == 'Classroom':
             df = pd.read_sql_query(
                 "SELECT classroom.classroom_id, classroom.floor, classroom.capacity, classroom.scheduled_hours, classroom.actual_occupancy, classroom.day, classroom.time_slot, classroom.week, batch.batch_name "
                 "FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name = %s",
-                conn,
+                c,
                 params=(batch_name,)
                 )
         elif table_name == 'Energy':
             df = pd.read_sql_query(
                 "SELECT energy.floor, energy.month, energy.energy_kwh, energy.energy_cost, batch.batch_name "
                 "FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name = %s",
-                conn,
+                c,
                 params=(batch_name,)
                 )
 
         return df
     finally:
-        conn.close()
+        c.close()
 
 def batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in the Batch table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
         query = "SELECT 1 FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"
-        result = conn.execute(query, (batch_name,)).fetchone()
+        result = c.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
-        conn.close()
+        c.close()
 
 def class_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Classroom table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
         query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
 
-        result = conn.execute(query, (batch_name,)).fetchone()
+        result = c.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
-        conn.close()
+        c.close()
 
 def energy_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Energy table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
         query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
-        result = conn.execute(query, (batch_name,)).fetchone()
+        result = c.execute(query, (batch_name,)).fetchone()
         return result is None  # True if unique
     finally:
-        conn.close()
+        c.close()
 
 def get_unique_batches():
     """Fetches list of unique upload batches for the dropdown."""
     conn = get_connection()
+    c = conn.cursor()
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT batch_Name FROM batch", conn)
+        batches = pd.read_sql("SELECT batch_Name FROM batch", c)
         return batches["batch_Name"].tolist()
     except Exception as e: # We only catch normal errors here, so system stops are not ignored
         return []
     finally:
-        conn.close()
+        c.close()
 
 def update_batch_name(old_name, new_name):
     """Updates the batch name in the Batch table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("UPDATE batch SET batch_Name = %s WHERE LOWER(batch_Name) = LOWER(%s)", (new_name, old_name))
+        c.execute("UPDATE batch SET batch_Name = %s WHERE LOWER(batch_Name) = LOWER(%s)", (new_name, old_name))
         conn.commit()
         return True
     finally:
-        conn.close()
+        c.close()
 
 def clear_classroom_data(batch_name):
     """Clears all records from Classroom table for a specific batch."""
     conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("""
+        c.execute("""
             DELETE FROM classroom
             WHERE batch_id IN (
                 SELECT batch_id
@@ -232,13 +241,14 @@ def clear_classroom_data(batch_name):
         conn.commit()
         return True
     finally:
-        conn.close()
+        c.close()
 
 def clear_energy_data(batch_name):
     """Clears all records from Energy table for a specific batch."""
     conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("""
+        c.execute("""
             DELETE FROM energy
             WHERE batch_id IN (
                 SELECT batch_id
@@ -249,14 +259,15 @@ def clear_energy_data(batch_name):
         conn.commit()
         return True
     finally:
-        conn.close()
+        c.close()
 
 def clear_batch(batch_name):
     """Clears batch record from Batch table."""
     conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("DELETE FROM batch WHERE LOWER(batch_Name) = LOWER(%s)", (batch_name,))
+        c.execute("DELETE FROM batch WHERE LOWER(batch_Name) = LOWER(%s)", (batch_name,))
         conn.commit()
         return True
     finally:
-        conn.close()
+        c.close()
