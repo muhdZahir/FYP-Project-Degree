@@ -29,9 +29,8 @@ def init_db():
             Day TEXT,
             Time_Slot TEXT,
             Week INTEGER,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            Batch_id INTEGER,
-            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            Batch_id INTEGER REFERENCES Batch(Batch_id)
         )
     ''')
     
@@ -43,9 +42,8 @@ def init_db():
             Month TEXT,
             Energy_kWh REAL,
             Energy_Cost REAL,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            Batch_id INTEGER,
-            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            Batch_id INTEGER REFERENCES Batch(Batch_id)
         )
     ''')
 
@@ -54,7 +52,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS Batch (
             Batch_id SERIAL PRIMARY KEY,
             Batch_Name TEXT UNIQUE,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
