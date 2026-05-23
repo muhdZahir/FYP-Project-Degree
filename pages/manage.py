@@ -22,8 +22,8 @@ def save_batch_name(old_name, new_name):
         if db.update_batch_name(old_name, new_name):
             st.session_state['batch_name'] = new_name
             st.session_state['batch'] = new_name
-            st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
-            st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
+            st.session_state["class_df"] = db.load_from_db("classroom", st.session_state['batch'])
+            st.session_state['energy_df'] = db.load_from_db("energy", st.session_state['batch'])
             st.session_state['edit_pending'] = None  # Reset the flag after saving
             st.session_state['edit_success'] = True
             st.session_state['edit'] = False
@@ -54,7 +54,7 @@ def cancel_edit_batch_name():
 def delete_data(data_type, batch_name):
     """Perform the actual delete operation."""
     with st.spinner("Clearing " + data_type + " data..."):
-        if data_type == "Classroom" and db.clear_classroom_data(batch_name):
+        if data_type == "classroom" and db.clear_classroom_data(batch_name):
             st.cache_data.clear()  # Clear cached data to ensure UI updates with the cleared data
             st.toast(f"Classroom data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
@@ -71,7 +71,7 @@ def delete_data(data_type, batch_name):
             st.session_state['edit'] = False
             st.session_state['delete_pending'] = None # Reset the flag after deletion
 
-        elif data_type == "Energy" and db.clear_energy_data(batch_name):
+        elif data_type == "energy" and db.clear_energy_data(batch_name):
             st.cache_data.clear()  # Clear cached data to ensure UI updates with the cleared data
             st.toast(f"Energy data for batch '{batch_name}' has been cleared.", icon="✅")
             time.sleep(1)  # brief pause to ensure toast is seen
@@ -147,8 +147,8 @@ with st.spinner("Loading page...", show_time=True):
             else:
                 with st.spinner("Fetching data from SQL Engine..."):
                     # store loaded dataframes in session_state so they persist across interactions
-                    st.session_state["class_df"] = db.load_from_db("Classroom", st.session_state['batch'])
-                    st.session_state["energy_df"] = db.load_from_db("Energy", st.session_state['batch'])
+                    st.session_state["class_df"] = db.load_from_db("classroom", st.session_state['batch'])
+                    st.session_state["energy_df"] = db.load_from_db("energy", st.session_state['batch'])
                     st.session_state["batch_name"] = st.session_state['batch']
                     st.session_state['edit_pending'] = None
                     st.session_state['delete_pending'] = None
@@ -242,11 +242,11 @@ with st.spinner("Loading page...", show_time=True):
                 class_df_renamed = class_df.rename(columns=lambda x: x.replace("_", " ").title())
                 st.dataframe(class_df_renamed[["Classroom Id", "Floor", "Capacity", "Scheduled Hours", "Actual Occupancy", "Day", "Time Slot", "Week"]])
 
-                if st.session_state['delete_pending'] == "Classroom":
-                    confirm_delete("Classroom", batch_name)
+                if st.session_state['delete_pending'] == "classroom":
+                    confirm_delete("classroom", batch_name)
                 else:
                     if st.button("Clear Classroom Data", type="primary", key="clear_class_btn"):
-                        st.session_state['delete_pending'] = "Classroom"
+                        st.session_state['delete_pending'] = "classroom"
                         # Rerunning immediately after setting the flag updates the UI to show the confirmation
                         st.rerun()
 
@@ -256,10 +256,10 @@ with st.spinner("Loading page...", show_time=True):
                 energy_df_renamed = energy_df.rename(columns=lambda x: x.replace("_", " ").title())
                 st.dataframe(energy_df_renamed[["Floor", "Month", "Energy Kwh", "Energy Cost"]])
 
-                if st.session_state['delete_pending'] == "Energy":
-                    confirm_delete("Energy", batch_name)
+                if st.session_state['delete_pending'] == "energy":
+                    confirm_delete("energy", batch_name)
                 else:
                     if st.button("Clear Energy Data", type="primary", key="clear_energy_btn"):
-                        st.session_state['delete_pending'] = "Energy"
+                        st.session_state['delete_pending'] = "energy"
                         # Rerunning immediately after setting the flag updates the UI to show the confirmation
                         st.rerun()
