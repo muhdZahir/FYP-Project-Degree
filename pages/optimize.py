@@ -240,8 +240,8 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['Energy_Cost']
                     floor_students = int(w_leak['Actual_Occupancy'])
                     
-                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget \
-                             for only an attendance of **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
+                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget, \
+                             but only accounts for only **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
                              f"**Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for \
                              a nearly empty floor. If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, \
                              this is a clear sign of energy wastage."
@@ -303,6 +303,6 @@ with st.spinner("Loading page...", show_time=True):
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:
-                    st.success("✅ **EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
+                    st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
