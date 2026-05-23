@@ -61,7 +61,7 @@ def init_db():
 
 def save_to_db(df, table_name, batch_name):
     """Saves a dataframe to the database with a specific batch tag."""
-
+    table_name = table_name.lower()
     if table_name not in ALLOWED_TABLES:
         raise ValueError(f"Invalid table name: {table_name}")
 
@@ -85,7 +85,6 @@ def save_to_db(df, table_name, batch_name):
 
         # Save data
         save_df = df.copy()
-        table_name = table_name.lower()
         save_df.columns = save_df.columns.str.lower()
         save_df["batch_id"] = batch_id
         save_df.to_sql(table_name, engine, if_exists='append', index=False)
@@ -148,6 +147,7 @@ def get_batch_status(batch_id):
 @st.cache_data(ttl=3600)
 def load_from_db(table_name, batch_name):
     """Loads data from the database for a specific batch. Returns empty DataFrame if batch_name is not provided."""
+    table_name = table_name.lower()
     if table_name not in ALLOWED_TABLES and table_name != 'batch':
         raise ValueError(f"Invalid table name: {table_name}")
 
