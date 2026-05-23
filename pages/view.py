@@ -1,5 +1,8 @@
 from core.imports import st, pd
 from core.processing import center_button
+from main import require_role
+
+require_role(["Manager"])
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()

@@ -1,4 +1,7 @@
 from core.imports import st, pd, time, db, datetime, re
+from main import require_role
+
+require_role(["IT Staff"])
 
 # Initialize session state for persistence across reruns
 if 'edit_success' not in st.session_state:

@@ -2,6 +2,9 @@ from core.imports import st, pd, LinearRegression
 from core.processing import compute_utilization, compute_contribution, get_room_stats, get_heatmap_data, get_heatmap_pivot, get_monthly_energy, get_total_energy_cost, ensure_months, center_button
 from core.visualization import plot_underutilized_rooms, plot_heatmap, plot_monthly_cost, plot_pie, plot_correlation
 from core.insights import underutilized_rooms_findings, heatmap_findings, monthly_energy_cost_findings, pie_findings, correlation_findings
+from main import require_role
+
+require_role(["Manager"])
 
 def run_classroom_analysis(class_df):
     df = compute_utilization(class_df)

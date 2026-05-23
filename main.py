@@ -23,44 +23,20 @@ def inject_custom_css(css_file_path):
     except FileNotFoundError:
         st.error(f"Error: CSS file not found at {css_file_path}")
 
-def login():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("assets/URO_logo.png")
-    
-    st.title("URO: University Resource Optimization")
-    st.info("Login to Your App")
+def require_role(allowed_roles):
+    role = st.session_state.get("user_role")
 
-    with st.form(key="login_form"):
-        username = st.text_input(label="Username", placeholder="Enter your username")
-        password = st.text_input(label="Password", placeholder="Enter your password", type='password')
+    # Not logged in
+    if role is None:
+        st.warning("Please log in first.")
+        st.switch_page(login_page)
+        st.stop()
 
-        submit_button = st.form_submit_button("Log in")
-
-    if submit_button:
-        if check_login(username, password):
-            st.rerun()
-        else:
-            st.error("Invalid username or password. Please try again.")
-
-def check_login(username, password):
-    if username == "staff" and password == "1234staff": #staff login
-        role = "IT Staff"
-        st.session_state['user_role'] = role
-        return True
-    if username == "admin" and password == "4321admin": #admin login
-        role = "Manager"
-        st.session_state['user_role'] = role
-        return True
-    return False
-
-def logout():
-    st.write("Logging out...")
-    if st.button("Log out"):
-        # clear all session state then rerun
-        st.session_state.clear()
-        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
-        st.rerun()
+    # Wrong role
+    if role not in allowed_roles:
+        st.error("Access denied.")
+        st.switch_page(login_page)
+        st.stop()
 
 # Define the relative path to your CSS file
 css_path = os.path.join("assets", "style.css")
@@ -71,8 +47,8 @@ inject_custom_css(css_path)
 available_batches = db.get_unique_batches()            
 
 # Define all the pages
-login_page = st.Page(login, title="Log in", icon=":material/login:")
-logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
+login_page = st.Page("pages/login.py", title="Log in", icon=":material/login:")
+logout_page = st.Page("pages/logout.py", title="Log out", icon=":material/logout:")
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
 upload_page = st.Page("pages/upload.py", title="Upload Files", icon=":material/upload:")
 manage_page = st.Page("pages/manage.py", title="Manage Data", icon=":material/storage:")
