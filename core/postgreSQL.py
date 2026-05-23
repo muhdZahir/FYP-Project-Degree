@@ -74,7 +74,8 @@ def save_to_db(df, table_name, batch_name):
 
         # Get batch_id
         query = """SELECT batch_id FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"""
-        result = c.execute(query, (batch_name,)).fetchone()
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         batch_id = result[0]
 
         # ==============================
@@ -173,7 +174,8 @@ def batch_unique(batch_name):
     c = conn.cursor()
     try:
         query = "SELECT 1 FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"
-        result = c.execute(query, (batch_name,)).fetchone()
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
     finally:
         c.close()
@@ -185,7 +187,8 @@ def class_batch_unique(batch_name):
     try:
         query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
 
-        result = c.execute(query, (batch_name,)).fetchone()
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
     finally:
         c.close()
@@ -196,7 +199,8 @@ def energy_batch_unique(batch_name):
     c = conn.cursor()
     try:
         query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
-        result = c.execute(query, (batch_name,)).fetchone()
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
     finally:
         c.close()
