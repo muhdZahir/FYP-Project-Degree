@@ -225,12 +225,12 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty and not energy_df.empty:
             try:
-                floor_energy = energy_df.groupby('Floor')['energy_cost'].sum().reset_index()
+                floor_energy = energy_df.groupby('floor')['energy_cost'].sum().reset_index()
                 floor_energy['Cost_Pct'] = (floor_energy['energy_cost'] / floor_energy['energy_cost'].sum()) * 100
-                floor_occupancy = class_df.groupby('Floor')['actual_occupancy'].sum().reset_index()
+                floor_occupancy = class_df.groupby('floor')['actual_occupancy'].sum().reset_index()
                 floor_occupancy['Occ_Pct'] = (floor_occupancy['actual_occupancy'] / floor_occupancy['actual_occupancy'].sum()) * 100
                 
-                merged_data = pd.merge(floor_energy, floor_occupancy, on='Floor')
+                merged_data = pd.merge(floor_energy, floor_occupancy, on='floor')
                 merged_data['Gap'] = merged_data['Cost_Pct'] - merged_data['Occ_Pct']
                 
                 overall_util = class_df["Percent_Utilize"].mean()
@@ -242,9 +242,9 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['energy_cost']
                     floor_students = int(w_leak['actual_occupancy'])
                     
-                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget, \
+                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget, \
                              but only accounts for only **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
-                             f"**Action:** Consider sending maintenance to Floor {int(w_leak['Floor'])}. The electricity is running at maximum capacity for \
+                             f"**Action:** Consider sending maintenance to Floor {int(w_leak['floor'])}. The electricity is running at maximum capacity for \
                              a nearly empty floor. If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, \
                              this is a clear sign of energy wastage."
                              f"\n\n**Pro Tip:** Do proactive checks to ensure air conditioning and lights are turned off when not in use.")
@@ -273,10 +273,10 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty:
             try:
-                r_avg = class_df.groupby('Classroom_ID').agg(
+                r_avg = class_df.groupby('classroom_id').agg(
                     Percent_Utilize=('Percent_Utilize', 'mean'),
-                    Avg_Students=('Actual_Occupancy', 'mean'),
-                    Room_Size=('Capacity', 'max') 
+                    Avg_Students=('actual_occupancy', 'mean'),
+                    Room_Size=('capacity', 'max') 
                 ).reset_index()
                 
                 c_mean = r_avg['Percent_Utilize'].mean()
@@ -292,16 +292,16 @@ with st.spinner("Loading page...", show_time=True):
                 if len(low_util_rooms) >= 3:
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
                     room_list = ", ".join(
-                                    low_util_rooms['Classroom_ID'].astype(str)
+                                    low_util_rooms['classroom_id'].astype(str)
                                 )
                     st.error(f"**SPACE WASTAGE:** {len(low_util_rooms)} rooms are consistently empty.\n\n"
                              f"**Underutilized Rooms:** {room_list}\n\n"
-                             f"**Reality:** For example, room {w_room['Classroom_ID']} and room {b_room['Classroom_ID']} has **{int(w_room['Room_Size'])} \
+                             f"**Reality:** For example, room {w_room['classroom_id']} and room {b_room['classroom_id']} has **{int(w_room['Room_Size'])} \
                              seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
                              (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
                              f"**Action:** Consider moving the lectures in these rooms to smaller rooms or combining them to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
-                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
+                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_id']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:

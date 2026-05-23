@@ -18,14 +18,14 @@ def style_chart(fig, title_x):
 def plot_underutilized_rooms(df, n):
     fig = px.bar(
         df,
-        x="Classroom_ID",
+        x="classroom_id",
         y="Percent_Utilize",
         color="Percent_Utilize",
         color_continuous_scale="Reds",
         range_color=[0, 100],
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
-        labels={"Classroom_ID": "Classroom ID","Percent_Utilize": "Utilization (%)"}
+        labels={"classroom_id": "Classroom ID","Percent_Utilize": "Utilization (%)"}
     )
     fig.update_layout(
         xaxis=dict(type='category'), # ← change x axis font (title and tick) size
@@ -47,10 +47,10 @@ def plot_heatmap(df):
 def plot_monthly_cost(df):
     fig = px.line(
         df,
-        x="Month",
-        y="Energy_Cost",
-        color="Floor",
-        labels={"Energy_Cost": "Energy Cost (RM)"},
+        x="month",
+        y="energy_cost",
+        color="floor",
+        labels={"energy_cost": "Energy Cost (RM)"},
         title="Floor Energy Cost by Month",
         markers=True
     )
@@ -60,10 +60,10 @@ def plot_monthly_cost(df):
 def plot_pie(df):
     fig = px.pie(
         df,
-        names="Floor",
-        values="Energy_Cost",
+        names="floor",
+        values="energy_cost",
         title="Energy Cost (RM) Contribution by Floor to Total Energy Cost",
-        labels={"Energy_Cost": "Energy Cost (RM)"}
+        labels={"energy_cost": "Energy Cost (RM)"}
     )
     return style_chart(fig, 0.2)
 
@@ -71,19 +71,19 @@ def plot_pie(df):
 def plot_correlation(corr_df, color, text):
     fig = px.scatter(
         corr_df,
-        x="Actual_Occupancy",
-        y="Energy_Cost",
+        x="actual_occupancy",
+        y="energy_cost",
         color=color,
-        size="Energy_Cost",
+        size="energy_cost",
         title=text,
-        labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
-        hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns]
+        labels={"actual_occupancy": "Total Occupancy", "energy_cost": "Total Cost (RM)"},
+        hover_data=[c for c in ["month", "floor"] if c in corr_df.columns]
     )
     fig = style_chart(fig, 0.2)
 
     # Add trendline trace
-    line_data = corr_df.sort_values("Actual_Occupancy")
-    fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
+    line_data = corr_df.sort_values("actual_occupancy")
+    fig.add_traces(px.line(line_data, x="actual_occupancy", y="energy_cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     return fig
 
@@ -91,7 +91,7 @@ def plot_correlation(corr_df, color, text):
 def plot_next_classroom_demand(combined):
     fig = px.line(
         combined,
-        x="Week",
+        x="week",
         y="Percent_Utilize",
         color="Type", 
         labels={"Percent_Utilize": "Avg Utilization (%)"},
@@ -105,9 +105,9 @@ def plot_next_energy_cost(combined):
     fig = px.line(
         combined,
         x="Month_Num",
-        y="Energy_Cost",
+        y="energy_cost",
         color="Type", 
-        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
+        labels={"Month_Num": "Month", "energy_cost": "Total Energy Cost (RM)"},
         title="Energy Cost Trend",
         markers=True
     )

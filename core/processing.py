@@ -103,7 +103,7 @@ def compute_contribution(df, total):
 # Group by Room to get average utilization
 def get_room_stats(df):
     return (
-        df.groupby("Classroom_ID").agg({
+        df.groupby("classroom_id").agg({
             "actual_occupancy": "mean",
             "capacity": "first",  # or 'mean' or 'max'
             "Percent_Utilize": "mean"
