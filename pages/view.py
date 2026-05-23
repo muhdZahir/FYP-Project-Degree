@@ -4,6 +4,9 @@ from main import require_role
 
 require_role(["Manager"])
 
+if "batch" not in st.session_state:
+    st.session_state["batch"] = st.session_state["batch_name"]
+
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
 energy_df = pd.DataFrame()

@@ -4,6 +4,9 @@ from main import require_role
 
 require_role(["IT Staff"])
 
+if "batch" not in st.session_state:
+    st.session_state["batch"] = st.session_state["batch_name"]
+
 # Initialize upload-specific session keys
 if 'class_file' not in st.session_state:
     st.session_state.class_file = None

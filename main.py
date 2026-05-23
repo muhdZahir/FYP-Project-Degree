@@ -29,12 +29,16 @@ def require_role(allowed_roles):
     # Not logged in
     if role is None:
         st.warning("Please log in first.")
+        st.session_state.clear() # clear all session state then rerun
+        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
         st.switch_page(login_page)
         st.stop()
 
     # Wrong role
     if role not in allowed_roles:
         st.error("Access denied.")
+        st.session_state.clear() # clear all session state then rerun
+        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
         st.switch_page(login_page)
         st.stop()
 

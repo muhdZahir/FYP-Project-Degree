@@ -6,6 +6,9 @@ from main import require_role
 
 require_role(["Manager"])
 
+if "batch" not in st.session_state:
+    st.session_state["batch"] = st.session_state["batch_name"]
+
 def run_classroom_analysis(class_df):
     df = compute_utilization(class_df)
 

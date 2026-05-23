@@ -3,6 +3,9 @@ from main import require_role
 
 require_role(["IT Staff"])
 
+if "batch" not in st.session_state:
+    st.session_state["batch"] = st.session_state["batch_name"]
+
 # Initialize session state for persistence across reruns
 if 'edit_success' not in st.session_state:
     st.session_state['edit_success'] = False
