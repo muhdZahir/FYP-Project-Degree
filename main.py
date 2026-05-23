@@ -98,8 +98,8 @@ elif st.session_state['user_role'] == "Manager":
                     st.session_state['show'] = False 
                 else:
                     with st.spinner("Fetching data from SQL Engine..."):
-                        st.session_state['class_df'] = db.load_from_db("Classroom", st.session_state['batch'])
-                        st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
+                        st.session_state['class_df'] = db.load_from_db("classroom", st.session_state['batch'])
+                        st.session_state['energy_df'] = db.load_from_db("energy", st.session_state['batch'])
                         st.session_state['batch_name'] = st.session_state['batch']
                         st.session_state['show'] = False 
                         st.toast(f"Batch '{st.session_state['batch']}' Loaded Successfully.", icon="✅")
