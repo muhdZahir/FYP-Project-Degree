@@ -26,6 +26,7 @@ with st.form(key="login_form"):
 
 if submit_button:
     if check_login(username, password):
+        st.toast(f"Login successful!", icon="✅", duration="long")
         st.rerun()
     else:
         st.error("Invalid username or password. Please try again.")
