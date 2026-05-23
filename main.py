@@ -23,25 +23,6 @@ def inject_custom_css(css_file_path):
     except FileNotFoundError:
         st.error(f"Error: CSS file not found at {css_file_path}")
 
-def require_role(allowed_roles):
-    role = st.session_state.get("user_role")
-
-    # Not logged in
-    if role is None:
-        st.toast("Please log in first.", icon="⚠️", duration="long")
-        st.session_state.clear() # clear all session state then rerun
-        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
-        st.switch_page(login_page)
-        st.stop()
-
-    # Wrong role
-    if role not in allowed_roles:
-        st.toast("Access denied.", icon="⚠️", duration="long")
-        st.session_state.clear() # clear all session state then rerun
-        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
-        st.switch_page(login_page)
-        st.stop()
-
 # Define the relative path to your CSS file
 css_path = os.path.join("assets", "style.css")
 

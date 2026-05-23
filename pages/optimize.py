@@ -1,7 +1,6 @@
 from core.imports import st, pd, np, LinearRegression
-from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button
+from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button, require_role
 from core.visualization import plot_next_classroom_demand, plot_next_energy_cost
-from main import require_role
 
 require_role(["Manager"])
 

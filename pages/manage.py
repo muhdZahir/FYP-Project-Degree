@@ -1,5 +1,5 @@
 from core.imports import st, pd, time, db, datetime, re
-from main import require_role
+from core.processing import require_role
 
 require_role(["IT Staff"])
 

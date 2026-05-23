@@ -1,5 +1,24 @@
 # Data cleaning & aggregation
-from core.imports import st, pd, np, re, calendar
+from core.imports import st, pd, np, calendar
+
+def require_role(allowed_roles):
+    role = st.session_state.get("user_role")
+
+    # Not logged in
+    if role is None:
+        st.toast("Please log in first.", icon="⚠️", duration="long")
+        st.session_state.clear() # clear all session state then rerun
+        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
+        st.switch_page("pages/login.py")
+        st.stop()
+
+    # Wrong role
+    if role not in allowed_roles:
+        st.toast("Access denied.", icon="⚠️", duration="long")
+        st.session_state.clear() # clear all session state then rerun
+        st.cache_data.clear()  # Clear cached data to ensure a fresh start on next login
+        st.switch_page("pages/login.py")
+        st.stop()
 
 # If floor name doesn't include "Floor", we can add a prefix to make it more readable
 # Also, change the floor name in the format of float to int if possible (e.g. 1.0 to 1) to make it cleaner
