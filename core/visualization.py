@@ -91,7 +91,7 @@ def plot_correlation(corr_df, color, text):
 def plot_next_classroom_demand(combined):
     fig = px.line(
         combined,
-        x="Week",
+        x="week",
         y="Percent_Utilize",
         color="Type", 
         labels={"Percent_Utilize": "Avg Utilization (%)"},
@@ -105,9 +105,9 @@ def plot_next_energy_cost(combined):
     fig = px.line(
         combined,
         x="Month_Num",
-        y="Energy_Cost",
+        y="energy_cost",
         color="Type", 
-        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
+        labels={"Month_Num": "Month", "energy_cost": "Total Energy Cost (RM)"},
         title="Energy Cost Trend",
         markers=True
     )

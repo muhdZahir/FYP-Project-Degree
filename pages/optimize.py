@@ -31,7 +31,7 @@ with st.spinner("Loading page...", show_time=True):
                 weekly = class_df.groupby("week")["Percent_Utilize"].mean().reset_index()
             else:
                 weekly = class_df.groupby(class_df.index)["Percent_Utilize"].mean().reset_index()
-                weekly.rename(columns={"index": "Week"}, inplace=True)
+                weekly.rename(columns={"index": "week"}, inplace=True)
         except Exception as e:
             st.warning(f"Classroom Data Error: {e}")
 
@@ -98,16 +98,16 @@ with st.spinner("Loading page...", show_time=True):
         pred_demand_avg = 0
         if not class_df.empty and len(weekly) >= 2:
             try:
-                X_d = weekly["Week"].values.reshape(-1, 1)
+                X_d = weekly["week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
 
                 model_d = LinearRegression().fit(X_d, y_d)
                 
-                max_w = int(weekly["Week"].max())
+                max_w = int(weekly["week"].max())
                 future_w = np.array([[max_w + i] for i in range(1, 15)])
                 future_p = np.clip(model_d.predict(future_w), 0, 100)
                 
-                future_weeks_df = pd.DataFrame({"Week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
+                future_weeks_df = pd.DataFrame({"week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
                 pred_demand_avg = future_p.mean()
                 with col1:
                     st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
@@ -198,7 +198,7 @@ with st.spinner("Loading page...", show_time=True):
             try:
                 monthly_plot = monthly_cost.copy()
                 monthly_plot["Type"] = "Historical"
-                pred_row = pd.DataFrame({"Month_Num": [next_m], "Energy_Cost": [pred_e], "Type": ["Prediction"]})
+                pred_row = pd.DataFrame({"Month_Num": [next_m], "energy_cost": [pred_e], "Type": ["Prediction"]})
                 combined_energy = pd.concat([monthly_plot, pred_row], ignore_index=True)
 
                 fig2 = plot_next_energy_cost(combined_energy)
