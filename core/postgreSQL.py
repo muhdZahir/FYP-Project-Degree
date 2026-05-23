@@ -20,9 +20,6 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
 
-    c.execute("DROP TABLE IF EXISTS classroom CASCADE")
-    c.execute("DROP TABLE IF EXISTS energy CASCADE")
-    c.execute("DROP TABLE IF EXISTS batch CASCADE")
     # Batch table
     c.execute('''
         CREATE TABLE IF NOT EXISTS batch (
@@ -79,7 +76,7 @@ def save_to_db(df, table_name, batch_name):
         save_batch_to_db(batch_name)
 
         # Get batch_id
-        query = """SELECT batch_id FROM batch WHERE batch_name ILIKE %s"""
+        query = """SELECT batch_id FROM batch WHERE LOWER(batch_name) = LOWER(%s)"""
         c.execute(query, (batch_name,))
         result = c.fetchone()
         batch_id = result[0]
@@ -140,10 +137,10 @@ def get_batch_status(batch_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT COUNT(*) FROM classroom WHERE batch_name ILIKE %s", (batch_id,))
+        cursor.execute("SELECT COUNT(*) FROM classroom WHERE batch_id = %s", (batch_id,))
         class_exists = cursor.fetchone()[0] > 0
 
-        cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_name ILIKE %s", (batch_id,))
+        cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_id = %s", (batch_id,))
         energy_exists = cursor.fetchone()[0] > 0
         return class_exists, energy_exists
     except Exception as e:
@@ -169,7 +166,7 @@ def load_from_db(table_name, batch_name):
         if table_name == 'classroom':
             df = pd.read_sql_query("""
                 SELECT classroom.classroom_id, classroom.floor, classroom.capacity, classroom.scheduled_hours, classroom.actual_occupancy, classroom.day, classroom.time_slot, classroom.week, batch.batch_name 
-                FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name ILIKE %s
+                FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name = %s
                 """,
                 conn,
                 params=(batch_name,)
@@ -177,7 +174,7 @@ def load_from_db(table_name, batch_name):
         elif table_name == 'energy':
             df = pd.read_sql_query("""
                 SELECT energy.floor, energy.month, energy.energy_kwh, energy.energy_cost, batch.batch_name
-                FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name ILIKE %s
+                FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name = %s
                 """,
                 conn,
                 params=(batch_name,)
@@ -193,7 +190,7 @@ def batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = "SELECT 1 FROM batch WHERE batch_name ILIKE %s"
+        query = "SELECT 1 FROM batch WHERE LOWER(batch_name) = LOWER(%s)"
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
@@ -208,7 +205,7 @@ def class_batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name ILIKE %s"""
+        query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
 
         c.execute(query, (batch_name,))
         result = c.fetchone()
@@ -224,7 +221,7 @@ def energy_batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name ILIKE %s"""
+        query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
@@ -252,7 +249,7 @@ def update_batch_name(old_name, new_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("UPDATE batch SET batch_name = %s WHERE batch_name ILIKE %s", (new_name, old_name))
+        c.execute("UPDATE batch SET batch_name = %s WHERE LOWER(batch_name) = LOWER(%s)", (new_name, old_name))
         conn.commit()
         return True
     except Exception as e:
@@ -271,7 +268,7 @@ def clear_classroom_data(batch_name):
             WHERE batch_id IN (
                 SELECT batch_id
                 FROM batch
-                WHERE batch_name ILIKE %s
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
@@ -292,7 +289,7 @@ def clear_energy_data(batch_name):
             WHERE batch_id IN (
                 SELECT batch_id
                 FROM batch
-                WHERE batch_name ILIKE %s
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
@@ -308,7 +305,7 @@ def clear_batch(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("DELETE FROM batch WHERE batch_name ILIKE %s", (batch_name,))
+        c.execute("DELETE FROM batch WHERE LOWER(batch_name) = LOWER(%s)", (batch_name,))
         conn.commit()
         return True
     except Exception as e:
