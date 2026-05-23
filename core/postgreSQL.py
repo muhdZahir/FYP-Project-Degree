@@ -1,11 +1,11 @@
 from core.imports import st, pd, os, psycopg2, create_engine
 
-engine = create_engine(os.environ["postgresql://uro_database_user:pvj0YYsWFQksHQE6cP1tV43HYPpzd7Ir@dpg-d88q8gugvqtc73bce730-a/uro_database"])
+engine = create_engine(os.environ["DATABASE_URL"])
 
 @st.cache_resource
 def get_connection():
     return psycopg2.connect(
-        os.environ["postgresql://uro_database_user:pvj0YYsWFQksHQE6cP1tV43HYPpzd7Ir@dpg-d88q8gugvqtc73bce730-a/uro_database"],
+        os.environ["DATABASE_URL"],
         sslmode="require"
     )
 
