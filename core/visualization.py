@@ -105,9 +105,9 @@ def plot_next_energy_cost(combined):
     fig = px.line(
         combined,
         x="Month_Num",
-        y="energy_cost",
+        y="Energy_Cost",
         color="Type", 
-        labels={"Month_Num": "Month", "energy_cost": "Total Energy Cost (RM)"},
+        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
         title="Energy Cost Trend",
         markers=True
     )
