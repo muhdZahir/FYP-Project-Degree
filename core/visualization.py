@@ -83,7 +83,7 @@ def plot_correlation(corr_df, color, text):
 
     # Add trendline trace
     line_data = corr_df.sort_values("actual_occupancy")
-    fig.add_traces(px.line(line_data, x="actual_occupancy", y="energy_cost").data[0])
+    fig.add_traces(px.line(line_data, x="actual_occupancy", y="Predicted_Cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     return fig
 
@@ -91,7 +91,7 @@ def plot_correlation(corr_df, color, text):
 def plot_next_classroom_demand(combined):
     fig = px.line(
         combined,
-        x="week",
+        x="Week",
         y="Percent_Utilize",
         color="Type", 
         labels={"Percent_Utilize": "Avg Utilization (%)"},

@@ -98,12 +98,12 @@ with st.spinner("Loading page...", show_time=True):
         pred_demand_avg = 0
         if not class_df.empty and len(weekly) >= 2:
             try:
-                X_d = weekly["week"].values.reshape(-1, 1)
+                X_d = weekly["Week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
 
                 model_d = LinearRegression().fit(X_d, y_d)
                 
-                max_w = int(weekly["week"].max())
+                max_w = int(weekly["Week"].max())
                 future_w = np.array([[max_w + i] for i in range(1, 15)])
                 future_p = np.clip(model_d.predict(future_w), 0, 100)
                 
