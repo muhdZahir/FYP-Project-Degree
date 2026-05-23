@@ -17,8 +17,6 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
 
-    c.execute("DROP TABLE IF EXISTS classroom CASCADE")
-    c.execute("DROP TABLE IF EXISTS energy CASCADE")
     # Batch table
     c.execute('''
         CREATE TABLE IF NOT EXISTS batch (
@@ -75,7 +73,7 @@ def save_to_db(df, table_name, batch_name):
         save_batch_to_db(batch_name)
 
         # Get batch_id
-        query = """SELECT batch_id FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"""
+        query = """SELECT batch_id FROM batch WHERE LOWER(batch_name) = LOWER(%s)"""
         c.execute(query, (batch_name,))
         result = c.fetchone()
         batch_id = result[0]
@@ -120,7 +118,7 @@ def save_batch_to_db(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO batch (batch_Name) VALUES (%s) ON CONFLICT (batch_name) DO NOTHING", (batch_name,))
+        c.execute("INSERT INTO batch (batch_name) VALUES (%s) ON CONFLICT (batch_name) DO NOTHING", (batch_name,))
         conn.commit()
         return True
     except Exception as e:
@@ -187,7 +185,7 @@ def batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = "SELECT 1 FROM batch WHERE LOWER(batch_Name) = LOWER(%s)"
+        query = "SELECT 1 FROM batch WHERE LOWER(batch_name) = LOWER(%s)"
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
@@ -202,7 +200,7 @@ def class_batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
+        query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
 
         c.execute(query, (batch_name,))
         result = c.fetchone()
@@ -218,7 +216,7 @@ def energy_batch_unique(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_Name) = LOWER(%s)"""
+        query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
@@ -234,8 +232,8 @@ def get_unique_batches():
     c = conn.cursor()
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT batch_Name FROM batch", conn)
-        return batches["batch_Name"].tolist()
+        batches = pd.read_sql("SELECT batch_name FROM batch", conn)
+        return batches["batch_name"].tolist()
     except Exception as e: # We only catch normal errors here, so system stops are not ignored
         return []
     finally:
@@ -246,7 +244,7 @@ def update_batch_name(old_name, new_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("UPDATE batch SET batch_Name = %s WHERE LOWER(batch_Name) = LOWER(%s)", (new_name, old_name))
+        c.execute("UPDATE batch SET batch_name = %s WHERE LOWER(batch_name) = LOWER(%s)", (new_name, old_name))
         conn.commit()
         return True
     except Exception as e:
@@ -265,7 +263,7 @@ def clear_classroom_data(batch_name):
             WHERE batch_id IN (
                 SELECT batch_id
                 FROM batch
-                WHERE LOWER(batch_Name) = LOWER(%s)
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
@@ -286,7 +284,7 @@ def clear_energy_data(batch_name):
             WHERE batch_id IN (
                 SELECT batch_id
                 FROM batch
-                WHERE LOWER(batch_Name) = LOWER(%s)
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
@@ -302,7 +300,7 @@ def clear_batch(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("DELETE FROM batch WHERE LOWER(batch_Name) = LOWER(%s)", (batch_name,))
+        c.execute("DELETE FROM batch WHERE LOWER(batch_name) = LOWER(%s)", (batch_name,))
         conn.commit()
         return True
     except Exception as e:
