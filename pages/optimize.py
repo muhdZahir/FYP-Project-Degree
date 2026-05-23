@@ -276,7 +276,7 @@ with st.spinner("Loading page...", show_time=True):
                 r_avg = class_df.groupby('classroom_id').agg(
                     Percent_Utilize=('Percent_Utilize', 'mean'),
                     Avg_Students=('actual_occupancy', 'mean'),
-                    Room_Size=('capacity', 'max') 
+                    Room_Size=('capacity', 'first') 
                 ).reset_index()
                 
                 c_mean = r_avg['Percent_Utilize'].mean()
