@@ -10,7 +10,7 @@ def get_connection():
     )
 
 # allowed tables for read/write to avoid accidental SQL injection via table names
-ALLOWED_TABLES = {"Classroom", "Energy"} 
+ALLOWED_TABLES = {"classroom", "energy"} 
 
 def init_db():
     """Initializes the local database and creates tables if they don't exist."""
@@ -21,7 +21,7 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS batch (
             batch_id SERIAL PRIMARY KEY,
-            batch_Name TEXT UNIQUE,
+            batch_name TEXT UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -30,16 +30,16 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS classroom (
             id SERIAL PRIMARY KEY,
-            classroom_ID TEXT,
+            classroom_id TEXT,
             floor INTEGER,
             capacity INTEGER,
-            scheduled_Hours REAL,
+            scheduled_hours REAL,
             actual_occupancy INTEGER,
             day TEXT,
-            time_Slot TEXT,
+            time_slot TEXT,
             week INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            batch_id INTEGER REFERENCES batch(batch_id)
+            batch_id INTEGER REFERENCES batch(batch_id) ON DELETE CASCADE
         )
     ''')
     
@@ -49,10 +49,10 @@ def init_db():
             id SERIAL PRIMARY KEY,
             floor INTEGER,
             month TEXT,
-            energy_kWh REAL,
-            energy_Cost REAL,
+            energy_kwh REAL,
+            energy_cost REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            batch_id INTEGER REFERENCES batch(batch_id)
+            batch_id INTEGER REFERENCES batch(batch_id) ON DELETE CASCADE
         )
     ''')
 
@@ -85,6 +85,8 @@ def save_to_db(df, table_name, batch_name):
 
         # Save data
         save_df = df.copy()
+        table_name = table_name.lower()
+        save_df.columns = save_df.columns.str.lower()
         save_df["batch_id"] = batch_id
         save_df.to_sql(table_name, engine, if_exists='append', index=False)
 
@@ -105,6 +107,7 @@ def save_to_db(df, table_name, batch_name):
         return True
 
     except Exception as e:
+        conn.rollback()
         st.error(f"Database Error: {e}")
         return False
 
@@ -116,9 +119,12 @@ def save_batch_to_db(batch_name):
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("INSERT OR IGNORE INTO batch (batch_Name) VALUES (%s)", (batch_name,))
+        c.execute("INSERT INTO batch (batch_Name) VALUES (%s) ON CONFLICT (batch_name) DO NOTHING", (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -126,20 +132,23 @@ def get_batch_status(batch_id):
     """Returns (class_exists, energy_exists)"""
     conn = get_connection()
     cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM classroom WHERE batch_id = %s", (batch_id,))
+        class_exists = cursor.fetchone()[0] > 0
 
-    cursor.execute("SELECT COUNT(*) FROM classroom WHERE batch_id = %s", (batch_id,))
-    class_exists = cursor.fetchone()[0] > 0
-
-    cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_id = %s", (batch_id,))
-    energy_exists = cursor.fetchone()[0] > 0
-
-    cursor.close()
-    return class_exists, energy_exists
+        cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_id = %s", (batch_id,))
+        energy_exists = cursor.fetchone()[0] > 0
+        return class_exists, energy_exists
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
+    finally:
+        cursor.close()
 
 @st.cache_data(ttl=3600)
 def load_from_db(table_name, batch_name):
     """Loads data from the database for a specific batch. Returns empty DataFrame if batch_name is not provided."""
-    if table_name not in ALLOWED_TABLES and table_name != 'Batch':
+    if table_name not in ALLOWED_TABLES and table_name != 'batch':
         raise ValueError(f"Invalid table name: {table_name}")
 
     if not batch_name:
@@ -149,22 +158,25 @@ def load_from_db(table_name, batch_name):
     c = conn.cursor()
     try:
         # use parameterized query to safely substitute batch_name
-        if table_name == 'Classroom':
+        if table_name == 'classroom':
             df = pd.read_sql_query(
                 "SELECT classroom.classroom_id, classroom.floor, classroom.capacity, classroom.scheduled_hours, classroom.actual_occupancy, classroom.day, classroom.time_slot, classroom.week, batch.batch_name "
                 "FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name = %s",
-                c,
+                conn,
                 params=(batch_name,)
                 )
-        elif table_name == 'Energy':
+        elif table_name == 'energy':
             df = pd.read_sql_query(
                 "SELECT energy.floor, energy.month, energy.energy_kwh, energy.energy_cost, batch.batch_name "
                 "FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name = %s",
-                c,
+                conn,
                 params=(batch_name,)
                 )
 
         return df
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -177,6 +189,9 @@ def batch_unique(batch_name):
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -190,6 +205,9 @@ def class_batch_unique(batch_name):
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -202,6 +220,9 @@ def energy_batch_unique(batch_name):
         c.execute(query, (batch_name,))
         result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -211,7 +232,7 @@ def get_unique_batches():
     c = conn.cursor()
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT batch_Name FROM batch", c)
+        batches = pd.read_sql("SELECT batch_Name FROM batch", conn)
         return batches["batch_Name"].tolist()
     except Exception as e: # We only catch normal errors here, so system stops are not ignored
         return []
@@ -226,6 +247,9 @@ def update_batch_name(old_name, new_name):
         c.execute("UPDATE batch SET batch_Name = %s WHERE LOWER(batch_Name) = LOWER(%s)", (new_name, old_name))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -244,6 +268,9 @@ def clear_classroom_data(batch_name):
         """, (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -262,6 +289,9 @@ def clear_energy_data(batch_name):
         """, (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
 
@@ -273,5 +303,8 @@ def clear_batch(batch_name):
         c.execute("DELETE FROM batch WHERE LOWER(batch_Name) = LOWER(%s)", (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
         c.close()
