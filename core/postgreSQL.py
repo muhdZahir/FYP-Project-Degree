@@ -17,6 +17,8 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
 
+    c.execute("DROP TABLE IF EXISTS classroom CASCADE")
+    c.execute("DROP TABLE IF EXISTS energy CASCADE")
     # Batch table
     c.execute('''
         CREATE TABLE IF NOT EXISTS batch (
@@ -31,13 +33,13 @@ def init_db():
         CREATE TABLE IF NOT EXISTS classroom (
             id SERIAL PRIMARY KEY,
             classroom_id TEXT,
-            floor INTEGER,
+            floor TEXT,
             capacity INTEGER,
             scheduled_hours REAL,
             actual_occupancy INTEGER,
             day TEXT,
             time_slot TEXT,
-            week INTEGER,
+            week TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             batch_id INTEGER REFERENCES batch(batch_id) ON DELETE CASCADE
         )
@@ -47,7 +49,7 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS energy (
             id SERIAL PRIMARY KEY,
-            floor INTEGER,
+            floor TEXT,
             month TEXT,
             energy_kwh REAL,
             energy_cost REAL,

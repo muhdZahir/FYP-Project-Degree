@@ -73,15 +73,15 @@ def center_button():
 def compute_utilization(df):
     df = df.copy()
     try:
-        df["Utilization"] = df["Actual_Occupancy"] / df["Capacity"]
-        df.loc[df["Actual_Occupancy"] == 0, "Utilization"] = 0
+        df["Utilization"] = df["actual_occupancy"] / df["capacity"]
+        df.loc[df["actual_occupancy"] == 0, "Utilization"] = 0
         df["Percent_Utilize"] = df["Utilization"] * 100
         
-        if "Week" in df.columns:
-            weekly = df.groupby("Week")["Percent_Utilize"].mean().reset_index()
+        if "week" in df.columns:
+            weekly = df.groupby("week")["Percent_Utilize"].mean().reset_index()
         else:
             weekly = df.groupby(df.index)["Percent_Utilize"].mean().reset_index()
-            weekly.rename(columns={"index": "Week"}, inplace=True)
+            weekly.rename(columns={"index": "week"}, inplace=True)
     except Exception as e:
         st.warning(f"Classroom Preprocessing Error: {e}")
     return df
@@ -96,28 +96,28 @@ def compute_rooms_difference(worst, second, best, avg):
 
 # Calculate percentage contribution
 def compute_contribution(df, total):
-    df["Contribution (%)"] = (df["Energy_Cost"] / total * 100)
-    df.loc[df["Energy_Cost"] == 0, "Contribution (%)"] = 0
+    df["Contribution (%)"] = (df["energy_cost"] / total * 100)
+    df.loc[df["energy_cost"] == 0, "Contribution (%)"] = 0
     return df
 
 # Group by Room to get average utilization
 def get_room_stats(df):
     return (
         df.groupby("Classroom_ID").agg({
-            "Actual_Occupancy": "mean",
-            "Capacity": "first",  # or 'mean' or 'max'
+            "actual_occupancy": "mean",
+            "capacity": "first",  # or 'mean' or 'max'
             "Percent_Utilize": "mean"
         }).reset_index()
     )
 
 # Pivot data for heatmap
 def get_heatmap_pivot(df):
-    return df.pivot(index="Floor", columns="Time_Slot", values="Percent_Utilize")
+    return df.pivot(index="floor", columns="time_slot", values="Percent_Utilize")
 
 # Get heatmap data
 def get_heatmap_data(df):
     grouped = (
-        df.groupby(["Floor", "Time_Slot"])["Percent_Utilize"]
+        df.groupby(["floor", "time_slot"])["Percent_Utilize"]
         .mean()
         .reset_index()
     )
@@ -126,7 +126,7 @@ def get_heatmap_data(df):
 # Get total energy per month
 def get_monthly_energy(df):
     return (
-        df.groupby("Month")["Energy_Cost"]
+        df.groupby("month")["energy_cost"]
         .sum()
         .reset_index()
     )
@@ -134,7 +134,7 @@ def get_monthly_energy(df):
 # Get total energy cost of the whole floor
 def get_total_energy_cost(df):
     return (
-        df.groupby("Floor")["Energy_Cost"]
+        df.groupby("floor")["energy_cost"]
         .sum()
         .reset_index()
     )
@@ -145,17 +145,17 @@ def ensure_months(class_df, energy_df):
     corr_energy = energy_df.copy()
 
     # Ensure Month column exists in class data: map from Week if possible
-    if "Month" not in corr_class.columns and "Week" in corr_class.columns:
-        corr_class["Month"] = corr_class["Week"].apply(map_week_to_month)
+    if "month" not in corr_class.columns and "week" in corr_class.columns:
+        corr_class["month"] = corr_class["week"].apply(map_week_to_month)
 
     # Normalize Month values in both dataframes if present
-    if "Month" in corr_class.columns:
-        corr_class["Month"] = corr_class["Month"].apply(normalize_month)
+    if "month" in corr_class.columns:
+        corr_class["month"] = corr_class["month"].apply(normalize_month)
 
-    if "Month" not in corr_energy.columns and "Week" in corr_energy.columns:
-        corr_energy["Month"] = corr_energy["Week"].apply(map_week_to_month)
+    if "month" not in corr_energy.columns and "week" in corr_energy.columns:
+        corr_energy["month"] = corr_energy["week"].apply(map_week_to_month)
 
-    if "Month" in corr_energy.columns:
-        corr_energy["Month"] = corr_energy["Month"].apply(normalize_month)
+    if "month" in corr_energy.columns:
+        corr_energy["month"] = corr_energy["month"].apply(normalize_month)
 
     return corr_class, corr_energy

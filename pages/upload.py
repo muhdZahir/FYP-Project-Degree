@@ -304,14 +304,14 @@ with st.spinner("Loading page...", show_time=True):
                     if not db.class_batch_unique(batch_name):
                         st.error("❌ This Batch name already exists in Classroom Data. Please use a unique Batch name.")
                     else:
-                        if db.save_to_db(class_df, "Classroom", batch_name):
+                        if db.save_to_db(class_df, "classroom", batch_name):
                             saved_c = True
 
                 if not energy_df.empty:
                     if not db.energy_batch_unique(batch_name):
                         st.error("❌ This Batch name already exists in Energy Data. Please use a unique Batch name.")
                     else:
-                        if db.save_to_db(energy_df, "Energy", batch_name):
+                        if db.save_to_db(energy_df, "energy", batch_name):
                             saved_e = True
 
                 if saved_c:

@@ -27,8 +27,8 @@ with st.spinner("Loading page...", show_time=True):
         try:
             class_df = compute_utilization(class_df)
             
-            if "Week" in class_df.columns:
-                weekly = class_df.groupby("Week")["Percent_Utilize"].mean().reset_index()
+            if "week" in class_df.columns:
+                weekly = class_df.groupby("week")["Percent_Utilize"].mean().reset_index()
             else:
                 weekly = class_df.groupby(class_df.index)["Percent_Utilize"].mean().reset_index()
                 weekly.rename(columns={"index": "Week"}, inplace=True)
@@ -38,8 +38,8 @@ with st.spinner("Loading page...", show_time=True):
     # Pre-process energy data
     if not energy_df.empty:
         try:
-            energy_df["Month_Num"] = energy_df["Month"].apply(normalize_month)
-            monthly_cost = energy_df.groupby("Month_Num")["Energy_Cost"].sum().reset_index()
+            energy_df["Month_Num"] = energy_df["month"].apply(normalize_month)
+            monthly_cost = energy_df.groupby("Month_Num")["energy_cost"].sum().reset_index()
             monthly_cost["Month_Num"] = pd.to_numeric(monthly_cost["Month_Num"], errors='coerce')
             monthly_cost = monthly_cost.sort_values("Month_Num").reset_index(drop=True)
         except Exception as e:
@@ -98,12 +98,12 @@ with st.spinner("Loading page...", show_time=True):
         pred_demand_avg = 0
         if not class_df.empty and len(weekly) >= 2:
             try:
-                X_d = weekly["Week"].values.reshape(-1, 1)
+                X_d = weekly["week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
 
                 model_d = LinearRegression().fit(X_d, y_d)
                 
-                max_w = int(weekly["Week"].max())
+                max_w = int(weekly["week"].max())
                 future_w = np.array([[max_w + i] for i in range(1, 15)])
                 future_p = np.clip(model_d.predict(future_w), 0, 100)
                 
@@ -124,13 +124,13 @@ with st.spinner("Loading page...", show_time=True):
         if not energy_df.empty and len(monthly_cost) >= 2:
             try:
                 X_e = pd.to_numeric(monthly_cost["Month_Num"]).values.reshape(-1, 1)
-                y_e = monthly_cost["Energy_Cost"].values
+                y_e = monthly_cost["energy_cost"].values
 
                 model_e = LinearRegression().fit(X_e, y_e)
                 
                 next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
                 pred_e = max(0, model_e.predict([[next_m]])[0])
-                avg_monthly_cost = energy_df["Energy_Cost"].mean()
+                avg_monthly_cost = energy_df["energy_cost"].mean()
                 with col2:
                     st.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
             except Exception as e:
@@ -144,23 +144,23 @@ with st.spinner("Loading page...", show_time=True):
         if not class_df.empty and not energy_df.empty:
             try:
                 c_copy = class_df.copy()
-                c_copy["Month_Map"] = c_copy["Week"].apply(map_week_to_month)
+                c_copy["Month_Map"] = c_copy["week"].apply(map_week_to_month)
                 e_copy = energy_df.copy()
-                e_copy["Month_Map"] = e_copy["Month"].apply(normalize_month)
+                e_copy["Month_Map"] = e_copy["month"].apply(normalize_month)
                 
-                occ_m = c_copy.groupby("Month_Map")["Actual_Occupancy"].sum().reset_index()
-                eng_m = e_copy.groupby("Month_Map")["Energy_Cost"].sum().reset_index()
-                merged = pd.merge(occ_m, eng_m, on="Month_Map").dropna(subset=["Actual_Occupancy", "Energy_Cost"])
+                occ_m = c_copy.groupby("Month_Map")["actual_occupancy"].sum().reset_index()
+                eng_m = e_copy.groupby("Month_Map")["energy_cost"].sum().reset_index()
+                merged = pd.merge(occ_m, eng_m, on="Month_Map").dropna(subset=["actual_occupancy", "energy_cost"])
 
                 if len(merged) >= 2:
-                    waste_model = LinearRegression().fit(merged[["Actual_Occupancy"]], merged["Energy_Cost"])
-                    merged["Expected_Cost"] = waste_model.predict(merged[["Actual_Occupancy"]])
-                    merged["Extra_Cost"] = (merged["Energy_Cost"] - merged["Expected_Cost"]).clip(lower=0)
+                    waste_model = LinearRegression().fit(merged[["actual_occupancy"]], merged["energy_cost"])
+                    merged["Expected_Cost"] = waste_model.predict(merged[["actual_occupancy"]])
+                    merged["Extra_Cost"] = (merged["energy_cost"] - merged["Expected_Cost"]).clip(lower=0)
                     avg_monthly_extra_cost = merged["Extra_Cost"].mean()
                     waste = avg_monthly_extra_cost * 4
                 else:
                     # Fallback if overlap is too little: use a conservative 10% of average monthly bill
-                    avg_monthly_extra_cost = energy_df["Energy_Cost"].mean() * 0.10
+                    avg_monthly_extra_cost = energy_df["energy_cost"].mean() * 0.10
                     waste = avg_monthly_extra_cost * 4
 
                 col3.metric("Projected 4-Month Wastage",
@@ -225,10 +225,10 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty and not energy_df.empty:
             try:
-                floor_energy = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
-                floor_energy['Cost_Pct'] = (floor_energy['Energy_Cost'] / floor_energy['Energy_Cost'].sum()) * 100
-                floor_occupancy = class_df.groupby('Floor')['Actual_Occupancy'].sum().reset_index()
-                floor_occupancy['Occ_Pct'] = (floor_occupancy['Actual_Occupancy'] / floor_occupancy['Actual_Occupancy'].sum()) * 100
+                floor_energy = energy_df.groupby('Floor')['energy_cost'].sum().reset_index()
+                floor_energy['Cost_Pct'] = (floor_energy['energy_cost'] / floor_energy['energy_cost'].sum()) * 100
+                floor_occupancy = class_df.groupby('Floor')['actual_occupancy'].sum().reset_index()
+                floor_occupancy['Occ_Pct'] = (floor_occupancy['actual_occupancy'] / floor_occupancy['actual_occupancy'].sum()) * 100
                 
                 merged_data = pd.merge(floor_energy, floor_occupancy, on='Floor')
                 merged_data['Gap'] = merged_data['Cost_Pct'] - merged_data['Occ_Pct']
@@ -239,8 +239,8 @@ with st.spinner("Loading page...", show_time=True):
                 # serious wastage (e.g. airconds left running on empty floors).
                 if merged_data['Gap'].max() > 15.0:
                     w_leak = merged_data.sort_values(by='Gap', ascending=False).iloc[0]
-                    actual_cost = w_leak['Energy_Cost']
-                    floor_students = int(w_leak['Actual_Occupancy'])
+                    actual_cost = w_leak['energy_cost']
+                    floor_students = int(w_leak['actual_occupancy'])
                     
                     st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget, \
                              but only accounts for only **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
@@ -249,7 +249,7 @@ with st.spinner("Loading page...", show_time=True):
                              this is a clear sign of energy wastage."
                              f"\n\n**Pro Tip:** Do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 elif overall_util < 30.0:
-                    total_campus_bill = floor_energy['Energy_Cost'].sum()
+                    total_campus_bill = floor_energy['energy_cost'].sum()
                     st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only {overall_util:.1f}% utilized, yet electricity is running as if the building is \
                              fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
                              f"**Action:** Consider overriding the centralized Building Management System (BMS). It should have an override mode for low-occupancy periods. \

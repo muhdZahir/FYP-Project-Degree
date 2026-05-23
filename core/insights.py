@@ -91,14 +91,14 @@ def underutilized_rooms_findings(worst, second, best, avg):
         )
     
     # Extract Exact Value for the Worst Room
-    worst_students = int(worst.get('Actual_Occupancy', 0))
-    worst_capacity = int(worst.get('Capacity', 0))
+    worst_students = int(worst.get('actual_occupancy', 0))
+    worst_capacity = int(worst.get('capacity', 0))
     worst_util = worst['Percent_Utilize']
     worst_unused = 100 - worst_util
 
     # Extract Exact Value for the Best Room
-    best_students = int(best.get('Actual_Occupancy', 0))
-    best_capacity = int(best.get('Capacity', 0))
+    best_students = int(best.get('actual_occupancy', 0))
+    best_capacity = int(best.get('capacity', 0))
     best_util = best['Percent_Utilize']
     best_unused = 100 - best_util
 
@@ -125,20 +125,20 @@ def heatmap_findings(peak, lowest):
     peak_utilize = peak["Percent_Utilize"]
     lowest_utilize = lowest["Percent_Utilize"]
 
-    peak_floor = format_floor_name(peak["Floor"])
-    low_floor = format_floor_name(lowest["Floor"])
+    peak_floor = format_floor_name(peak["floor"])
+    low_floor = format_floor_name(lowest["floor"])
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("### 🔥 Busiest Time & Floor")
-        st.metric("Time Slot", peak["Time_Slot"])
+        st.metric("Time Slot", peak["time_slot"])
         st.metric("Floor Level", f"{peak_floor}")
         st.write(f"**Utilization:** {peak_utilize:.2f}%")
 
     with col2:
         st.markdown("### ❄️ Quietest Time & Floor")
-        st.metric("Time Slot", lowest["Time_Slot"])
+        st.metric("Time Slot", lowest["time_slot"])
         st.metric("Floor Level", f"{low_floor}")
         st.write(f"**Utilization:** {lowest_utilize:.2f}%")
     
@@ -149,10 +149,10 @@ def heatmap_findings(peak, lowest):
     ### **Observation: Utilization Across Time and Floors**
 
     The highest observed utilization occurs at:
-    - **{peak_floor}** during **{peak['Time_Slot']}**, with **{peak_utilize:.2f}%** utilization.
+    - **{peak_floor}** during **{peak['time_slot']}**, with **{peak_utilize:.2f}%** utilization.
 
     The lowest observed utilization occurs at:
-    - **{low_floor}** during **{lowest['Time_Slot']}**, with **{lowest_utilize:.2f}%** utilization.
+    - **{low_floor}** during **{lowest['time_slot']}**, with **{lowest_utilize:.2f}%** utilization.
 
     **Comparison**
     - The difference between peak and lowest utilization is **{util_gap:.2f}%**.
@@ -173,25 +173,25 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     low_month = monthly_sorted.iloc[-1]
 
     # Floors in highest month
-    high_month_floors = df[df["Month"] == high_month["Month"]]
-    high_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmax()]
-    high_floor_name_high = format_floor_name(high_floor_high_month["Floor"])
-    low_floor_high_month = high_month_floors.loc[high_month_floors["Energy_Cost"].idxmin()]
-    low_floor_name_high = format_floor_name(low_floor_high_month["Floor"])
+    high_month_floors = df[df["month"] == high_month["month"]]
+    high_floor_high_month = high_month_floors.loc[high_month_floors["energy_cost"].idxmax()]
+    high_floor_name_high = format_floor_name(high_floor_high_month["floor"])
+    low_floor_high_month = high_month_floors.loc[high_month_floors["energy_cost"].idxmin()]
+    low_floor_name_high = format_floor_name(low_floor_high_month["floor"])
 
     # Floors in 2nd highest month
-    second_month_floors = df[df["Month"] == second_high_month["Month"]]
-    high_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmax()]
-    high_floor_name_second = format_floor_name(high_floor_second_month["Floor"])
-    low_floor_second_month = second_month_floors.loc[second_month_floors["Energy_Cost"].idxmin()]
-    low_floor_name_second = format_floor_name(low_floor_second_month["Floor"])
+    second_month_floors = df[df["month"] == second_high_month["month"]]
+    high_floor_second_month = second_month_floors.loc[second_month_floors["energy_cost"].idxmax()]
+    high_floor_name_second = format_floor_name(high_floor_second_month["floor"])
+    low_floor_second_month = second_month_floors.loc[second_month_floors["energy_cost"].idxmin()]
+    low_floor_name_second = format_floor_name(low_floor_second_month["floor"])
 
     # Floors in lowest month
-    low_month_floors = df[df["Month"] == low_month["Month"]]
-    high_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmax()]
-    high_floor_name_low = format_floor_name(high_floor_low_month["Floor"])
-    low_floor_low_month = low_month_floors.loc[low_month_floors["Energy_Cost"].idxmin()]
-    low_floor_name_low = format_floor_name(low_floor_low_month["Floor"])
+    low_month_floors = df[df["month"] == low_month["month"]]
+    high_floor_low_month = low_month_floors.loc[low_month_floors["energy_cost"].idxmax()]
+    high_floor_name_low = format_floor_name(high_floor_low_month["floor"])
+    low_floor_low_month = low_month_floors.loc[low_month_floors["energy_cost"].idxmin()]
+    low_floor_name_low = format_floor_name(low_floor_low_month["floor"])
 
     # Display metrics
     col1, col2, col3 = st.columns(3)
@@ -199,25 +199,25 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     with col1:
         st.metric(
             "Highest Energy Cost Month",
-            high_month["Month"],
-            f"RM {high_month['Energy_Cost']:,.2f}"
+            high_month["month"],
+            f"RM {high_month['energy_cost']:,.2f}"
         )
 
     with col2:
         st.metric(
             "2nd Highest Energy Cost Month",
-            second_high_month["Month"],
-            f"RM {second_high_month['Energy_Cost']:,.2f}"
+            second_high_month["month"],
+            f"RM {second_high_month['energy_cost']:,.2f}"
         )
 
     with col3:
         st.metric(
             "Lowest Energy Cost Month",
-            low_month["Month"],
-            f"RM {low_month['Energy_Cost']:,.2f}"
+            low_month["month"],
+            f"RM {low_month['energy_cost']:,.2f}"
         )
 
-    difference = high_month["Energy_Cost"] - second_high_month["Energy_Cost"]
+    difference = high_month["energy_cost"] - second_high_month["energy_cost"]
 
     st.metric("Difference of Costs Between 1st and 2nd Highest Energy Cost Month", f"RM {difference:,.2f}")
 
@@ -226,26 +226,26 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     st.markdown(f"""
     ### **Observation: Monthly Energy Cost Distribution**
 
-    - The **highest total energy cost** was recorded in **{high_month['Month']}**, at **RM {high_month['Energy_Cost']:,.2f}**.
-    - The **second highest** was **{second_high_month['Month']}**, at **RM {second_high_month['Energy_Cost']:,.2f}**.
-    - The **lowest** was **{low_month['Month']}**, at **RM {low_month['Energy_Cost']:,.2f}**.
+    - The **highest total energy cost** was recorded in **{high_month['month']}**, at **RM {high_month['energy_cost']:,.2f}**.
+    - The **second highest** was **{second_high_month['month']}**, at **RM {second_high_month['energy_cost']:,.2f}**.
+    - The **lowest** was **{low_month['month']}**, at **RM {low_month['energy_cost']:,.2f}**.
 
     **Comparison**
     - The difference between the highest and second highest month is **RM {difference:,.2f}**.
 
     #### **Floor-Level Breakdown**
 
-    **{high_month['Month']} (Highest Month)**
-    - Highest floor-level cost: **{high_floor_name_high}** (RM {high_floor_high_month['Energy_Cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_high}** (RM {low_floor_high_month['Energy_Cost']:,.2f})
+    **{high_month['month']} (Highest Month)**
+    - Highest floor-level cost: **{high_floor_name_high}** (RM {high_floor_high_month['energy_cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_high}** (RM {low_floor_high_month['energy_cost']:,.2f})
 
-    **{second_high_month['Month']} (Second Highest)**
-    - Highest floor-level cost: **{high_floor_name_second}** (RM {high_floor_second_month['Energy_Cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_second}** (RM {low_floor_second_month['Energy_Cost']:,.2f})
+    **{second_high_month['month']} (Second Highest)**
+    - Highest floor-level cost: **{high_floor_name_second}** (RM {high_floor_second_month['energy_cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_second}** (RM {low_floor_second_month['energy_cost']:,.2f})
 
-    **{low_month['Month']} (Lowest Month)**
-    - Highest floor-level cost: **{high_floor_name_low}** (RM {high_floor_low_month['Energy_Cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_low}** (RM {low_floor_low_month['Energy_Cost']:,.2f})
+    **{low_month['month']} (Lowest Month)**
+    - Highest floor-level cost: **{high_floor_name_low}** (RM {high_floor_low_month['energy_cost']:,.2f})
+    - Lowest floor-level cost: **{low_floor_name_low}** (RM {low_floor_low_month['energy_cost']:,.2f})
 
     **Interpretation**
     - Energy costs vary across months and across floors within each month.
@@ -257,17 +257,17 @@ def monthly_energy_cost_findings(monthly_sorted,df):
 
 # Display energy cost contribution findings
 def pie_findings(floor_energy_cost):
-    avg_cost = floor_energy_cost["Energy_Cost"].mean()
+    avg_cost = floor_energy_cost["energy_cost"].mean()
 
     # Identify dominant floor
     dominant_floor = floor_energy_cost.loc[floor_energy_cost["Contribution (%)"].idxmax()]
     least_floor = floor_energy_cost.loc[floor_energy_cost["Contribution (%)"].idxmin()]
 
     # Variance Analysis
-    std_dev = floor_energy_cost["Energy_Cost"].std()
+    std_dev = floor_energy_cost["energy_cost"].std()
 
-    max_cost = floor_energy_cost["Energy_Cost"].max()
-    min_cost = floor_energy_cost["Energy_Cost"].min()
+    max_cost = floor_energy_cost["energy_cost"].max()
+    min_cost = floor_energy_cost["energy_cost"].min()
     range_diff = max_cost - min_cost
 
     # Prevent division by zero when minimum cost is 0
@@ -278,8 +278,8 @@ def pie_findings(floor_energy_cost):
 
     col1, col2 = st.columns(2)
 
-    dom_floor = format_floor_name(dominant_floor["Floor"])
-    lst_floor = format_floor_name(least_floor["Floor"])
+    dom_floor = format_floor_name(dominant_floor["floor"])
+    lst_floor = format_floor_name(least_floor["floor"])
 
     with col1:
         st.metric(
@@ -349,7 +349,7 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
             help="The 'Autopilot Cost'. The estimated electricity bill even if the building is completely empty."
         )
 
-    avg_cost = corr_df["Energy_Cost"].mean()
+    avg_cost = corr_df["energy_cost"].mean()
     baseline_ratio = y_intercept / avg_cost if avg_cost != 0 else 0
     unexplained = 100 - (r2_score * 100)
 

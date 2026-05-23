@@ -35,7 +35,7 @@ def run_classroom_analysis(class_df):
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
     n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=50, value=5, step=1)
-    max_rooms = df["Classroom_ID"].nunique()
+    max_rooms = df["classroom_id"].nunique()
     n_rooms = min(n_rooms, max_rooms)  # Ensure n_rooms doesn't exceed the number of available rooms
 
     # Group by Room to get average utilization
@@ -110,7 +110,7 @@ def run_energy_analysis(energy_df):
     monthly_energy = get_monthly_energy(df)
 
     # Average monthly cost
-    avg_monthly_cost = monthly_energy["Energy_Cost"].mean()
+    avg_monthly_cost = monthly_energy["energy_cost"].mean()
     # Display average monthly energy cost with commas as thousand separators and 2 decimal places
     st.metric("Average Monthly Energy Cost: ", f"RM {avg_monthly_cost:,.2f}")
     
@@ -145,7 +145,7 @@ def run_energy_analysis(energy_df):
     st.write("#### Findings: Monthly Energy Cost per Floor")
     with st.expander("Show details"):
         # Sort by energy cost (descending)
-        monthly_sorted = monthly_energy.sort_values(by="Energy_Cost", ascending=False)
+        monthly_sorted = monthly_energy.sort_values(by="energy_cost", ascending=False)
         monthly_energy_cost_findings(monthly_sorted, df)
 
     # ------------------------------------------
@@ -170,7 +170,7 @@ def run_energy_analysis(energy_df):
     # Calculate total energy cost of the whole floor
     floor_energy_cost = get_total_energy_cost(df)
 
-    total_energy_cost = df["Energy_Cost"].sum()
+    total_energy_cost = df["energy_cost"].sum()
     # Display total energy cost with commas as thousand separators and 2 decimal places
     st.metric("Total Energy Cost:", f"RM {total_energy_cost:,.2f}")
 
@@ -187,7 +187,7 @@ def run_energy_analysis(energy_df):
         floor_energy_cost = compute_contribution(floor_energy_cost, total_energy_cost)
 
         # Sort by energy cost (descending)
-        cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False, ignore_index=True)
+        cost_sorted = floor_energy_cost.sort_values(by="energy_cost", ascending=False, ignore_index=True)
         cost_sorted = cost_sorted.rename(columns=lambda x: x.replace("_", " ").title())
 
         st.markdown("Top Energy Cost Contributor by Floor:")
@@ -199,28 +199,28 @@ def run_correlation_analysis(class_df, energy_df):
     corr_class, corr_energy = ensure_months(class_df, energy_df)
 
     # At this point we attempt to aggregate and merge. Preferred: by Floor+Month
-    grouped_occupancy = corr_class.groupby([col for col in ["Floor", "Month"] if col in corr_class.columns])["Actual_Occupancy"].sum().reset_index()
-    grouped_energy = corr_energy.groupby([col for col in ["Floor", "Month"] if col in corr_energy.columns])["Energy_Cost"].sum().reset_index()
+    grouped_occupancy = corr_class.groupby([col for col in ["floor", "month"] if col in corr_class.columns])["actual_occupancy"].sum().reset_index()
+    grouped_energy = corr_energy.groupby([col for col in ["floor", "month"] if col in corr_energy.columns])["energy_cost"].sum().reset_index()
 
     # Try merge by Floor+Month if both have Month and Floor
-    if set(["Floor", "Month"]).issubset(grouped_occupancy.columns) and set(["Floor", "Month"]).issubset(grouped_energy.columns):
-        correlation_df = pd.merge(grouped_occupancy, grouped_energy, on=["Floor", "Month"], how="inner")
+    if set(["floor", "month"]).issubset(grouped_occupancy.columns) and set(["floor", "month"]).issubset(grouped_energy.columns):
+        correlation_df = pd.merge(grouped_occupancy, grouped_energy, on=["floor", "month"], how="inner")
     else:
         correlation_df = pd.DataFrame()
 
     # Fallback: if no Floor+Month overlap, try aggregating by Month only (sum across floors)
     if correlation_df.empty:
-        if "Month" in grouped_occupancy.columns and "Month" in grouped_energy.columns:
-            occ_total = grouped_occupancy.groupby("Month")["Actual_Occupancy"].sum().reset_index()
-            energy_total = grouped_energy.groupby("Month")["Energy_Cost"].sum().reset_index()
-            correlation_df = pd.merge(occ_total, energy_total, on="Month", how="inner")
+        if "month" in grouped_occupancy.columns and "month" in grouped_energy.columns:
+            occ_total = grouped_occupancy.groupby("month")["actual_occupancy"].sum().reset_index()
+            energy_total = grouped_energy.groupby("month")["energy_cost"].sum().reset_index()
+            correlation_df = pd.merge(occ_total, energy_total, on="month", how="inner")
         else:
             correlation_df = pd.DataFrame()
 
     # If still empty, show helpful diagnostics
     if correlation_df.empty:
-        occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
-        eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
+        occ_months = sorted(list(set(corr_class["month"].dropna().astype(str).unique()))) if "month" in corr_class.columns else []
+        eng_months = sorted(list(set(corr_energy["month"].dropna().astype(str).unique()))) if "month" in corr_energy.columns else []
         st.warning("Insufficient overlapping data (Months) to plot correlation.")
         st.info(f"Classroom months found: {occ_months}")
         st.info(f"Energy months found: {eng_months}")
@@ -232,16 +232,16 @@ def run_correlation_analysis(class_df, energy_df):
         # 2. Linear Regression for Trendline
         # We will fit a simple linear regression model to the data to get the trendline.
         # This will help us understand the overall relationship between occupancy and energy cost.
-        X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
-        y = correlation_df["Energy_Cost"].values
+        X = correlation_df["actual_occupancy"].values.reshape(-1, 1)
+        y = correlation_df["energy_cost"].values
 
         model = LinearRegression()
         model.fit(X, y)
         correlation_df["Predicted_Cost"] = model.predict(X)
 
         # 3. Plot Scatter with Trendline
-        if "Floor" in correlation_df.columns:
-            color_arg = "Floor"
+        if "floor" in correlation_df.columns:
+            color_arg = "floor"
             title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
         else:
             color_arg = None
@@ -259,7 +259,7 @@ def run_correlation_analysis(class_df, energy_df):
         with st.expander("Show details"):
             # Statistical Calculations
             r2_score = model.score(X, y)
-            corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
+            corr_coef = correlation_df['actual_occupancy'].corr(correlation_df['energy_cost'])
             slope = model.coef_[0]
             # Added y-intercept to calculate the Base Autopilot Cost at 0 students
             y_intercept = model.intercept_
