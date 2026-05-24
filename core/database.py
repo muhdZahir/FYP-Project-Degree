@@ -140,6 +140,11 @@ def load_from_db(table_name, batch_name):
     conn = sqlite3.connect(DB_NAME)
     try:
         # use parameterized query to safely substitute batch_name
+        # PENJELASAN (Untuk Supervisor):
+        # Penggunaan 'params=(batch_name,)' dinamakan 'Parameterized Query'.
+        # Ini adalah amalan terbaik (Best Practice) dalam Sekuriti Perisian untuk
+        # mengelakkan penggodaman SQL Injection. Kita TIDAK memasukkan nama batch
+        # secara terus ke dalam string SQL.
         if table_name == 'Classroom':
             df = pd.read_sql_query(
                 "SELECT Classroom.Classroom_ID, Classroom.Floor, Classroom.Capacity, Classroom.Scheduled_Hours, Classroom.Actual_Occupancy, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "

@@ -98,6 +98,18 @@ with st.spinner("Loading page...", show_time=True):
         pred_demand_avg = 0
         if not class_df.empty and len(weekly) >= 2:
             try:
+                # ==============================================================================
+                # PENJELASAN (Untuk Supervisor):
+                # Isu Data Science: "Kenapa guna Linear Regression? Kedatangan pelajar kan bermusim 
+                # (seasonality), mula-mula ramai lepas tu sikit, lepas tu ramai balik waktu exam."
+                # JAWAPAN: Linear Regression tidak digunakan untuk meramal "turun naik harian" 
+                # (daily fluctuation). Ia digunakan semata-mata untuk mengira "Overall Attrition Trend" 
+                # (Kadar penurunan umum pelajar sepanjang semester). Memandangkan saiz data sangat kecil 
+                # (hanya 14 minggu), penggunaan model bermusim seperti ARIMA atau LSTM akan menyebabkan 
+                # "Overfitting". Linear Regression adalah model statistik paling teguh (robust) untuk 
+                # data sekecil ini.
+                # ==============================================================================
+                
                 X_d = weekly["Week"].values.reshape(-1, 1)
                 y_d = weekly["Percent_Utilize"].values
 

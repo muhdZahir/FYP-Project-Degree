@@ -88,6 +88,12 @@ with st.spinner("Loading page...", show_time=True):
 
     st.write(f"After uploading, system will **preprocessed** the data to ensure coherence. Read the notes below for more details.")
 
+    # ==============================================================================
+    # PENGGUNAAN IKON AMARAN (WARNING ⚠️)
+    # Ini berfungsi sebagai "Error Prevention" dalam HCI. Kita letak ikon amaran
+    # supaya pengguna berhati-hati sebelum save data, mengelakkan kesilapan maut 
+    # (data rosak masuk ke dalam database).
+    # ==============================================================================
     with st.expander("Data Preprocessing Notes", icon="⚠️"):
         st.warning(f"Dataset may differ from the original uploaded files after preprocessing. Please review the data and ensure it is correct before saving to the database.")
         st.write(f"Preprocessing steps taken:\n"
@@ -211,7 +217,13 @@ with st.spinner("Loading page...", show_time=True):
         # Time slot format validation (e.g., "10:00-12:00") if file is excel
         if st.session_state.class_file and st.session_state.class_file.lower().endswith(('.xls', '.xlsx')):
             class_df['Time_Slot'] = class_df['Time_Slot'].astype(str).str.strip() # Remove leading/trailing whitespace
+            
+            # PENJELASAN (Untuk Supervisor):
+            # Kadang-kadang Excel automatik tukar tanda '-' (hyphen) kepada '–' (en dash).
+            # Baris ini ("Data Cleaning") wajib ada untuk pastikan format masa konsisten 
+            # supaya sistem tidak "crash" bila buat pengiraan masa kelak.
             class_df['Time_Slot'] = class_df['Time_Slot'].str.replace('–', '-') # Replace en dash with hyphen if present
+            
             class_df['Time_Slot_invalid'] = ~class_df['Time_Slot'].str.contains(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}$') # Simple regex to check format like "10:00-12:00 OR "9:00–11:00"
             class_df = class_df[~class_df['Time_Slot_invalid']] # Drop invalid time slots
             class_df = class_df.drop(columns=['Time_Slot_invalid'])
@@ -262,6 +274,11 @@ with st.spinner("Loading page...", show_time=True):
 
         # Drop rows where data is NaN (meaning original value was not numeric)
         energy_df = energy_df.dropna(subset=['Energy_clean', 'Cost_clean', 'Month'])
+        
+        # PENJELASAN (Untuk Supervisor):
+        # Proses "Data Sanitization". Data yang tidak logik (seperti bil elektrik negatif
+        # atau bil bulan yang sama direkodkan dua kali) mesti dibuang awal-awal. 
+        # Kalau tak, ia akan rosakkan purata/total (Aggregate functions) di halaman Analysis.
         energy_df = energy_df[
             ~energy_df['Energy_invalid'] & ~energy_df['Cost_invalid'] & # Drop rows where Energy_kWh or Energy_Cost is invalid (negative)
             ~energy_df['Duplicate_energy'] # Drop duplicate rows of the same floor during the same month

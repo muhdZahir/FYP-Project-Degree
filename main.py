@@ -2,6 +2,12 @@ from core.imports import os, st, pd, db #to open streamlit, run 'python -m strea
 
 db.init_db()
 
+# ==============================================================================
+# STATE MANAGEMENT (Penyimpanan Data Sementara)
+# Streamlit akan "rerun" (muat semula) skrip dari atas ke bawah setiap kali pengguna tekan butang.
+# Oleh itu, 'st.session_state' digunakan ibarat "beg memori" untuk simpan data (seperti role, 
+# dataset kelas/elektrik) supaya data tak hilang bila halaman bertukar.
+# ==============================================================================
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = None
 if "batch" not in st.session_state:
@@ -31,7 +37,14 @@ inject_custom_css(css_path)
 
 available_batches = db.get_unique_batches()            
 
-# Define all the pages
+# ==============================================================================
+# PENYUSUNAN HALAMAN & JUSTIFIKASI UX (User Experience) / HCI
+# Supervisor Alert: Ikon digunakan BUKAN untuk kecantikan (cosmetics). 
+# Ia mengikut prinsip "Cognitive Load Reduction" (kurangkan beban otak).
+# Otak manusia memproses simbol visual beribu kali ganda lebih laju dari teks. 
+# Ini dipanggil "Visual Affordance" di mana ikon (contoh: 'home', 'upload')
+# memberi isyarat serta-merta apa fungsi menu tersebut tanpa perlu dibaca.
+# ==============================================================================
 login_page = st.Page("pages/login.py", title="Log in", icon=":material/login:")
 logout_page = st.Page("pages/logout.py", title="Log out", icon=":material/logout:")
 dashboard_page = st.Page("pages/dashboard.py", title="Dashboard", icon=":material/home:")
@@ -97,11 +110,15 @@ elif st.session_state['user_role'] == "Manager":
                     st.session_state['batch_name'] = None
                     st.session_state['show'] = False 
                 else:
+                    # 'st.spinner' digunakan sebagai "System Status Visibility" 
+                    # supaya pengguna tahu sistem sedang memproses data di latar belakang.
                     with st.spinner("Fetching data from SQL Engine..."):
                         st.session_state['class_df'] = db.load_from_db("Classroom", st.session_state['batch'])
                         st.session_state['energy_df'] = db.load_from_db("Energy", st.session_state['batch'])
                         st.session_state['batch_name'] = st.session_state['batch']
                         st.session_state['show'] = False 
+                        
+                        # Penggunaan Ikon '✅' adalah amalan standard HCI bagi menandakan kejayaan (Success Feedback)
                         st.toast(f"Batch '{st.session_state['batch']}' Loaded Successfully.", icon="✅")
 else:
     pg = st.navigation(

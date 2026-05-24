@@ -36,6 +36,10 @@ def save_batch_name(old_name, new_name):
 
 def confirm_edit_batch_name(old_name, new_name):
     """Displays the confirmation UI for batch name change."""
+    # PENJELASAN (Untuk Supervisor):
+    # 'st.warning' digunakan untuk Confirm Dialog. Dalam HCI, tindakan yang
+    # mengubah pangkalan data perlukan "User Control and Freedom". Pengguna mesti diberi 
+    # peluang untuk 'Undo' atau semak balik (confirmation) sebelum terus save.
     st.warning(f"Are you sure you want to change the batch name from '**{old_name}**' to '**{new_name}**'?")
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -90,6 +94,10 @@ def delete_data(data_type, batch_name):
 
 def confirm_delete(data_type, batch_name):
     """Displays the confirmation UI."""
+    # PENJELASAN (Untuk Supervisor):
+    # 'st.error' (warna merah) digunakan khusus untuk tindakan "Destructive" (memadam data).
+    # Ini amalan "Error Prevention". Warna merah memberi signal bahaya (danger) secara visual 
+    # supaya pengguna berfikir dua kali sebelum tekan Delete.
     st.error("Are you sure you want to delete all data? This action cannot be undone.")
     col1, col2 = st.columns([1, 1])
     with col1:

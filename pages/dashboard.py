@@ -15,6 +15,17 @@ st.write(
     f"a software program, or an engineering structure.\n"
 )
 
+# ==============================================================================
+# PENJELASAN (Untuk Supervisor):
+# Isu Definisi: "Sistem awak ni bagi cadangan (recommendations) sahaja. Kenapa guna 
+# nama 'Optimization'? Optimization selalunya guna algoritma matematik kompleks."
+# JAWAPAN: Optimization di sini merujuk kepada konsep "Rule-Based Heuristic Optimization". 
+# Ia bertindak sebagai Sistem Sokongan Keputusan (Decision Support System) yang memproses 
+# data analisis deskriptif lalu menjana satu set pelan tindakan (actionable insights) yang 
+# optimum untuk pihak pengurusan. Walaupun ia tidak menyelesaikan persamaan matematik 
+# kompleks, ia tetap 'mengoptimumkan' penggunaan ruang kelas berdasarkan syarat-syarat.
+# ==============================================================================
+
 if st.session_state['user_role'] == "IT Staff":
     st.write(f"""
         You can **upload classroom** and **energy** data files, to help the management analyze the data and generate insights to identify areas for

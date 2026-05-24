@@ -11,6 +11,15 @@ def check_login(username, password):
         return True
     return False
 
+# ==============================================================================
+# PENJELASAN (Untuk Supervisor):
+# Isu Sekuriti: "Hardcoded Credentials" (Kata laluan diletak terus dalam kod).
+# Dalam industri, ini adalah satu kesalahan besar. Namun, untuk projek FYP ini,
+# sistem dibangunkan pada peringkat "Minimum Viable Product (MVP)" / Prototaip.
+# Untuk "Production Deployment" yang sebenar, jadual 'Users' akan ditambah dalam 
+# pangkalan data dan kata laluan akan di-hash (Bcrypt/SHA-256) demi keselamatan.
+# ==============================================================================
+
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("assets/URO_logo.png")

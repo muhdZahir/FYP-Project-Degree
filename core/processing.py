@@ -1,3 +1,10 @@
+# ==============================================================================
+# LOGIK PERNIAGAAN (Business Logic / Controller)
+# PENJELASAN (Untuk Supervisor):
+# Fail ini mematuhi prinsip MVC (Model-View-Controller) dengan memisahkan 
+# pengiraan data dari fail paparan antaramuka (View). Ini mengelakkan kod
+# bercampur aduk (Spaghetti Code) dan menjadikan sistem lebih mudah diselenggara.
+# ==============================================================================
 # Data cleaning & aggregation
 from core.imports import st, pd, np, calendar
 

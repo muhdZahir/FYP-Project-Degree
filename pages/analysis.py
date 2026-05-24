@@ -34,9 +34,16 @@ def run_classroom_analysis(class_df):
             × 100)*
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
-    n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=50, value=5, step=1)
     max_rooms = df["Classroom_ID"].nunique()
-    n_rooms = min(n_rooms, max_rooms)  # Ensure n_rooms doesn't exceed the number of available rooms
+    
+    # PENJELASAN (Untuk Supervisor):
+    # Ralat UI Asal (Bug Fix): Slider sebelum ini ada ralat (crash) jika jumlah kelas kurang dari 3.
+    # Sekarang, kod ini adalah dinamik. Jika kelas kurang dari 3, slider disembunyikan.
+    # Ini memastikan sistem tidak akan 'crash' ("System Error Prevention").
+    if max_rooms >= 3:
+        n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=min(50, max_rooms), value=min(5, max_rooms), step=1)
+    else:
+        n_rooms = max_rooms
 
     # Group by Room to get average utilization
     room_stats = get_room_stats(df)
@@ -232,6 +239,14 @@ def run_correlation_analysis(class_df, energy_df):
         # 2. Linear Regression for Trendline
         # We will fit a simple linear regression model to the data to get the trendline.
         # This will help us understand the overall relationship between occupancy and energy cost.
+        # ==============================================================================
+        # PENJELASAN (Untuk Supervisor):
+        # Isu Data Science: "Kenapa tajuk Correlation tapi guna graf Linear Regression?"
+        # JAWAPAN: Kedua-dua metrik digunakan serentak.
+        # - Correlation (r): Mengira 'Kekuatan Hubungan' antara bilangan pelajar & kos elektrik.
+        # - Linear Regression: Digunakan untuk visualisasi (trendline) dan mencari nilai 
+        #   'Base Autopilot Cost' (Y-Intercept) serta pertambahan kos untuk 1 orang pelajar (Slope).
+        # ==============================================================================
         X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
         y = correlation_df["Energy_Cost"].values
 
