@@ -34,9 +34,14 @@ def run_classroom_analysis(class_df):
             × 100)*
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
-    n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=50, value=5, step=1)
     max_rooms = df["classroom_id"].nunique()
-    n_rooms = min(n_rooms, max_rooms)  # Ensure n_rooms doesn't exceed the number of available rooms
+    max_slider = min(50, max_rooms)
+
+    if max_slider <= 3:
+        n_rooms = max_slider
+        st.info(f"Only {max_slider} underutilized rooms available.")
+    else:
+        n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=max_slider, value=min(5, max_slider), step=1)
 
     # Group by Room to get average utilization
     room_stats = get_room_stats(df)
