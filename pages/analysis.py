@@ -35,15 +35,13 @@ def run_classroom_analysis(class_df):
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
     max_rooms = df["Classroom_ID"].nunique()
-    
-    # PENJELASAN (Untuk Supervisor):
-    # Ralat UI Asal (Bug Fix): Slider sebelum ini ada ralat (crash) jika jumlah kelas kurang dari 3.
-    # Sekarang, kod ini adalah dinamik. Jika kelas kurang dari 3, slider disembunyikan.
-    # Ini memastikan sistem tidak akan 'crash' ("System Error Prevention").
-    if max_rooms >= 3:
-        n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=min(50, max_rooms), value=min(5, max_rooms), step=1)
+    max_slider = min(50, max_rooms)
+
+    if max_slider <= 3:
+        n_rooms = max_slider
+        st.info(f"Only {max_slider} underutilized rooms available.")
     else:
-        n_rooms = max_rooms
+        n_rooms = st.slider("How many underutilized rooms do you want to view?", min_value=3, max_value=max_slider, value=min(5, max_slider), step=1)
 
     # Group by Room to get average utilization
     room_stats = get_room_stats(df)
