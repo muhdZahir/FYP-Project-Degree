@@ -306,7 +306,7 @@ def pie_findings(floor_energy_cost):
 
     **Distribution Metrics**
     - Average floor-level cost: **RM {avg_cost:,.2f}**
-    - Difference in contribution: **{share_gap:.2f}%**
+    - Difference in contribution between top and lowest floor: **{share_gap:.2f}%**
     - Difference in cost between top and lowest floor: **RM {range_diff:,.2f}** (**{percent_diff:.2f}% difference**)
 
     **Interpretation**
