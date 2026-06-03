@@ -11,7 +11,7 @@ from datetime import datetime # to handle date and time
 import sqlite3  # For database operations, using SQLite for simplicity
 from sqlalchemy import create_engine # For PostgreSQL connection
 import psycopg2 # For PostgreSQL connection
-import core.postgreSQL as db  # Importing your database.py
+import core.database as db  # Importing your database.py
 
 import plotly.express as px # pip install plotly | plotly is use to create interactive visualization/chart
 from sklearn.linear_model import LinearRegression # pip install scikit-learn | LinearRegression is use to do linear regression analysis

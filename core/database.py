@@ -1,74 +1,84 @@
-from core.imports import st, pd, sqlite3
+from core.imports import st, pd, os, psycopg2, create_engine
 
-# name of the database
-DB_NAME = "database/uro_system.db"
+engine = create_engine(
+        os.environ["DATABASE_URL"],
+        pool_pre_ping=True
+    )
+
+@st.cache_resource
+def get_connection():
+    return psycopg2.connect(
+        os.environ["DATABASE_URL"],
+        sslmode="require"
+    )
+
 # allowed tables for read/write to avoid accidental SQL injection via table names
-ALLOWED_TABLES = {"Classroom", "Energy"} 
+ALLOWED_TABLES = {"classroom", "energy"} 
 
 def init_db():
     """Initializes the local database and creates tables if they don't exist."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
     c = conn.cursor()
+
+    # Batch table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS batch (
+            batch_id SERIAL PRIMARY KEY,
+            batch_name TEXT UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     # Classroom table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS Classroom (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Classroom_ID TEXT,
-            Floor INTEGER,
-            Capacity INTEGER,
-            Scheduled_Hours REAL,
-            Actual_Occupancy INTEGER,
-            Day TEXT,
-            Time_Slot TEXT,
-            Week INTEGER,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            Batch_id INTEGER,
-            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
+        CREATE TABLE IF NOT EXISTS classroom (
+            id SERIAL PRIMARY KEY,
+            classroom_id TEXT,
+            floor TEXT,
+            capacity INTEGER,
+            scheduled_hours REAL,
+            actual_occupancy INTEGER,
+            day TEXT,
+            time_slot TEXT,
+            week INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            batch_id INTEGER REFERENCES batch(batch_id) ON DELETE CASCADE
         )
     ''')
     
     # Energy table
     c.execute('''
-        CREATE TABLE IF NOT EXISTS Energy (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Floor INTEGER,
-            Month TEXT,
-            Energy_kWh REAL,
-            Energy_Cost REAL,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            Batch_id INTEGER,
-            FOREIGN KEY (Batch_id) REFERENCES Batch(Batch_id)
-        )
-    ''')
-
-    # Batch table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS Batch (
-            Batch_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Batch_Name TEXT UNIQUE,
-            Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        CREATE TABLE IF NOT EXISTS energy (
+            id SERIAL PRIMARY KEY,
+            floor TEXT,
+            month TEXT,
+            energy_kwh REAL,
+            energy_cost REAL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            batch_id INTEGER REFERENCES batch(batch_id) ON DELETE CASCADE
         )
     ''')
 
     conn.commit()
-    conn.close()
+    c.close()
 
 def save_to_db(df, table_name, batch_name):
     """Saves a dataframe to the database with a specific batch tag."""
-
+    table_name = table_name.lower()
     if table_name not in ALLOWED_TABLES:
         raise ValueError(f"Invalid table name: {table_name}")
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
 
     try:
         # Ensure batch exists
         save_batch_to_db(batch_name)
 
-        # Get Batch_id
-        query = """SELECT Batch_id FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"""
-        result = conn.execute(query, (batch_name,)).fetchone()
+        # Get batch_id
+        query = """SELECT batch_id FROM batch WHERE LOWER(batch_name) = LOWER(%s)"""
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         batch_id = result[0]
 
         # ==============================
@@ -78,8 +88,11 @@ def save_to_db(df, table_name, batch_name):
 
         # Save data
         save_df = df.copy()
-        save_df["Batch_id"] = batch_id
-        save_df.to_sql(table_name, conn, if_exists='append', index=False)
+        save_df.columns = save_df.columns.str.lower()
+        save_df["batch_id"] = batch_id
+        save_df.to_sql(table_name, engine, if_exists='append', index=False)
+
+        conn.commit()
 
         # ==============================
         # 🚨 CONDITION (ONLY BEFORE)
@@ -98,160 +111,205 @@ def save_to_db(df, table_name, batch_name):
         return True
 
     except Exception as e:
+        conn.rollback()
         st.error(f"Database Error: {e}")
         return False
 
     finally:
-        conn.close()
+        c.close()
 
 def save_batch_to_db(batch_name):
     """Saves a new batch name to the Batch table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("INSERT OR IGNORE INTO Batch (Batch_Name) VALUES (?)", (batch_name,))
+        c.execute("INSERT INTO batch (batch_name) VALUES (%s) ON CONFLICT (batch_name) DO NOTHING", (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def get_batch_status(batch_id):
     """Returns (class_exists, energy_exists)"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
     cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM classroom WHERE batch_id = %s", (batch_id,))
+        class_exists = cursor.fetchone()[0] > 0
 
-    cursor.execute("SELECT COUNT(*) FROM Classroom WHERE Batch_id = ?", (batch_id,))
-    class_exists = cursor.fetchone()[0] > 0
-
-    cursor.execute("SELECT COUNT(*) FROM Energy WHERE Batch_id = ?", (batch_id,))
-    energy_exists = cursor.fetchone()[0] > 0
-
-    conn.close()
-    return class_exists, energy_exists
+        cursor.execute("SELECT COUNT(*) FROM energy WHERE batch_id = %s", (batch_id,))
+        energy_exists = cursor.fetchone()[0] > 0
+        return class_exists, energy_exists
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
+    finally:
+        cursor.close()
 
 @st.cache_data(ttl=3600)
 def load_from_db(table_name, batch_name):
     """Loads data from the database for a specific batch. Returns empty DataFrame if batch_name is not provided."""
-    if table_name not in ALLOWED_TABLES and table_name != 'Batch':
+    table_name = table_name.lower()
+    if table_name not in ALLOWED_TABLES and table_name != 'batch':
         raise ValueError(f"Invalid table name: {table_name}")
 
     if not batch_name:
         return pd.DataFrame()
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+
     try:
         # use parameterized query to safely substitute batch_name
-        if table_name == 'Classroom':
-            df = pd.read_sql_query(
-                "SELECT Classroom.Classroom_ID, Classroom.Floor, Classroom.Capacity, Classroom.Scheduled_Hours, Classroom.Actual_Occupancy, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "
-                "FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
+        if table_name == 'classroom':
+            df = pd.read_sql_query("""
+                SELECT classroom.classroom_id, classroom.floor, classroom.capacity, classroom.scheduled_hours, classroom.actual_occupancy, classroom.day, classroom.time_slot, classroom.week, batch.batch_name 
+                FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name = %s
+                """,
                 conn,
                 params=(batch_name,)
                 )
-        elif table_name == 'Energy':
-            df = pd.read_sql_query(
-                "SELECT Energy.Floor, Energy.Month, Energy.Energy_kWh, Energy.Energy_Cost, Batch.Batch_Name "
-                "FROM Energy INNER JOIN Batch ON Energy.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
+        elif table_name == 'energy':
+            df = pd.read_sql_query("""
+                SELECT energy.floor, energy.month, energy.energy_kwh, energy.energy_cost, batch.batch_name
+                FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE batch.batch_name = %s
+                """,
                 conn,
                 params=(batch_name,)
                 )
 
         return df
-    finally:
-        conn.close()
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
 
 def batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in the Batch table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        query = "SELECT 1 FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)"
-        result = conn.execute(query, (batch_name,)).fetchone()
+        query = "SELECT 1 FROM batch WHERE LOWER(batch_name) = LOWER(%s)"
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def class_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Classroom table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        query = """SELECT 1 FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE LOWER(Batch.Batch_Name) = LOWER(?)"""
+        query = """SELECT 1 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
 
-        result = conn.execute(query, (batch_name,)).fetchone()
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def energy_batch_unique(batch_name):
     """Checks whether a Batch_Name already exists in Energy table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        query = """SELECT 1 FROM Energy INNER JOIN Batch ON Energy.Batch_id = Batch.Batch_id WHERE LOWER(Batch.Batch_Name) = LOWER(?)"""
-        result = conn.execute(query, (batch_name,)).fetchone()
+        query = """SELECT 1 FROM energy INNER JOIN batch ON energy.batch_id = batch.batch_id WHERE LOWER(batch.batch_name) = LOWER(%s)"""
+        c.execute(query, (batch_name,))
+        result = c.fetchone()
         return result is None  # True if unique
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def get_unique_batches():
     """Fetches list of unique upload batches for the dropdown."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
         # Check if table exists first by trying to query it
-        batches = pd.read_sql("SELECT Batch_Name FROM Batch", conn)
-        return batches["Batch_Name"].tolist()
+        batches = pd.read_sql("SELECT batch_name FROM batch", conn)
+        return batches["batch_name"].tolist()
     except Exception as e: # We only catch normal errors here, so system stops are not ignored
         return []
     finally:
-        conn.close()
+        c.close()
 
 def update_batch_name(old_name, new_name):
     """Updates the batch name in the Batch table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("UPDATE Batch SET Batch_Name = ? WHERE LOWER(Batch_Name) = LOWER(?)", (new_name, old_name))
+        c.execute("UPDATE batch SET batch_name = %s WHERE LOWER(batch_name) = LOWER(%s)", (new_name, old_name))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def clear_classroom_data(batch_name):
     """Clears all records from Classroom table for a specific batch."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("""
-            DELETE FROM Classroom
-            WHERE Batch_id IN (
-                SELECT Batch_id
-                FROM Batch
-                WHERE LOWER(Batch_Name) = LOWER(?)
+        c.execute("""
+            DELETE FROM classroom
+            WHERE batch_id IN (
+                SELECT batch_id
+                FROM batch
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def clear_energy_data(batch_name):
     """Clears all records from Energy table for a specific batch."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("""
-            DELETE FROM Energy
-            WHERE Batch_id IN (
-                SELECT Batch_id
-                FROM Batch
-                WHERE LOWER(Batch_Name) = LOWER(?)
+        c.execute("""
+            DELETE FROM energy
+            WHERE batch_id IN (
+                SELECT batch_id
+                FROM batch
+                WHERE LOWER(batch_name) = LOWER(%s)
             )
         """, (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()
 
 def clear_batch(batch_name):
     """Clears batch record from Batch table."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_connection()
+    c = conn.cursor()
     try:
-        conn.execute("DELETE FROM Batch WHERE LOWER(Batch_Name) = LOWER(?)", (batch_name,))
+        c.execute("DELETE FROM batch WHERE LOWER(batch_name) = LOWER(%s)", (batch_name,))
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Database Error: {e}")
     finally:
-        conn.close()
+        c.close()

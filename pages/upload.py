@@ -69,6 +69,7 @@ with st.spinner("Loading page...", show_time=True):
         "Capacity": [30, 40],
         "Actual_Occupancy": [17, 34],
         "Day": ["Mon", "Thursday"],
+        "Scheduled_Hours": [2, 2],
         "Time_Slot": ["10.00-12.00", "14.00-16.00"],
         "Week": [4, 7]
     }
