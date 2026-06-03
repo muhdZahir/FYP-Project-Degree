@@ -67,6 +67,7 @@ with st.spinner("Loading page...", show_time=True):
         "Classroom_ID": ["1901", "802"],
         "Floor": [19, 8],
         "Capacity": [30, 40],
+        "Scheduled_Hours": [2, 2],
         "Actual_Occupancy": [17, 34],
         "Day": ["Mon", "Thursday"],
         "Time_Slot": ["10.00-12.00", "14.00-16.00"],
