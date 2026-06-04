@@ -27,21 +27,36 @@ with st.spinner("Loading page...", show_time=True):
         try:
             class_df = compute_utilization(class_df)
             
-            if "week" in class_df.columns:
-                weekly = class_df.groupby("week")["Percent_Utilize"].mean().reset_index()
-            else:
-                weekly = class_df.groupby(class_df.index)["Percent_Utilize"].mean().reset_index()
-                weekly.rename(columns={"index": "week"}, inplace=True)
+            model_df = class_df[["week", "capacity", "actual_occupancy"]].copy()
         except Exception as e:
             st.warning(f"Classroom Data Error: {e}")
 
     # Pre-process energy data
-    if not energy_df.empty:
+    if not energy_df.empty and not class_df.empty:
         try:
+            # Energy
             energy_df["Month_Num"] = energy_df["month"].apply(normalize_month)
-            monthly_cost = energy_df.groupby("Month_Num")["energy_cost"].sum().reset_index()
-            monthly_cost["Month_Num"] = pd.to_numeric(monthly_cost["Month_Num"], errors='coerce')
-            monthly_cost = monthly_cost.sort_values("Month_Num").reset_index(drop=True)
+
+            monthly_cost = (energy_df.groupby("Month_Num")["energy_cost"].sum().reset_index())
+
+            # Occupancy
+            class_df["Month_Num"] = class_df["week"].apply(map_week_to_month)
+            monthly_occ = (class_df.groupby("Month_Num")["actual_occupancy"].sum().reset_index())
+
+            # Merge
+            energy_model_df = pd.merge(
+                monthly_cost,
+                monthly_occ,
+                on="Month_Num",
+                how="inner"
+            )
+
+            energy_model_df["Month_Num"] = pd.to_numeric(
+                energy_model_df["Month_Num"],
+                errors="coerce"
+            )
+
+            energy_model_df = (energy_model_df.sort_values("Month_Num").reset_index(drop=True))
         except Exception as e:
             st.warning(f"Energy Data Error: {e}")
 
@@ -67,7 +82,7 @@ with st.spinner("Loading page...", show_time=True):
         with st.expander("🔍 View AI Forecasting Logic (Data Sources, Models & Math)"):
             st.markdown("""
             **1. Next Semester Demand**
-            > 📂 **Data Source:** Classroom Data *(Columns: Week, Percent_Utilize)*  
+            > 📂 **Data Source:** Classroom Data *(Columns: Week, Capacity, Actual_Occupancy)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting
             steady student growth or decline without overfitting the data.  
@@ -75,40 +90,41 @@ with st.spinner("Loading page...", show_time=True):
             Linear Regression Projection on Avg Fullness %)*
             
             **2. Next Month Est. Cost**
-            > 📂 **Data Source:** Energy Data *(Columns: Month, Energy_Cost)*  
+            > 📂 **Data Source:** Energy Data *(Columns: Month, Occupancy, Energy_Cost)* 
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing
             patterns. It calculates the realistic financial baseline.  
             > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes.
             *(Formula: Linear Regression Trend × Expected Operating Days)*
-            
-            **3. Projected 4-Month Wastage**
-            > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
-            > ⚙️ **AI Engine:** Linear Regression + Residual (Extra Cost) Tracking  
-            > 💡 **Why This Engine:** It compares your actual monthly bill with the bill that is expected from student occupancy. Any extra amount above
-            expected is treated as avoidable wastage.  
-            > 🧮 **AI Audit Rule:** Build expected cost line from occupancy, then sum only positive gaps *(Actual Cost - Expected Cost, if positive)* and
-            project for 4 months. *(Formula: Avg Monthly Extra Cost × 4 Months)*
             """)
 
-        col1, col2, col3 = st.columns([1.2, 1.4, 1.4])
+        col1, col2 = st.columns(2)
         
         # Prediction 1: 14-Week Demand
         future_weeks_df = pd.DataFrame()
         pred_demand_avg = 0
-        if not class_df.empty and len(weekly) >= 2:
+        if not class_df.empty and len(class_df["week"].unique()) >= 2:
             try:
-                X_d = weekly["week"].values.reshape(-1, 1)
-                y_d = weekly["Percent_Utilize"].values
+                avg_capacity = class_df["capacity"].mean()
+
+                X_d = model_df[["week", "capacity"]]
+                y_d = model_df["actual_occupancy"]
 
                 model_d = LinearRegression().fit(X_d, y_d)
                 
-                max_w = int(weekly["week"].max())
-                future_w = np.array([[max_w + i] for i in range(1, 15)])
-                future_p = np.clip(model_d.predict(future_w), 0, 100)
+                max_w = int(class_df["week"].max())
+                future_df = pd.DataFrame({
+                    "week": [max_w + i for i in range(1, 15)],
+                    "capacity": [avg_capacity] * 14
+                })
+
+                future_occ = model_d.predict(future_df)
+                future_util = (
+                    future_occ / avg_capacity
+                ) * 100
                 
-                future_weeks_df = pd.DataFrame({"week": future_w.flatten(), "Percent_Utilize": future_p, "Type": "Prediction"})
-                pred_demand_avg = future_p.mean()
+                future_weeks_df = pd.DataFrame({"Week": future_df["week"], "Actual_Occupancy": future_occ, "Capacity": avg_capacity, "Percent_Utilize": future_util, "Type": "Prediction"})
+                pred_demand_avg = future_util.mean()
                 with col1:
                     st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
             except Exception as e:
@@ -121,16 +137,24 @@ with st.spinner("Loading page...", show_time=True):
         # Prediction 2: Energy
         pred_e = 0
         avg_monthly_cost = 0
-        if not energy_df.empty and len(monthly_cost) >= 2:
+        if not energy_df.empty and len(energy_model_df) >= 2:
             try:
-                X_e = pd.to_numeric(monthly_cost["Month_Num"]).values.reshape(-1, 1)
-                y_e = monthly_cost["energy_cost"].values
+                X_e = energy_model_df[["Month_Num", "actual_occupancy"]]
+                y_e = energy_model_df["energy_cost"]
 
                 model_e = LinearRegression().fit(X_e, y_e)
                 
-                next_m = int(monthly_cost["Month_Num"].astype(int).max()) + 1
-                pred_e = max(0, model_e.predict([[next_m]])[0])
-                avg_monthly_cost = energy_df["energy_cost"].mean()
+                next_m = int(energy_model_df["Month_Num"].max()) + 1
+
+                avg_occ = (energy_model_df["actual_occupancy"].mean())
+
+                future_energy = pd.DataFrame({
+                    "Month_Num": [next_m],
+                    "actual_occupancy": [avg_occ]
+                })
+
+                pred_e = max(0, model_e.predict(future_energy)[0])
+                avg_monthly_cost = energy_model_df["energy_cost"].mean()
                 with col2:
                     st.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
             except Exception as e:
@@ -140,40 +164,6 @@ with st.spinner("Loading page...", show_time=True):
             with col2:
                 st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available.")
 
-        # Prediction 3: Cost of Inaction
-        if not class_df.empty and not energy_df.empty:
-            try:
-                c_copy = class_df.copy()
-                c_copy["Month_Map"] = c_copy["week"].apply(map_week_to_month)
-                e_copy = energy_df.copy()
-                e_copy["Month_Map"] = e_copy["month"].apply(normalize_month)
-                
-                occ_m = c_copy.groupby("Month_Map")["actual_occupancy"].sum().reset_index()
-                eng_m = e_copy.groupby("Month_Map")["energy_cost"].sum().reset_index()
-                merged = pd.merge(occ_m, eng_m, on="Month_Map").dropna(subset=["actual_occupancy", "energy_cost"])
-
-                if len(merged) >= 2:
-                    waste_model = LinearRegression().fit(merged[["actual_occupancy"]], merged["energy_cost"])
-                    merged["Expected_Cost"] = waste_model.predict(merged[["actual_occupancy"]])
-                    merged["Extra_Cost"] = (merged["energy_cost"] - merged["Expected_Cost"]).clip(lower=0)
-                    avg_monthly_extra_cost = merged["Extra_Cost"].mean()
-                    waste = avg_monthly_extra_cost * 4
-                else:
-                    # Fallback if overlap is too little: use a conservative 10% of average monthly bill
-                    avg_monthly_extra_cost = energy_df["energy_cost"].mean() * 0.10
-                    waste = avg_monthly_extra_cost * 4
-
-                col3.metric("Projected 4-Month Wastage",
-                            f"RM {waste:,.2f}",
-                            delta="-High Risk",
-                            delta_color="inverse",
-                            help="Estimated avoidable cost over 4 months, based on extra bill above expected usage."
-                        )
-                st.caption(f"Simple logic: average monthly extra cost is RM {avg_monthly_extra_cost:,.2f}; projected semester wastage = monthly extra × 4.")
-            except Exception as e:
-                col3.metric("Projected 4-Month Wastage", "Error")
-                st.warning(f"Unable to estimate wastage: {e}")
-
         # ---------------------------------------------------------
         # VISUALIZING THE TRENDS
         # ---------------------------------------------------------
@@ -182,7 +172,7 @@ with st.spinner("Loading page...", show_time=True):
         
         if not class_df.empty and not future_weeks_df.empty:
             try:
-                historical = weekly.copy()
+                historical = class_df.groupby("week")["Percent_Utilize"].mean().reset_index()
                 historical["Type"] = "Historical"
                 combined_class = pd.concat([historical, future_weeks_df], ignore_index=True)
                 
@@ -194,9 +184,9 @@ with st.spinner("Loading page...", show_time=True):
         else:
             chart_col1.info("No classroom data available to visualize demand.")
                 
-        if not energy_df.empty and 'next_m' in locals() and len(monthly_cost) >= 2:
+        if not energy_df.empty and 'next_m' in locals() and len(energy_model_df) >= 2:
             try:
-                monthly_plot = monthly_cost.copy()
+                monthly_plot = energy_model_df[["Month_Num", "energy_cost"]].copy()
                 monthly_plot["Type"] = "Historical"
                 pred_row = pd.DataFrame({"Month_Num": [next_m], "energy_cost": [pred_e], "Type": ["Prediction"]})
                 combined_energy = pd.concat([monthly_plot, pred_row], ignore_index=True)
