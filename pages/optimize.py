@@ -123,7 +123,7 @@ with st.spinner("Loading page...", show_time=True):
                     future_occ / avg_capacity
                 ) * 100
                 
-                future_weeks_df = pd.DataFrame({"Week": future_df["week"], "Actual_Occupancy": future_occ, "Capacity": avg_capacity, "Percent_Utilize": future_util, "Type": "Prediction"})
+                future_weeks_df = pd.DataFrame({"week": future_df["week"], "actual_occupancy": future_occ, "capacity": avg_capacity, "Percent_Utilize": future_util, "Type": "Prediction"})
                 pred_demand_avg = future_util.mean()
                 with col1:
                     st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
