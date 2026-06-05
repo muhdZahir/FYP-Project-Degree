@@ -6,7 +6,7 @@ def style_chart(fig, title_x):
     fig.update_layout(
         title=dict(
             font=dict(size=20),   # ← change size here
-            x=title_x                 # ← position the title
+            x=title_x             # ← position the title
         ),
         xaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change x axis font (title and tick) size
         yaxis=dict(title_font=dict(size=20), tickfont=dict(size=15)), # ← change y axis font (title and tick) size
@@ -87,21 +87,49 @@ def plot_correlation(corr_df, color, text):
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     return fig
 
-# plot next semester classroom demand
-def plot_next_classroom_demand(combined):
+# plot classroom occupancy
+def plot_classroom_occupancy(historical):
     fig = px.line(
-        combined,
+        historical,
         x="Week",
-        y="Percent_Utilize",
+        y="Actual_Occupancy",
         color="Type", 
-        labels={"Percent_Utilize": "Avg Utilization (%)"},
-        title="Classroom Demand Trend",
+        labels={"Actual_Occupancy": "Average Attendance"},
+        title="Average Attendance by Week",
         markers=True
     )
-    return style_chart(fig, 0.1)
+    return style_chart(fig, 0.2)
 
-# plot next month energy cost
-def plot_next_energy_cost(combined):
+# plot attendance prediction
+def plot_attendance_prediction(df, student_input, pred_occ):
+    fig = px.line(
+        df,
+        x="Number_of_Students",
+        y="Predicted_Occupancy",
+        labels=dict(Number_of_Students="Number of Students Enrolled", Predicted_Occupancy="Predicted Attendance"),
+        title="Attendance Prediction Model",
+        markers=True
+    )
+
+    fig.add_scatter(
+        x=[student_input],
+        y=[pred_occ],
+        mode="markers+text",
+        name="Selected Prediction",
+        text=[
+            f"Students Enrolled: {student_input:.0f}<br>Cost: RM {pred_occ:.2f}"
+        ],
+        textposition="bottom right",
+        marker=dict(
+            color="red",
+            size=8,
+            symbol="diamond"
+        )
+    )
+    return style_chart(fig, 0.2)
+
+# plot monthly energy cost
+def plot_monthly_energy_cost(combined):
     fig = px.line(
         combined,
         x="Month_Num",
@@ -111,4 +139,34 @@ def plot_next_energy_cost(combined):
         title="Energy Cost Trend",
         markers=True
     )
-    return style_chart(fig, 0.2)
+    return style_chart(fig, 0.3)
+
+# plot energy cost prediction
+def plot_cost_prediction(df, pred_occ, pred_energy):
+    fig = px.line(
+        df,
+        x="Actual_Occupancy",
+        y="Predicted_Energy_Cost",
+        title="Energy Cost Prediction Model",
+        labels={
+            "Actual_Occupancy": "Student Attendance",
+            "Predicted_Energy_Cost": "Predicted Energy Cost (RM)"
+        }
+    )
+
+    fig.add_scatter(
+        x=[pred_occ], # from attendance model
+        y=[pred_energy],
+        mode="markers+text",
+        name="Selected Prediction",
+        text=[
+            f"Attendance: {pred_occ:.0f}<br>Cost: RM {pred_energy:.2f}"
+        ],
+        textposition="bottom right",
+        marker=dict(
+            color="red",
+            size=8,
+            symbol="diamond"
+        )
+    )
+    return style_chart(fig, 0.25)
