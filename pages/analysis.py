@@ -26,7 +26,7 @@ def run_classroom_analysis(class_df):
             💡 **What this means:** These are rooms that are ranked lowest in terms of utilization. If we move these classes, we can turn off the electric power
             in those large rooms entirely.  
             
-            > 📂 **Data Source:** Classroom Data *(Columns: Classroom_ID, Capacity, Actual_Occupancy)*  
+            > 📂 **Data Source:** Classroom Data *(Columns: Classroom_Name, Capacity, Actual_Occupancy)*  
             > 📊 **Chart Selection:** Bar Chart  
             > 💡 **Why this Chart:** It makes it incredibly easy to compare rooms side-by-side. The tallest bar instantly shows you the biggest space-waster
             without needing to read a single number.  
@@ -34,7 +34,7 @@ def run_classroom_analysis(class_df):
             × 100)*
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
-    max_rooms = df["Classroom_ID"].nunique()
+    max_rooms = df["Classroom_Name"].nunique()
     max_slider = min(50, max_rooms)
 
     if max_slider <= 3:

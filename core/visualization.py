@@ -18,14 +18,14 @@ def style_chart(fig, title_x):
 def plot_underutilized_rooms(df, n):
     fig = px.bar(
         df,
-        x="Classroom_ID",
+        x="Classroom_Name",
         y="Percent_Utilize",
         color="Percent_Utilize",
         color_continuous_scale="Reds",
         range_color=[0, 100],
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
-        labels={"Classroom_ID": "Classroom ID","Percent_Utilize": "Utilization (%)"}
+        labels={"Classroom_Name": "Classroom Name","Percent_Utilize": "Utilization (%)"}
     )
     fig.update_layout(
         xaxis=dict(type='category'), # ← change x axis font (title and tick) size

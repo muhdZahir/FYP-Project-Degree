@@ -197,7 +197,7 @@ with st.spinner("Loading page...", show_time=True):
                 chart_col1.error(f"Chart Error: {e}")
         else:
             chart_col1.info("No classroom data available to visualize demand.")
-                
+
         if not energy_df.empty and 'next_m' in locals() and len(energy_model_df) >= 2:
             try:
                 monthly_plot = energy_model_df[["Month_Num", "Energy_Cost"]].copy()

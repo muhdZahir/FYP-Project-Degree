@@ -14,11 +14,12 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS Classroom (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Classroom_ID TEXT,
+            Classroom_Name TEXT,
             Floor INTEGER,
             Capacity INTEGER,
-            Scheduled_Hours REAL,
+            Number_of_Students INTEGER,
             Actual_Occupancy INTEGER,
+            Energy_Cost REAL,
             Day TEXT,
             Time_Slot TEXT,
             Week INTEGER,
@@ -94,9 +95,7 @@ def save_to_db(df, table_name, batch_name):
                 f"{table_name} data saved successfully for batch '{batch_name}'.",
                 icon="✅"
             )
-
         return True
-
     except Exception as e:
         st.error(f"Database Error: {e}")
         return False
@@ -147,7 +146,7 @@ def load_from_db(table_name, batch_name):
         # secara terus ke dalam string SQL.
         if table_name == 'Classroom':
             df = pd.read_sql_query(
-                "SELECT Classroom.Classroom_ID, Classroom.Floor, Classroom.Capacity, Classroom.Scheduled_Hours, Classroom.Actual_Occupancy, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "
+                "SELECT Classroom.Classroom_Name, Classroom.Floor, Classroom.Capacity, Classroom.Number_of_Students, Classroom.Actual_Occupancy, Classroom.Energy_Cost, Classroom.Day, Classroom.Time_Slot, Classroom.Week, Batch.Batch_Name "
                 "FROM Classroom INNER JOIN Batch ON Classroom.Batch_id = Batch.Batch_id WHERE Batch.Batch_Name = ?",
                 conn,
                 params=(batch_name,)

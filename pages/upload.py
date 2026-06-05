@@ -64,11 +64,12 @@ with st.spinner("Loading page...", show_time=True):
             """)
 
     class_example = {
-        "Classroom_ID": ["1901", "802"],
+        "Classroom_Name": ["1901", "802"],
         "Floor": [19, 8],
         "Capacity": [30, 40],
-        "Scheduled_Hours": [2, 2],
+        "Number_of_Students": [25, 35],
         "Actual_Occupancy": [17, 34],
+        "Energy_Cost": [20.5, 35.0],
         "Day": ["Mon", "Thursday"],
         "Time_Slot": ["10.00-12.00", "14.00-16.00"],
         "Week": [4, 7]
@@ -100,8 +101,10 @@ with st.spinner("Loading page...", show_time=True):
         st.write(f"Preprocessing steps taken:\n"
                 f"- Dropped rows with any missing values.\n\n"
                 f"**CLASSROOM DATA:**\n"
-                f"- Dropped rows with non-numeric values in **'Capacity'**, **'Scheduled_Hours'**, and **'Actual_Occupancy'**.\n"
-                f"- Dropped rows where **'Capacity'** is negative or 0, **'Actual_Occupancy'** is negative or greater than **'Capacity'**.\n"
+                f"- Dropped rows with non-numeric values in **'Capacity'**, **'Number_of_Students'**, **'Actual_Occupancy'**, and **'Energy_Cost'**.\n"
+                f"- Dropped rows where **'Capacity'** is negative or 0.\n"
+                f"- Dropped rows where **'Number_of_Students'** is negative or greater than **'Capacity'**.\n"
+                f"- Dropped rows where **'Actual_Occupancy'** is negative or greater than **'Capacity'** or **'Number_of_Students'**.\n"
                 f"- Standardized **'Day'** to 3-letter format and dropped invalid days.\n"
                 f"- Dropped rows with invalid time slot format (e.g., not like '10:00-12:00').\n"
                 f"- Dropped rows with invalid week numbers (not between 1-16).\n"
@@ -129,7 +132,7 @@ with st.spinner("Loading page...", show_time=True):
         st.write("Uploaded Files:")
 
         #reqiured columns for class and energy
-        class_col = ["Classroom_ID","Floor","Capacity","Scheduled_Hours","Actual_Occupancy","Day","Time_Slot","Week"]
+        class_col = ["Classroom_Name","Floor","Capacity","Number_of_Students","Actual_Occupancy","Energy_Cost","Day","Time_Slot","Week"]
         energy_col = ["Floor","Month","Energy_kWh","Energy_Cost"]
         
         for file in uploaded_files:
@@ -201,10 +204,11 @@ with st.spinner("Loading page...", show_time=True):
     if 'class_df' in locals() and not class_df.empty:
         class_df = class_df.dropna() # drop missing values in a row
 
-        # Convert string data in Week, Capacity, Scheduled_Hours, & Actual_Occupancy to numeric, coercing errors to NaN
+        # Convert string data in Week, Capacity, Number_of_Students, Actual_Occupancy & Energy_Cost to numeric, coercing errors to NaN
         class_df['Capacity_clean'] = pd.to_numeric(class_df['Capacity'], errors='coerce')
-        class_df['Scheduled_clean'] = pd.to_numeric(class_df['Scheduled_Hours'], errors='coerce')
+        class_df['Number_of_Students_clean'] = pd.to_numeric(class_df['Number_of_Students'], errors='coerce')
         class_df['ActOccu_clean'] = pd.to_numeric(class_df['Actual_Occupancy'], errors='coerce')
+        class_df['Energy_Cost_clean'] = pd.to_numeric(class_df['Energy_Cost'], errors='coerce')
         class_df['Week_clean'] = pd.to_numeric(class_df['Week'], errors='coerce')
 
         # Day of week standardization (Mon, Monday, mon -> Monday)
@@ -230,25 +234,27 @@ with st.spinner("Loading page...", show_time=True):
             class_df = class_df.drop(columns=['Time_Slot_invalid'])
 
         # Flag rows where Capacity is invalid (negative or 0)
-        class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)
-        # Flag rows where Actual Occupancy is invalid (negative or greater than capacity)
-        class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean'])
+        class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)  
+        # Flag rows where Number of Students is invalid (negative or greater than capacity)
+        class_df['Number_of_Students_invalid'] = (class_df['Number_of_Students_clean'] < 0) | (class_df["Number_of_Students_clean"] > class_df["Capacity_clean"])
+        # Flag rows where Actual Occupancy is invalid (negative or greater than capacity or number of students)
+        class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean']) | (class_df['ActOccu_clean'] > class_df['Number_of_Students_clean'])
 
         # Flag rows duplicate of same data during the same time period
-        class_df['Duplicate_class'] = class_df.duplicated(subset=["Classroom_ID", "Week", "Day", "Time_Slot"], keep="first")
+        class_df['Duplicate_class'] = class_df.duplicated(subset=["Classroom_Name", "Week", "Day", "Time_Slot"], keep="first")
 
         # Drop rows where data is NaN (meaning original value was not numeric)
-        class_df = class_df.dropna(subset=['Capacity_clean', 'Scheduled_clean', 'ActOccu_clean', 'Week_clean'])
-        class_df = class_df[# Drop Capacity is invalid (negative or 0) or Actual Occupancy is invalid (negative or greater than capacity)
-            ~class_df['Capacity_invalid'] & ~class_df['ActOccu_invalid'] &
+        class_df = class_df.dropna(subset=['Capacity_clean', 'Number_of_Students_clean', 'ActOccu_clean', 'Energy_Cost_clean', 'Week_clean'])
+        class_df = class_df[# Drop invalid Capacity (negative or 0) or invalid Actual Occupancy (negative or greater than capacity) or invalid Number of Students (negative or greater than capacity)
+            ~class_df['Capacity_invalid'] & ~class_df['ActOccu_invalid'] & ~class_df['Number_of_Students_invalid'] &
             ~class_df['Week_invalid'] & # Drop invalid week numbers
             ~class_df['Duplicate_class'] # Drop duplicate lessons in the same time period
         ]
 
         # Remove the temporary cleaned column
         class_df = class_df.drop(
-            columns=['Capacity_clean', 'Scheduled_clean', 'ActOccu_clean', 'Week_clean',
-                     'Capacity_invalid', 'ActOccu_invalid', 'Week_invalid',
+            columns=['Capacity_clean', 'Number_of_Students_clean', 'ActOccu_clean', 'Energy_Cost_clean', 'Week_clean',
+                     'Capacity_invalid', 'ActOccu_invalid', 'Number_of_Students_invalid', 'Week_invalid',
                      'Duplicate_class']
         )
 
