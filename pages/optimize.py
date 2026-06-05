@@ -278,7 +278,7 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty:
             try:
-                r_avg = class_df.groupby('Classroom_ID').agg(
+                r_avg = class_df.groupby('Classroom_Name').agg(
                     Percent_Utilize=('Percent_Utilize', 'mean'),
                     Avg_Students=('Actual_Occupancy', 'mean'),
                     Room_Size=('Capacity', 'first') 
@@ -297,16 +297,16 @@ with st.spinner("Loading page...", show_time=True):
                 if len(low_util_rooms) >= 3:
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
                     room_list = ", ".join(
-                                    low_util_rooms['Classroom_ID'].astype(str)
+                                    low_util_rooms['Classroom_Name'].astype(str)
                                 )
                     st.error(f"**SPACE WASTAGE:** {len(low_util_rooms)} rooms are consistently empty.\n\n"
                              f"**Underutilized Rooms:** {room_list}\n\n"
-                             f"**Reality:** For example, room {w_room['Classroom_ID']} and room {b_room['Classroom_ID']} has **{int(w_room['Room_Size'])} \
+                             f"**Reality:** For example, room {w_room['Classroom_Name']} and room {b_room['Classroom_Name']} has **{int(w_room['Room_Size'])} \
                              seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
                              (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
                              f"**Action:** Consider moving the lectures in these rooms to smaller rooms or combining them to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
-                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['Classroom_ID']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
+                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['Classroom_Name']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:

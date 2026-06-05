@@ -171,7 +171,7 @@ with st.spinner("Loading page...", show_time=True):
         edit_batch_name = batch_name
 
         if st.session_state['show']:
-            st.header(f"Data Records for Batch: {batch_name}")
+            st.header(f"Data Records for Batch")
             st.write(f"Review the data records for the selected batch. You can choose to edit the batch name or clear the Classroom or Energy data, but "
                     f"please note that the delete action is irreversible and will permanently remove the data from the database.\n"
                     f"Make sure to double-check the data before confirming deletion.\n")
@@ -248,7 +248,7 @@ with st.spinner("Loading page...", show_time=True):
                 st.subheader(f"Classroom Data Records")
                 # Display the classroom data with formatted column names for better readability and only essential columns
                 class_df_renamed = class_df.rename(columns=lambda x: x.replace("_", " ").title())
-                st.dataframe(class_df_renamed[["Classroom Name", "Floor", "Capacity", "Number of Students", "Actual Occupancy", "Energy Cost", "Day", "Time Slot", "Week"]])
+                st.dataframe(class_df_renamed[["Classroom Name", "Floor", "Capacity", "Number Of Students", "Actual Occupancy", "Energy Cost", "Day", "Time Slot", "Week"]])
 
                 if st.session_state['delete_pending'] == "Classroom":
                     confirm_delete("Classroom", batch_name)

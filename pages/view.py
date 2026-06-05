@@ -36,7 +36,7 @@ with st.spinner("Loading page...", show_time=True):
             st.subheader(f"Classroom Data Records")
             # Display the classroom data with formatted column names for better readability and only essential columns
             class_df_renamed = class_df.rename(columns=lambda x: x.replace("_", " ").title())
-            st.dataframe(class_df_renamed[["Classroom Name", "Floor", "Capacity", "Number of Students", "Actual Occupancy", "Energy Cost", "Day", "Time Slot", "Week"]])
+            st.dataframe(class_df_renamed[["Classroom Name", "Floor", "Capacity", "Number Of Students", "Actual Occupancy", "Energy Cost", "Day", "Time Slot", "Week"]])
 
         if 'energy_df' in locals() and not energy_df.empty:
             st.subheader(f"Energy Data Records")
