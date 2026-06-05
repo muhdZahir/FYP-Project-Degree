@@ -80,7 +80,8 @@ def center_button():
 def compute_utilization(df):
     df = df.copy()
     try:
-        df["Utilization"] = df["Actual_Occupancy"] / df["Capacity"]
+        # Prevent division by zero when capacity is 0
+        df["Utilization"] = np.where(df["Capacity"] == 0, 0, df["Actual_Occupancy"] / df["Capacity"])
         df.loc[df["Actual_Occupancy"] == 0, "Utilization"] = 0
         df["Percent_Utilize"] = df["Utilization"] * 100
         
@@ -103,7 +104,10 @@ def compute_rooms_difference(worst, second, best, avg):
 
 # Calculate percentage contribution
 def compute_contribution(df, total):
-    df["Contribution (%)"] = (df["Energy_Cost"] / total * 100)
+    if total == 0:
+        df["Contribution (%)"] = 0
+    else:
+        df["Contribution (%)"] = (df["Energy_Cost"] / total * 100)
     df.loc[df["Energy_Cost"] == 0, "Contribution (%)"] = 0
     return df
 

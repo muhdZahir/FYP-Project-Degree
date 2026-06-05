@@ -14,6 +14,18 @@ def style_chart(fig, title_x):
     )
     return fig
 
+# helper to sort floor names numerically
+def get_category_orders(df):
+    orders = {}
+    if "Floor" in df.columns:
+        def extract_num(floor_str):
+            try:
+                return int(''.join(filter(str.isdigit, str(floor_str))))
+            except ValueError:
+                return 0
+        orders["Floor"] = sorted(df["Floor"].unique().tolist(), key=extract_num)
+    return orders
+
 # plot underutilized rooms
 def plot_underutilized_rooms(df, n):
     fig = px.bar(
@@ -34,12 +46,24 @@ def plot_underutilized_rooms(df, n):
 
 # plot floor x time slot
 def plot_heatmap(df):
+    # Sort floors numerically so "Floor 10" comes after "Floor 9" instead of "Floor 1"
+    def extract_num(floor_str):
+        try:
+            # Extract digits from string, e.g., "Floor 10" -> 10
+            return int(''.join(filter(str.isdigit, str(floor_str))))
+        except ValueError:
+            return 0
+            
+    sorted_floors = sorted(df.index.tolist(), key=extract_num)
+    df_sorted = df.loc[sorted_floors]
+
     fig = px.imshow(
-        df,
+        df_sorted,
         labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
         color_continuous_scale="Reds",
         range_color=[0, 100],
-        title="Avg Utilization Rate (%) by Floor and Time"
+        title="Avg Utilization Rate (%) by Floor and Time",
+        aspect="auto"
     )
     return style_chart(fig, 0.25)
 
@@ -52,7 +76,8 @@ def plot_monthly_cost(df):
         color="Floor",
         labels={"Energy_Cost": "Energy Cost (RM)"},
         title="Floor Energy Cost by Month",
-        markers=True
+        markers=True,
+        category_orders=get_category_orders(df)
     )
     return style_chart(fig, 0.35)
 
@@ -63,8 +88,10 @@ def plot_pie(df):
         names="Floor",
         values="Energy_Cost",
         title="Energy Cost (RM) Contribution by Floor to Total Energy Cost",
-        labels={"Energy_Cost": "Energy Cost (RM)"}
+        labels={"Energy_Cost": "Energy Cost (RM)"},
+        category_orders=get_category_orders(df)
     )
+    fig.update_traces(sort=False)
     return style_chart(fig, 0.2)
 
 # plot correlation
@@ -77,7 +104,8 @@ def plot_correlation(corr_df, color, text):
         size="Energy_Cost",
         title=text,
         labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
-        hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns]
+        hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns],
+        category_orders=get_category_orders(corr_df)
     )
     fig = style_chart(fig, 0.2)
 
