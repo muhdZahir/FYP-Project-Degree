@@ -34,10 +34,15 @@ def plot_underutilized_rooms(df, n):
         y="Percent_Utilize",
         color="Percent_Utilize",
         color_continuous_scale="Reds",
+        labels={"Percent_Utilize": "Utilization (%)", "Classroom_Name": "Classroom"},
         range_color=[0, 100],
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
-        labels={"Classroom_Name": "Classroom Name","Percent_Utilize": "Utilization (%)"}
+    )
+    fig.update_traces(
+        hovertemplate=
+            "<b>%{x}</b><br>" +
+            "Utilization: %{y:.2f}%<extra></extra>"
     )
     fig.update_layout(
         xaxis=dict(type='category'), # ← change x axis font (title and tick) size
@@ -59,11 +64,18 @@ def plot_heatmap(df):
 
     fig = px.imshow(
         df_sorted,
-        labels=dict(x="Time Slot", y="Floor", color="Utilization (%)"),
         color_continuous_scale="Reds",
+        labels={"x": "Time Slot", "y": "Floor", "color": "Utilization (%)"},
         range_color=[0, 100],
+        text_auto='.1f',
         title="Avg Utilization Rate (%) by Floor and Time",
         aspect="auto"
+    )
+    fig.update_traces(
+        hovertemplate=
+            "<b>%{y}</b><br>" +
+            "Time Slot: %{x}<br>" +
+            "Utilization: %{z:.2f}%<extra></extra>"
     )
     return style_chart(fig, 0.25)
 
@@ -79,6 +91,12 @@ def plot_monthly_cost(df):
         markers=True,
         category_orders=get_category_orders(df)
     )
+    fig.update_traces(
+        hovertemplate=
+            "<b>%{fullData.name}</b><br>" +
+            "Month: %{x}<br>" +
+            "Cost: RM %{y:.2f}%<extra></extra>"
+    )
     return style_chart(fig, 0.35)
 
 # plot floor energy contribution
@@ -88,8 +106,13 @@ def plot_pie(df):
         names="Floor",
         values="Energy_Cost",
         title="Energy Cost (RM) Contribution by Floor to Total Energy Cost",
-        labels={"Energy_Cost": "Energy Cost (RM)"},
         category_orders=get_category_orders(df)
+    )
+    fig.update_traces(
+        hovertemplate=
+            "<b>%{label}</b><br>" +
+            "Energy Cost: RM %{value:,.2f}<br>" +
+            "Contribution: %{percent}<extra></extra>"
     )
     fig.update_traces(sort=False)
     return style_chart(fig, 0.2)
@@ -101,11 +124,18 @@ def plot_correlation(corr_df, color, text):
         x="Actual_Occupancy",
         y="Energy_Cost",
         color=color,
+        labels={"Actual_Occupancy": "Occupancy", "Energy_Cost": "Energy Cost (RM)"},
         size="Energy_Cost",
         title=text,
-        labels={"Actual_Occupancy": "Total Occupancy", "Energy_Cost": "Total Cost (RM)"},
         hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns],
         category_orders=get_category_orders(corr_df)
+    )
+    fig.update_traces(
+        hovertemplate=
+            "Month: %{customdata[0]}<br>" +
+            "Floor: %{customdata[1]}<br>" +
+            "Occupancy: %{x:.0f}<br>" +
+            "Energy Cost: RM %{y:,.2f}<extra></extra>"
     )
     fig = style_chart(fig, 0.2)
 
@@ -116,15 +146,20 @@ def plot_correlation(corr_df, color, text):
     return fig
 
 # plot classroom occupancy
-def plot_classroom_occupancy(historical):
+def plot_classroom_occupancy(df):
     fig = px.line(
-        historical,
+        df,
         x="Week",
         y="Actual_Occupancy",
-        color="Type", 
-        labels={"Actual_Occupancy": "Average Attendance"},
+        color="Type",
+        labels={"Actual_Occupancy": "Average Student Attendance"},
         title="Average Attendance by Week",
         markers=True
+    )
+    fig.update_traces(
+        hovertemplate=
+            "Week: %{x}<br>" +
+            "Avg Attendance: %{y:.0f} students<extra></extra>"
     )
     return style_chart(fig, 0.2)
 
@@ -134,38 +169,49 @@ def plot_attendance_prediction(df, student_input, pred_occ):
         df,
         x="Number_of_Students",
         y="Predicted_Occupancy",
-        labels=dict(Number_of_Students="Number of Students Enrolled", Predicted_Occupancy="Predicted Attendance"),
+        labels={"Number_of_Students": "Students Enrolled", "Predicted_Occupancy": "Predicted Attendance"},
         title="Attendance Prediction Model",
         markers=True
+    )
+    fig.update_traces(
+        hovertemplate=
+            "Students Enrolled: %{x:.0f}<br>" +
+            "Predicted Attendance: %{y:.0f} students<extra></extra>",
     )
 
     fig.add_scatter(
         x=[student_input],
         y=[pred_occ],
-        mode="markers+text",
+        mode="markers",
         name="Selected Prediction",
-        text=[
-            f"Students Enrolled: {student_input:.0f}<br>Cost: RM {pred_occ:.2f}"
-        ],
-        textposition="bottom right",
         marker=dict(
             color="red",
             size=8,
             symbol="diamond"
+        ),
+        hovertemplate=(
+            "Students Enrolled: %{x:.0f}<br>"
+            "Predicted Attendance: %{y:.0f}"
+            "<extra></extra>"
         )
     )
     return style_chart(fig, 0.2)
 
 # plot monthly energy cost
-def plot_monthly_energy_cost(combined):
+def plot_monthly_energy_cost(df):
     fig = px.line(
-        combined,
+        df,
         x="Month_Num",
         y="Energy_Cost",
-        color="Type", 
-        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
+        color="Type",
+        labels={"Month_Num": "Month", "Energy_Cost": "Energy Cost (RM)"},
         title="Energy Cost Trend",
         markers=True
+    )
+    fig.update_traces(
+        hovertemplate=
+            "Month: %{x}<br>" +
+            "Cost: RM %{y:,.2f}<extra></extra>"
     )
     return style_chart(fig, 0.3)
 
@@ -181,20 +227,27 @@ def plot_cost_prediction(df, pred_occ, pred_energy):
             "Predicted_Energy_Cost": "Predicted Energy Cost (RM)"
         }
     )
+    fig.update_traces(
+        hovertemplate=
+            "Attendance: %{x:.0f}<br>"
+            "Energy Cost: RM %{y:.2f}"
+            "<extra></extra>",
+    )
 
     fig.add_scatter(
         x=[pred_occ], # from attendance model
         y=[pred_energy],
-        mode="markers+text",
+        mode="markers",
         name="Selected Prediction",
-        text=[
-            f"Attendance: {pred_occ:.0f}<br>Cost: RM {pred_energy:.2f}"
-        ],
-        textposition="bottom right",
         marker=dict(
             color="red",
             size=8,
             symbol="diamond"
+        ),
+        hovertemplate=(
+            "Attendance: %{x:.0f}<br>"
+            "Energy Cost: RM %{y:.2f}"
+            "<extra></extra>"
         )
     )
     return style_chart(fig, 0.25)
