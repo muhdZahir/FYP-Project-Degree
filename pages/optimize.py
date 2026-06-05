@@ -242,9 +242,12 @@ with st.spinner("Loading page...", show_time=True):
         if not class_df.empty and not energy_df.empty:
             try:
                 floor_energy = energy_df.groupby('Floor')['Energy_Cost'].sum().reset_index()
-                floor_energy['Cost_Pct'] = (floor_energy['Energy_Cost'] / floor_energy['Energy_Cost'].sum()) * 100
+                tot_energy = floor_energy['Energy_Cost'].sum()
+                floor_energy['Cost_Pct'] = (floor_energy['Energy_Cost'] / tot_energy * 100) if tot_energy > 0 else 0
+                
                 floor_occupancy = class_df.groupby('Floor')['Actual_Occupancy'].sum().reset_index()
-                floor_occupancy['Occ_Pct'] = (floor_occupancy['Actual_Occupancy'] / floor_occupancy['Actual_Occupancy'].sum()) * 100
+                tot_occ = floor_occupancy['Actual_Occupancy'].sum()
+                floor_occupancy['Occ_Pct'] = (floor_occupancy['Actual_Occupancy'] / tot_occ * 100) if tot_occ > 0 else 0
                 
                 merged_data = pd.merge(floor_energy, floor_occupancy, on='Floor')
                 merged_data['Gap'] = merged_data['Cost_Pct'] - merged_data['Occ_Pct']

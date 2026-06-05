@@ -169,7 +169,12 @@ def heatmap_findings(peak, lowest):
 def monthly_energy_cost_findings(monthly_sorted,df):
     # Identify highest, 2nd highest and lowest month
     high_month = monthly_sorted.iloc[0]
-    second_high_month = monthly_sorted.iloc[1]
+    
+    if len(monthly_sorted) >= 2:
+        second_high_month = monthly_sorted.iloc[1]
+    else:
+        second_high_month = high_month
+        
     low_month = monthly_sorted.iloc[-1]
 
     # Floors in highest month
