@@ -244,8 +244,8 @@ energy_df = pd.DataFrame()
 
 with st.spinner("Loading page...", show_time=True):
     st.title("ANALYSIS")
-    st.write(f"Analyze the data and generate insights to identify areas for improvement. The system provides insights into "
-            f"classroom usage and energy/electrical cost patterns, helping you make informed decisions about resource allocation and cost management.\n"
+    st.write("This page acts as an X-ray for your campus. It breaks down your actual student attendance and compares "
+             "it against your electricity bills to expose hidden patterns, 'ghost rooms', and expensive peak hours.\n"
     )
     st.write(f"Choose the semester data Batch stored in the system for analysis.")
             
