@@ -17,37 +17,37 @@ def classify_correlation(r2_score, baseline, slope):
     # 1. Relationship strength text
     # -----------------------------
     if r2_score < 0.3:
-        strength_text = "a **weak relationship** between occupancy and energy cost"
+        strength_text = "**weakly aligned** with student attendance"
     elif r2_score < 0.7:
-        strength_text = "a **moderate relationship** between occupancy and energy cost"
+        strength_text = "**moderately aligned** with student attendance"
     else:
-        strength_text = "a **strong relationship** between occupancy and energy cost"
+        strength_text = "**strongly aligned** with student attendance"
 
     # -----------------------------
     # 2. Baseline interpretation
     # -----------------------------
     if baseline > 0.5:
-        baseline_text = "a **high level of fixed energy usage**, meaning a large portion of energy is consumed regardless of occupancy"
+        baseline_text = "we have a **massive 'Ghost Bill'**, meaning a large portion of electricity is burned blindly even when no students are around"
     elif baseline > 0.2:
-        baseline_text = "a **noticeable baseline energy usage** even at lower occupancy levels"
+        baseline_text = "we have a **noticeable 'Ghost Bill'** running in the background"
     else:
-        baseline_text = "energy usage that is largely driven by actual occupancy levels"
+        baseline_text = "our electricity usage is efficiently driven by actual student attendance"
 
     # -----------------------------
     # 3. Special “autopilot” trigger
     # -----------------------------
     if r2_score < 0.3 and baseline > 0.5:
-        headline = "### **Observation: Energy usage is likely operating independently of occupancy (Autopilot behavior detected)**"
-        insight_extra = "This strongly suggests that systems such as air conditioning may be running continuously regardless of actual classroom usage."
+        headline = "### **Observation: Major 'Autopilot' Wastage Detected**"
+        insight_extra = "⚠️ **Warning:** Systems like air conditioning and lights are likely running 24/7 on autopilot, regardless of whether classrooms are empty."
     elif r2_score < 0.3:
-        headline = "### **Observation: Weak alignment between occupancy and energy usage**"
-        insight_extra = "This indicates that factors other than occupancy play a significant role in driving energy consumption."
+        headline = "### **Observation: Bills are NOT following student traffic**"
+        insight_extra = "💡 **Tip:** Something else is eating your electricity budget. You have 'blind spending' going on."
     elif baseline > 0.5:
-        headline = "### **Observation: High baseline energy consumption detected**"
-        insight_extra = "A large portion of energy cost appears to be fixed, regardless of how many students are present."
+        headline = "### **Observation: Very high baseline cost detected**"
+        insight_extra = "⚠️ **Warning:** A huge chunk of your bill is fixed. You are paying heavily even when the campus is completely empty."
     else:
-        headline = "### **Observation: Energy usage generally follows occupancy patterns**"
-        insight_extra = "Energy consumption appears to scale reasonably with classroom usage."
+        headline = "### **Observation: Bills are safely following student traffic**"
+        insight_extra = "✅ **Good News:** Your energy consumption scales nicely when students enter and leave."
 
     # -----------------------------
     # 4. Slope interpretation
@@ -103,21 +103,21 @@ def underutilized_rooms_findings(worst, second, best, avg):
     best_unused = 100 - best_util
 
     st.markdown(f"""
-    ### **Observation: Classroom Utilization Overview**
+    ### **Observation: Classroom Space Summary**
 
-    The campus average utilization is **{avg:.2f}%**.
+    On average, our campus is running at **{avg:.2f}%** capacity.
 
-    **Lowest Utilized Room**
-    - **Room {worst['classroom_name']}** has a seating capacity of **{worst_capacity}**, with an average attendance of **{worst_students} students**.
-    - This corresponds to a utilization rate of **{worst_util:.1f}%**, leaving **{worst_unused:.1f}%** of capacity unused.
+    **Biggest Space Waster**
+    - **Room {worst['classroom_name']}** has **{worst_capacity} seats**, but on average only **{worst_students} students** show up.
+    - This means the room is only **{worst_util:.1f}%** full, leaving **{worst_unused:.1f}%** of the seats completely empty.
 
-    **Highest Utilized Room**
-    - **Room {best['classroom_name']}** has a seating capacity of **{best_capacity}**, with an average attendance of **{best_students} students**.
-    - This corresponds to a utilization rate of **{best_util:.1f}%**, with **{best_unused:.1f}%** of capacity unoccupied.
+    **Most Efficient Room**
+    - **Room {best['classroom_name']}** has **{best_capacity} seats**, with an average of **{best_students} students** showing up.
+    - This room is **{best_util:.1f}%** full, with only **{best_unused:.1f}%** of seats empty.
 
-    **Context**
-    - The difference between the lowest and highest utilized rooms is **{best_util - worst_util:.1f}%**.
-    - This indicates variation in how classroom capacity is being used across the campus.
+    **What this means**
+    - There is a huge **{best_util - worst_util:.1f}%** gap in how efficiently we pack our classes.
+    - We could easily move the classes from the mostly-empty rooms into smaller ones, and completely shut off the power to the large halls.
     """)
 
 # Display floor x time findings
@@ -146,23 +146,17 @@ def heatmap_findings(peak, lowest):
     util_gap = peak_utilize - lowest_utilize
 
     st.markdown(f"""
-    ### **Observation: Utilization Across Time and Floors**
+    ### **Observation: Busiest vs Quietest Times**
 
-    The highest observed utilization occurs at:
-    - **{peak_floor}** during **{peak['time_slot']}**, with **{peak_utilize:.2f}%** utilization.
+    **The Busiest Time:**
+    - **{peak_floor}** during **{peak['time_slot']}**, running at **{peak_utilize:.2f}%** capacity.
 
-    The lowest observed utilization occurs at:
-    - **{low_floor}** during **{lowest['time_slot']}**, with **{lowest_utilize:.2f}%** utilization.
+    **The Quietest Time ('Dead Zone'):**
+    - **{low_floor}** during **{lowest['time_slot']}**, dropping down to just **{lowest_utilize:.2f}%** capacity.
 
-    **Comparison**
-    - The difference between peak and lowest utilization is **{util_gap:.2f}%**.
-
-    **Interpretation**
-    - Utilization levels vary across different floors and time slots.
-    - Some floor-time combinations operate at higher occupancy levels, while others show lower usage.
-
-    **Note**
-    - This analysis reflects occupancy patterns only and does not directly account for operational factors such as energy usage or scheduling constraints.
+    **What this means**
+    - The gap between our busiest and quietest times is **{util_gap:.2f}%**.
+    - This shows huge empty gaps in our timetable. Moving a few scattered classes closer together could let us completely shut down power to entire floors during quiet hours.
     """)
 
 # Display monthly energy cost findings
@@ -229,35 +223,31 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     # Text Findings based on monthly energy cost
     # The text findings will explain the energy cost patterns and the contributing floors during those months.
     st.markdown(f"""
-    ### **Observation: Monthly Energy Cost Distribution**
+    ### **Observation: Monthly Bill Summary**
 
-    - The **highest total energy cost** was recorded in **{high_month['month']}**, at **RM {high_month['energy_cost']:,.2f}**.
-    - The **second highest** was **{second_high_month['month']}**, at **RM {second_high_month['energy_cost']:,.2f}**.
-    - The **lowest** was **{low_month['month']}**, at **RM {low_month['energy_cost']:,.2f}**.
+    - The **most expensive month** was **{high_month['month']}**, costing **RM {high_month['Energy_Cost']:,.2f}**.
+    - The **second most expensive** was **{second_high_month['month']}**, costing **RM {second_high_month['Energy_Cost']:,.2f}**.
+    - The **cheapest month** was **{low_month['month']}**, costing just **RM {low_month['Energy_Cost']:,.2f}**.
 
-    **Comparison**
-    - The difference between the highest and second highest month is **RM {difference:,.2f}**.
+    **The Spike**
+    - The difference between our worst and second-worst month is **RM {difference:,.2f}**.
 
-    #### **Floor-Level Breakdown**
+    #### **Who Spent the Most?**
 
-    **{high_month['month']} (Highest Month)**
-    - Highest floor-level cost: **{high_floor_name_high}** (RM {high_floor_high_month['energy_cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_high}** (RM {low_floor_high_month['energy_cost']:,.2f})
+    **{high_month['month']} (Most Expensive Month)**
+    - Top Spender: **{high_floor_name_high}** (RM {high_floor_high_month['Energy_Cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_high}** (RM {low_floor_high_month['Energy_Cost']:,.2f})
 
-    **{second_high_month['month']} (Second Highest)**
-    - Highest floor-level cost: **{high_floor_name_second}** (RM {high_floor_second_month['energy_cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_second}** (RM {low_floor_second_month['energy_cost']:,.2f})
+    **{second_high_month['month']}**
+    - Top Spender: **{high_floor_name_second}** (RM {high_floor_second_month['Energy_Cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_second}** (RM {low_floor_second_month['Energy_Cost']:,.2f})
 
-    **{low_month['month']} (Lowest Month)**
-    - Highest floor-level cost: **{high_floor_name_low}** (RM {high_floor_low_month['energy_cost']:,.2f})
-    - Lowest floor-level cost: **{low_floor_name_low}** (RM {low_floor_low_month['energy_cost']:,.2f})
+    **{low_month['month']} (Cheapest Month)**
+    - Top Spender: **{high_floor_name_low}** (RM {high_floor_low_month['Energy_Cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_low}** (RM {low_floor_low_month['Energy_Cost']:,.2f})
 
-    **Interpretation**
-    - Energy costs vary across months and across floors within each month.
-    - Certain floors consistently account for higher portions of total cost within a given month.
-
-    **Note**
-    - These observations reflect recorded energy costs and do not directly indicate the underlying causes (e.g., occupancy levels, equipment usage, or operational settings).
+    **What this means**
+    - This shows that certain months and floors are eating way more of the budget than others. We need to check what appliances (like heavy lab equipment) or behaviors (like leaving ACs on overnight) are driving up the bills on those specific floors.
     """)
 
 # Display energy cost contribution findings
@@ -304,23 +294,19 @@ def pie_findings(floor_energy_cost):
     share_gap = dominant_floor["Contribution (%)"] - least_floor["Contribution (%)"]
     
     st.markdown(f"""
-    ### **Observation: Energy Cost Distribution by Floor**
+    ### **Observation: Who is Eating the Budget?**
 
-    - The highest contributing floor is **{dom_floor}**, accounting for **{dominant_floor['Contribution (%)']:.2f}%** of total energy cost.
-    - The lowest contributing floor is **{lst_floor}**, accounting for **{least_floor['Contribution (%)']:.2f}%**.
+    - The most expensive floor is **{dom_floor}**, eating up **{dominant_floor['Contribution (%)']:.2f}%** of the entire electricity budget.
+    - The cheapest floor is **{lst_floor}**, using only **{least_floor['Contribution (%)']:.2f}%**.
 
-    **Distribution Metrics**
-    - Average floor-level cost: **RM {avg_cost:,.2f}**
-    - Difference in contribution between top and lowest floor: **{share_gap:.2f}%**
-    - Difference in cost between top and lowest floor: **RM {range_diff:,.2f}** (**{percent_diff:.2f}% difference**)
+    **The Numbers**
+    - Average bill per floor: **RM {avg_cost:,.2f}**
+    - The gap between the most expensive and cheapest floor is **{share_gap:.2f}%** (or **RM {range_diff:,.2f}**).
 
-    **Interpretation**
-    - The distribution shows **{interpret_cv(cv)}** across floors.
-    - Energy cost distribution varies across floors.
-    - The difference between the highest and lowest contributing floors indicates how costs are spread within the building.
-
-    **Note**
-    - These values describe cost distribution only and do not directly indicate underlying causes such as occupancy levels or equipment usage.
+    **What this means**
+    - The billing shows **{interpret_cv(cv)}** across floors.
+    - This proves some floors are huge energy drainers compared to the rest of the campus. 
+    - If the most expensive floor doesn't have the most students, we have a major electricity leak.
     """)
 
 # Display correlation findings
@@ -364,11 +350,12 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
     st.markdown(f"""
     {headline}
 
-    This analysis shows {strength_text}. Occupancy explains **{r2_score * 100:.1f}% of the variation** in energy cost, 
-    while the remaining **{unexplained:.1f}%** is influenced by other factors such as environmental conditions, building operations, or system inefficiencies.
+    This analysis shows that our electric bill is {strength_text}. Only **{r2_score * 100:.1f}%** of our electric bill is driven by actual students attending class. 
+    
+    The other **{unexplained:.1f}%** is "blind spending" caused by things running in the background (e.g., central air conditioning left on, hallway lights, or heavy lab equipment operating 24/7).
 
     - {slope_text}
-    - The model also estimates a baseline cost of **RM {y_intercept:,.2f}**, suggesting {baseline_text}.
+    - Even if the campus is completely empty (0 students), our base 'Ghost Bill' is still **RM {y_intercept:,.2f}**, which means {baseline_text}.
 
     {insight_extra}
     """)
