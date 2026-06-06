@@ -156,7 +156,7 @@ def heatmap_findings(peak, lowest):
 
     **What this means**
     - The gap between our busiest and quietest times is **{util_gap:.2f}%**.
-    - This shows huge empty gaps in our timetable. Moving a few scattered classes closer together could let us completely shut down power to entire floors during quiet hours.
+    - This shows empty gaps in our timetable. Moving a few scattered classes closer together could let us completely shut down power to entire floors during quiet hours.
     """)
 
 # Display monthly energy cost findings
@@ -306,7 +306,7 @@ def pie_findings(floor_energy_cost):
 
     **What this means**
     - The billing shows **{interpret_cv(cv)}** across floors.
-    - This proves some floors are huge energy drainers compared to the rest of the campus. 
+    - This proves some floors are energy drainers compared to the rest of the campus. 
     - If the most expensive floor doesn't have the most students, we have a major electricity leak.
     """)
 
