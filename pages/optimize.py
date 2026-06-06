@@ -100,7 +100,7 @@ with st.spinner("Loading page...", show_time=True):
             """)
 
         col1, col2 = st.columns(2)
-        # Visualization 1: Classroom Occupancy
+        # Visualization 1: Weekly Classroom Occupancy
         if not class_df.empty:
             try:
                 historical = class_df.groupby("Week").agg(
@@ -116,9 +116,9 @@ with st.spinner("Loading page...", show_time=True):
             except Exception as e:
                 col1.error(f"Chart Error: {e}")
         else:
-            col1.info("No classroom data available to visualize demand.")          
+            col1.info("No classroom data available to visualize weekly occupancy.")          
         
-        # Prediction 2: Energy
+        # Visualization 2: Monthly Energy Cost
         if not energy_df.empty and not class_df.empty and len(monthly_plot) >= 2:
             try:
                 monthly_plot["Type"] = "Historical"
@@ -130,7 +130,7 @@ with st.spinner("Loading page...", show_time=True):
             except Exception as e:
                 col2.error(f"Chart Error: {e}")
         else:
-            col2.info("No energy data available to visualize cost trends.")
+            col2.info("No classroom or energy data available to visualize monthly cost.")
 
         # ==============================================================================
         # PENJELASAN (Untuk Supervisor):
@@ -286,7 +286,7 @@ with st.spinner("Loading page...", show_time=True):
             except Exception as e:
                 st.warning(f"Electrical audit could not be completed: {e}")
         else:
-            st.info("Please upload Classroom and Energy data for optimization audit.")
+            st.info("Please upload Classroom and Energy data for energy optimization audit.")
 
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
         st.subheader("🟢 Check Room Utilization")
@@ -333,4 +333,4 @@ with st.spinner("Loading page...", show_time=True):
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
         else:
-            st.info("Please upload Classroom data for optimization audit.")
+            st.info("Please upload Classroom data for classroom optimization audit.")

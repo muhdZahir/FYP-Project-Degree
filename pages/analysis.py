@@ -313,8 +313,5 @@ with st.spinner("Loading page...", show_time=True):
 
             with st.spinner("Analyzing data...", show_time=True):
                 run_correlation_analysis(class_df)
-        elif class_df.empty or energy_df.empty:
-            if class_df.empty:
-                st.info(f"No classroom data available for batch {batch_name} to correlate.")
-            elif energy_df.empty:
-                st.info(f"No energy data available for batch {batch_name} to correlate.")
+        elif class_df.empty:
+            st.info(f"No classroom data available for batch {batch_name} to correlate.")
