@@ -133,7 +133,7 @@ def plot_correlation(corr_df):
 
     # Add trendline trace
     line_data = corr_df.sort_values("actual_occupancy")
-    fig.add_traces(px.line(line_data, x="actual_occupancy", y="predicted_energy_cost").data[0])
+    fig.add_traces(px.line(line_data, x="actual_occupancy", y="predicted_cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     
     fig.update_traces(
@@ -169,6 +169,7 @@ def plot_attendance_prediction(df, student_input, pred_occ):
         x="number_of_students",
         y="predicted_occupancy",
         labels={"number_of_students": "Number of Students Enrolled", "predicted_occupancy": "Predicted Attendance"},
+        title="Attendance Prediction Model",
         markers=True
     )
     fig.update_traces(
