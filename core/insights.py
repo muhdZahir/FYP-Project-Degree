@@ -352,7 +352,7 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
 
     This analysis shows that our electric bill is {strength_text}. Only **{r2_score * 100:.1f}%** of our electric bill is driven by actual students attending class. 
     
-    The other **{unexplained:.1f}%** is "blind spending" caused by things running in the background.
+    The other **{unexplained:.1f}%** is "blind spending" caused by things running in the background (e.g., central air conditioning left on, hallway lights, or heavy lab equipment operating 24/7).
 
     - {slope_text}
     - Even if the campus is completely empty (0 students), our base 'Ghost Bill' is still **RM {y_intercept:,.2f}**, which means {baseline_text}.
