@@ -31,7 +31,7 @@ def classify_correlation(r2_score, baseline, slope):
     elif baseline > 0.2:
         baseline_text = "we have a **noticeable 'Ghost Bill'** running in the background"
     else:
-        baseline_text = "our electricity usage is efficiently controlled by human traffic"
+        baseline_text = "our electricity usage is efficiently driven by actual student attendance"
 
     # -----------------------------
     # 3. Special “autopilot” trigger
