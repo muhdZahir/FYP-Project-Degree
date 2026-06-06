@@ -116,7 +116,7 @@ def underutilized_rooms_findings(worst, second, best, avg):
     - This room is **{best_util:.1f}%** full, with only **{best_unused:.1f}%** of seats empty.
 
     **What this means**
-    - There is a huge **{best_util - worst_util:.1f}%** gap in how efficiently we pack our classes.
+    - There is a **{best_util - worst_util:.1f}%** gap in how efficiently we pack our classes.
     - We could easily move the classes from the mostly-empty rooms into smaller ones, and completely shut off the power to the large halls.
     """)
 
@@ -247,7 +247,8 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     - Lowest Spender: **{low_floor_name_low}** (RM {low_floor_low_month['energy_cost']:,.2f})
 
     **What this means**
-    - This shows that certain months and floors are eating way more of the budget than others. We need to check what appliances (like heavy lab equipment) or behaviors (like leaving ACs on overnight) are driving up the bills on those specific floors.
+    - This shows that certain months and floors are eating way more of the budget than others. We need to check what appliances
+    (like heavy lab equipment) or behaviors (like leaving ACs on overnight) are driving up the bills on those specific floors.
     """)
 
 # Display energy cost contribution findings

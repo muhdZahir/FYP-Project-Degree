@@ -224,7 +224,7 @@ with st.spinner("Loading page...", show_time=True):
         st.write("Follow these priorities to stop wastage without hurting student comfort.")
 
         # --- STEP 1: ENERGY OPTIMIZATION ---
-        st.subheader("🔴 Check Electricity Bill Matching")
+        st.subheader("🔴 Stop Budget Leaks (Electricity vs Attendance)")
         st.markdown(
             "> 📂 **Where the data comes from:** Classroom + Energy Data  \n"
             "> 🧮 **How we check:** We compare electric bills against student attendance. If a floor takes up a huge chunk of the budget but has very few students, the " \
@@ -249,8 +249,8 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['energy_cost']
                     floor_students = int(w_leak['actual_occupancy'])
                     
-                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['floor'])} costs **RM {actual_cost:,.2f}**, **{w_leak['Cost_Pct']:.1f}%** of budget, \
-                             but only accounts for only **{floor_students:,} students**, which are **{w_leak['Occ_Pct']:.1f}%** of total student attended.\n\n"
+                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, \
+                             but only accounts for **{floor_students:,} students**.\n\n"
                              f"**Action:** Consider sending maintenance to Floor {int(w_leak['floor'])}. The electricity is running at maximum capacity for \
                              a nearly empty floor. If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, \
                              this is a clear sign of energy wastage."
@@ -272,7 +272,7 @@ with st.spinner("Loading page...", show_time=True):
             st.info("Please upload Classroom and Energy data for energy optimization audit.")
 
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
-        st.subheader("🟢 Check Room Utilization")
+        st.subheader("🟢 Reclaim Wasted Space (Room Utilization)")
         st.markdown(
             "> 📂 **Where the data comes from:** Classroom Data only  \n"
             "> 🧮 **How we check:** We look for rooms that are considered empty (used less than 60% of their seating capacity). *(Calculation: Average " \
@@ -305,11 +305,11 @@ with st.spinner("Loading page...", show_time=True):
                              f"**Underutilized Rooms:** {room_list}\n\n"
                              f"**Reality:** For example, room {w_room['classroom_name']} and room {b_room['classroom_name']} has **{int(w_room['Room_Size'])} \
                              seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
-                             (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
+                             and **{int(b_room['Avg_Students'])} students**, respectively.\n\n"
                              f"**Action:** Consider moving the lectures in these rooms to smaller rooms or combining them to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
                     st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_name']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
-                               by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
+                               by only **{int(w_room['Avg_Students'])} students**.\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:
                     st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
