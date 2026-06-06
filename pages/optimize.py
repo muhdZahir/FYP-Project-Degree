@@ -75,21 +75,21 @@ with st.spinner("Loading page...", show_time=True):
         st.title(f"Optimization Audit & Predictions: {batch_name}")
         
         # ---------------------------------------------------------
-        # THE 3-PILLAR PREDICTIONS
+        # THE 2-PILLAR PREDICTIONS
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
         
         # --- Transparency Header ---
         with st.expander("🔍 How we predict these numbers"):
             st.markdown("""
-            **1. Predicting Next Semester's Attendance**
+            **1. Predicting Students Attendance**
             > 📂 **Where the data comes from:** Classroom Data *(Columns: Number of Students, Actual Occupancy)*  
             > ⚙️ **How we predict it:** We look at past trends to guess future attendance.  
             > 💡 **Why we do it this way:** It's a reliable way to see if student numbers are generally going up or down over time.  
-            > 🧮 **The calculation:** We track past attendance patterns to guess how full the campus will be next cycle.
+            > 🧮 **The calculation:** We track past attendance patterns to guess how full a classroom will be next cycle.
             
-            **2. Estimating Next Month's Electric Bill**
-            > 📂 **Where the data comes from:** Energy Data *(Columns: Occupancy, Energy Cost)*
+            **2. Estimating Electric Bill**
+            > 📂 **Where the data comes from:** Energy Data *(Columns: Actual Occupancy, Energy Cost)*
             > ⚙️ **How we predict it:** We match past electric bills with past student numbers.  
             > 💡 **Why we do it this way:** It stops us from guessing blindly. It anchors future cost guesses to what you actually paid in the past.  
             > 🧮 **The calculation:** We see how your bills changed as student numbers changed, and use that pattern to guess next month's bill.
