@@ -119,7 +119,7 @@ with st.spinner("Loading page...", show_time=True):
             col1.info("No classroom data available to visualize demand.")          
         
         # Prediction 2: Energy
-        if not energy_df.empty and len(monthly_plot) >= 2:
+        if not energy_df.empty and not class_df.empty and len(monthly_plot) >= 2:
             try:
                 monthly_plot["Type"] = "Historical"
 
@@ -144,12 +144,16 @@ with st.spinner("Loading page...", show_time=True):
         # data sekecil ini.
         # ==============================================================================
 
-        student_input = st.slider(
-            "Expected Number of Students",
-            min_value=int(class_df["Number_of_Students"].min()),
-            max_value=int(class_df["Number_of_Students"].max()),
-            value=int(class_df["Number_of_Students"].mean())
-        )
+        if not class_df.empty:
+            st.divider()
+            st.info("Use the slider below to adjust the expected number of students. " \
+            "The system will then predict how many students will actually attend and how much you can expect to pay in electricity costs next month based on that attendance.")
+            student_input = st.slider(
+                "Expected Number of Students",
+                min_value=int(class_df["Number_of_Students"].min()),
+                max_value=int(class_df["Number_of_Students"].max()),
+                value=int(class_df["Number_of_Students"].mean())
+            )
 
         # Prediction 1: Attendance
         st.write("")
@@ -195,15 +199,16 @@ with st.spinner("Loading page...", show_time=True):
                 st.metric(label="Predicted Attendance", value="N/A", help="No classroom data available.")
 
         # Prediction 2: Energy Cost
-        if not c_model_df.empty and len(e_model_df) >= 2:
+        if not class_df.empty and not energy_df.empty and len(e_model_df) >= 2:
             try:
                 X_e = e_model_df[["Actual_Occupancy"]]
                 y_e = e_model_df["Energy_Cost"]
 
                 model_e = LinearRegression().fit(X_e, y_e)
+
                 with chart_col2:
                     pred_energy = model_e.predict(pd.DataFrame({"Actual_Occupancy": [pred_occ]}))[0]
-                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help="How much you can expect to pay in electricity costs next month if occupancy is as predicted and nothing changes.")
+                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if occupancy is {pred_occ:.0f}.")
 
                     occ_range = np.arange(
                         int(e_model_df["Actual_Occupancy"].min()),
@@ -269,8 +274,8 @@ with st.spinner("Loading page...", show_time=True):
                              f"\n\n**Pro Tip:** Do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 elif overall_util < 30.0:
                     total_campus_bill = floor_energy['Energy_Cost'].sum()
-                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only {overall_util:.1f}% utilized, yet electricity is running as if the building is \
-                             fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
+                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only **{overall_util:.1f}%** utilized, yet electricity is running as if the building is \
+                             fully packed, costing **RM {total_campus_bill:,.2f}**.\n\n"
                              f"**Action:** Consider overriding the centralized Building Management System (BMS). It should have an override mode for low-occupancy periods. \
                              Use it to set a more energy-efficient schedule that matches actual student presence."
                              f"\n\n**Pro Tip:** If you don't have a BMS, this is a strong signal to invest in one, as it can automatically adjust energy usage\
@@ -327,3 +332,5 @@ with st.spinner("Loading page...", show_time=True):
                     st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
+        else:
+            st.info("Please upload Classroom data for optimization audit.")

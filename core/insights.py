@@ -108,11 +108,11 @@ def underutilized_rooms_findings(worst, second, best, avg):
     The campus average utilization is **{avg:.2f}%**.
 
     **Lowest Utilized Room**
-    - **Room {worst['Classroom_Name']}** has a seating capacity of **{worst_capacity}**, with an average occupancy of **{worst_students} students**.
+    - **Room {worst['Classroom_Name']}** has a seating capacity of **{worst_capacity}**, with an average attendance of **{worst_students} students**.
     - This corresponds to a utilization rate of **{worst_util:.1f}%**, leaving **{worst_unused:.1f}%** of capacity unused.
 
     **Highest Utilized Room**
-    - **Room {best['Classroom_Name']}** has a seating capacity of **{best_capacity}**, with an average occupancy of **{best_students} students**.
+    - **Room {best['Classroom_Name']}** has a seating capacity of **{best_capacity}**, with an average attendance of **{best_students} students**.
     - This corresponds to a utilization rate of **{best_util:.1f}%**, with **{best_unused:.1f}%** of capacity unoccupied.
 
     **Context**
