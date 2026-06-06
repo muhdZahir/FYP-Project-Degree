@@ -137,7 +137,16 @@ def run_energy_analysis(energy_df):
             > 🧮 **Audit Rule:** Tracks the total electric bill for each floor across different months to catch unusual spending spikes. *(Formula: Sum of
             Energy Cost per Floor per Month)*
             """)
-    
+    month_order = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ]
+    df["Month"] = pd.Categorical(
+        df["Month"],
+        categories=month_order,
+        ordered=True
+    )
+    df = df.sort_values("Month")
 
     # Visualize monthly energy cost line chart
     line_fig = plot_monthly_cost(df)
