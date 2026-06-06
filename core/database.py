@@ -33,11 +33,12 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS classroom (
             id SERIAL PRIMARY KEY,
-            classroom_id TEXT,
+            classroom_name TEXT,
             floor TEXT,
             capacity INTEGER,
-            scheduled_hours REAL,
+            number_of_students INTEGER,
             actual_occupancy INTEGER,
+            energy_cost REAL,
             day TEXT,
             time_slot TEXT,
             week INTEGER,
@@ -107,14 +108,11 @@ def save_to_db(df, table_name, batch_name):
                 f"{table_name} data saved successfully for batch '{batch_name}'.",
                 icon="✅"
             )
-
         return True
-
     except Exception as e:
         conn.rollback()
         st.error(f"Database Error: {e}")
         return False
-
     finally:
         c.close()
 
@@ -165,7 +163,7 @@ def load_from_db(table_name, batch_name):
         # use parameterized query to safely substitute batch_name
         if table_name == 'classroom':
             df = pd.read_sql_query("""
-                SELECT classroom.classroom_id, classroom.floor, classroom.capacity, classroom.scheduled_hours, classroom.actual_occupancy, classroom.day, classroom.time_slot, classroom.week, batch.batch_name 
+                SELECT classroom.classroom_name, classroom.floor, classroom.capacity, classroom.number_of_students, classroom.actual_occupancy, classroom.energy_cost, classroom.day, classroom.time_slot, classroom.week, batch.batch_name 
                 FROM classroom INNER JOIN batch ON classroom.batch_id = batch.batch_id WHERE batch.batch_name = %s
                 """,
                 conn,

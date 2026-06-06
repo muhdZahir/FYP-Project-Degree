@@ -74,6 +74,8 @@ def compute_utilization(df):
     df = df.copy()
     try:
         df["Utilization"] = df["actual_occupancy"] / df["capacity"]
+        # Prevent division by zero when capacity is 0
+        df["Utilization"] = np.where(df["capacity"] == 0, 0, df["actual_occupancy"] / df["capacity"])
         df.loc[df["actual_occupancy"] == 0, "Utilization"] = 0
         df["Percent_Utilize"] = df["Utilization"] * 100
         
@@ -97,13 +99,17 @@ def compute_rooms_difference(worst, second, best, avg):
 # Calculate percentage contribution
 def compute_contribution(df, total):
     df["Contribution (%)"] = (df["energy_cost"] / total * 100)
+    if total == 0:
+        df["Contribution (%)"] = 0
+    else:
+        df["Contribution (%)"] = (df["energy_cost"] / total * 100)
     df.loc[df["energy_cost"] == 0, "Contribution (%)"] = 0
     return df
 
 # Group by Room to get average utilization
 def get_room_stats(df):
     return (
-        df.groupby("classroom_id").agg({
+        df.groupby("classroom_name").agg({
             "actual_occupancy": "mean",
             "capacity": "first",  # or 'mean' or 'max'
             "Percent_Utilize": "mean"
@@ -138,24 +144,3 @@ def get_total_energy_cost(df):
         .sum()
         .reset_index()
     )
-
-# Ensure Month column exists
-def ensure_months(class_df, energy_df):
-    corr_class = class_df.copy()
-    corr_energy = energy_df.copy()
-
-    # Ensure Month column exists in class data: map from Week if possible
-    if "month" not in corr_class.columns and "week" in corr_class.columns:
-        corr_class["month"] = corr_class["week"].apply(map_week_to_month)
-
-    # Normalize Month values in both dataframes if present
-    if "month" in corr_class.columns:
-        corr_class["month"] = corr_class["month"].apply(normalize_month)
-
-    if "month" not in corr_energy.columns and "week" in corr_energy.columns:
-        corr_energy["month"] = corr_energy["week"].apply(map_week_to_month)
-
-    if "month" in corr_energy.columns:
-        corr_energy["month"] = corr_energy["month"].apply(normalize_month)
-
-    return corr_class, corr_energy

@@ -1,6 +1,6 @@
 from core.imports import st, pd, np, LinearRegression
 from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button, require_role
-from core.visualization import plot_next_classroom_demand, plot_next_energy_cost
+from core.visualization import plot_attendance_prediction, plot_classroom_occupancy, plot_cost_prediction, plot_monthly_energy_cost
 
 require_role(["Manager"])
 
@@ -27,7 +27,9 @@ with st.spinner("Loading page...", show_time=True):
         try:
             class_df = compute_utilization(class_df)
             
-            model_df = class_df[["week", "capacity", "actual_occupancy"]].copy()
+            c_model_df = class_df[
+                ["number_of_students", "actual_occupancy"]
+            ].copy()
         except Exception as e:
             st.warning(f"Classroom Data Error: {e}")
 
@@ -44,19 +46,19 @@ with st.spinner("Loading page...", show_time=True):
             monthly_occ = (class_df.groupby("Month_Num")["actual_occupancy"].sum().reset_index())
 
             # Merge
-            energy_model_df = pd.merge(
+            monthly_plot = pd.merge(
                 monthly_cost,
                 monthly_occ,
                 on="Month_Num",
                 how="inner"
             )
 
-            energy_model_df["Month_Num"] = pd.to_numeric(
-                energy_model_df["Month_Num"],
-                errors="coerce"
-            )
+            monthly_plot["Month_Num"] = pd.to_numeric(monthly_plot["Month_Num"], errors="coerce")
+            monthly_plot = (monthly_plot.sort_values("Month_Num").reset_index(drop=True))
 
-            energy_model_df = (energy_model_df.sort_values("Month_Num").reset_index(drop=True))
+            e_model_df = class_df[
+                ["actual_occupancy", "energy_cost"]
+            ].copy()
         except Exception as e:
             st.warning(f"Energy Data Error: {e}")
 
@@ -74,23 +76,23 @@ with st.spinner("Loading page...", show_time=True):
         st.title(f"Optimization Audit & Future Trends: {batch_name}")
         
         # ---------------------------------------------------------
-        # THE 3-PILLAR PREDICTIONS
+        # THE 2-PILLAR PREDICTIONS
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
         
         # --- Glass Box Transparency Header ---
         with st.expander("🔍 View AI Forecasting Logic (Data Sources, Models & Math)"):
             st.markdown("""
-            **1. Next Semester Demand**
-            > 📂 **Data Source:** Classroom Data *(Columns: Week, Capacity, Actual_Occupancy)*  
+            **1. Predicted Attendance**
+            > 📂 **Data Source:** Classroom Data *(Columns: Number_of_Students, Actual_Occupancy)*  
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting
             steady student growth or decline without overfitting the data.  
             > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula:
             Linear Regression Projection on Avg Fullness %)*
             
-            **2. Next Month Est. Cost**
-            > 📂 **Data Source:** Energy Data *(Columns: Month, Occupancy, Energy_Cost)* 
+            **2. Predicted Energy Cost**
+            > 📂 **Data Source:** Energy Data *(Columns: Occupancy, Energy_Cost)* 
             > ⚙️ **AI Engine:** Linear Regression Model  
             > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing
             patterns. It calculates the realistic financial baseline.  
@@ -100,104 +102,123 @@ with st.spinner("Loading page...", show_time=True):
 
         col1, col2 = st.columns(2)
         
-        # Prediction 1: 14-Week Demand
-        future_weeks_df = pd.DataFrame()
-        pred_demand_avg = 0
-        if not class_df.empty and len(class_df["week"].unique()) >= 2:
+        # Visualization 1: Weekly Classroom Occupancy
+        if not class_df.empty:
             try:
-                avg_capacity = class_df["capacity"].mean()
+                historical = class_df.groupby("week").agg(
+                    Actual_Occupancy=("actual_occupancy", "mean")
+                ).reset_index()
 
-                X_d = model_df[["week", "capacity"]]
-                y_d = model_df["actual_occupancy"]
-
-                model_d = LinearRegression().fit(X_d, y_d)
+                historical["Type"] = "Historical"
                 
-                max_w = int(class_df["week"].max())
-                future_df = pd.DataFrame({
-                    "week": [max_w + i for i in range(1, 15)],
-                    "capacity": [avg_capacity] * 14
-                })
-
-                future_occ = model_d.predict(future_df)
-                future_util = (
-                    future_occ / avg_capacity
-                ) * 100
-                
-                future_weeks_df = pd.DataFrame({"week": future_df["week"], "actual_occupancy": future_occ, "capacity": avg_capacity, "Percent_Utilize": future_util, "Type": "Prediction"})
-                pred_demand_avg = future_util.mean()
+                fig1 = plot_classroom_occupancy(historical)
                 with col1:
-                    st.metric("Next Semester Demand", f"{pred_demand_avg:.1f}%", help="How full your classrooms are expected to be next cycle.")
+                    st.plotly_chart(fig1, width='stretch')
+                    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                col1.metric("Next Semester Demand", "Error")
-                st.warning(f"Unable to estimate next semester demand: {e}")
+                col1.error(f"Chart Error: {e}")
         else:
-            with col1:
-                st.metric(label="Next Semester Demand", value="N/A", help="No classroom data available.")
+            col1.info("No classroom data available to visualize weekly occupancy.")          
         
-        # Prediction 2: Energy
-        pred_e = 0
-        avg_monthly_cost = 0
-        if not energy_df.empty and len(energy_model_df) >= 2:
+        # Visualization 2: Monthly Energy Cost
+        if not energy_df.empty and not class_df.empty and len(monthly_plot) >= 2:
             try:
-                X_e = energy_model_df[["Month_Num", "actual_occupancy"]]
-                y_e = energy_model_df["energy_cost"]
+                monthly_plot["Type"] = "Historical"
 
-                model_e = LinearRegression().fit(X_e, y_e)
-                
-                next_m = int(energy_model_df["Month_Num"].max()) + 1
-
-                avg_occ = (energy_model_df["actual_occupancy"].mean())
-
-                future_energy = pd.DataFrame({
-                    "Month_Num": [next_m],
-                    "actual_occupancy": [avg_occ]
-                })
-
-                pred_e = max(0, model_e.predict(future_energy)[0])
-                avg_monthly_cost = energy_model_df["energy_cost"].mean()
+                fig2 = plot_monthly_energy_cost(monthly_plot)
                 with col2:
-                    st.metric("Next Month Est. Cost", f"RM {pred_e:,.2f}", help="Your expected electric bill next month.")
+                    st.plotly_chart(fig2, width='stretch')
+                    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                col2.metric("Next Month Est. Cost", "Error")
-                st.warning(f"Unable to estimate next month cost: {e}")
+                col2.error(f"Chart Error: {e}")
         else:
-            with col2:
-                st.metric(label="Next Month Est. Cost", value="N/A", help="No energy data available.")
+            col2.info("No classroom or energy data available to visualize monthly cost.")
 
-        # ---------------------------------------------------------
-        # VISUALIZING THE TRENDS
-        # ---------------------------------------------------------
+        if not class_df.empty:
+            st.divider()
+            st.info("Use the slider below to adjust the expected number of students. " \
+            "The system will then predict how many students will actually attend and how much you can expect to pay in electricity costs next month based on that attendance.")
+            
+            student_input = st.slider(
+                "Expected Number of Students",
+                min_value=int(class_df["number_of_students"].min()),
+                max_value=int(class_df["number_of_students"].max()),
+                value=int(class_df["number_of_students"].mean())
+            )
+
+        # Prediction 1: Attendance
         st.write("")
         chart_col1, chart_col2 = st.columns(2)
-        
-        if not class_df.empty and not future_weeks_df.empty:
+        if not class_df.empty and len(c_model_df) >= 2:
             try:
-                historical = class_df.groupby("week")["Percent_Utilize"].mean().reset_index()
-                historical["Type"] = "Historical"
-                combined_class = pd.concat([historical, future_weeks_df], ignore_index=True)
-                
-                fig1 = plot_next_classroom_demand(combined_class)
-                chart_col1.plotly_chart(fig1, width='stretch')
-                chart_col1.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
-            except Exception as e:
-                chart_col1.error(f"Chart Error: {e}")
-        else:
-            chart_col1.info("No classroom data available to visualize demand.")
-                
-        if not energy_df.empty and 'next_m' in locals() and len(energy_model_df) >= 2:
-            try:
-                monthly_plot = energy_model_df[["Month_Num", "energy_cost"]].copy()
-                monthly_plot["Type"] = "Historical"
-                pred_row = pd.DataFrame({"Month_Num": [next_m], "energy_cost": [pred_e], "Type": ["Prediction"]})
-                combined_energy = pd.concat([monthly_plot, pred_row], ignore_index=True)
+                X_d = c_model_df[["number_of_students"]]
+                y_d = c_model_df["actual_occupancy"]
 
-                fig2 = plot_next_energy_cost(combined_energy)
-                chart_col2.plotly_chart(fig2, width='stretch')
-                chart_col2.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
+                model_d = LinearRegression().fit(X_d, y_d)
+                with chart_col1:
+                    pred_occ = model_d.predict(
+                        pd.DataFrame({
+                            "number_of_students": [student_input]
+                        })
+                    )[0]
+
+                    pred_occ = max(0, pred_occ)
+                    st.metric("Predicted Attendance", f"{pred_occ:.0f} students", help=f"How many numbers of students are expected to attend when expected number of students is {student_input}.")
+
+                    student_range = np.arange(
+                        class_df["number_of_students"].min(),
+                        class_df["number_of_students"].max() + 1
+                    )
+
+                    pred_curve = pd.DataFrame({
+                        "number_of_students": student_range,
+                        "Predicted_Occupancy": model_d.predict(
+                            pd.DataFrame({"number_of_students": student_range})
+                        )
+                    })
+
+                    attend_fig = plot_attendance_prediction(pred_curve, student_input, pred_occ)
+                    st.plotly_chart(attend_fig, width='stretch')
+                    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                chart_col2.error(f"Chart Error: {e}")
+                with chart_col1:
+                    st.metric("Predicted Attendance", "Error")
+                    st.warning(f"Unable to estimate attendance: {e}")
         else:
-            chart_col2.info("No energy data available to visualize cost trends.")
+            with chart_col1:
+                st.metric(label="Predicted Attendance", value="N/A", help="No classroom data available.")
+
+        # Prediction 2: Energy Cost
+        if not class_df.empty and not energy_df.empty and len(e_model_df) >= 2:
+            try:
+                X_e = e_model_df[["actual_occupancy"]]
+                y_e = e_model_df["energy_cost"]
+
+                model_e = LinearRegression().fit(X_e, y_e)
+
+                with chart_col2:
+                    pred_energy = model_e.predict(pd.DataFrame({"actual_occupancy": [pred_occ]}))[0]
+                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if occupancy is {pred_occ:.0f}.")
+
+                    occ_range = np.arange(
+                        int(e_model_df["actual_occupancy"].min()),
+                        int(e_model_df["actual_occupancy"].max()) + 1
+                    )
+
+                    curve_df = pd.DataFrame({"actual_occupancy": occ_range})
+
+                    curve_df["Predicted_Energy_Cost"] = model_e.predict(curve_df[["actual_occupancy"]])
+                
+                    cost_fig = plot_cost_prediction(curve_df, pred_occ, pred_energy)
+                    st.plotly_chart(cost_fig, width='stretch')
+                    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
+            except Exception as e:
+                with chart_col2:
+                    st.metric("Predicted Cost", "Error")
+                    st.warning(f"Unable to estimate energy cost: {e}")
+        else:
+            with chart_col2:
+                st.metric(label="Predicted Cost", value="N/A", help="No energy data available.")
 
         # ---------------------------------------------------------
         # OPTIMIZATION STEPS (Executive Action Plan)
@@ -240,8 +261,8 @@ with st.spinner("Loading page...", show_time=True):
                              f"\n\n**Pro Tip:** Do proactive checks to ensure air conditioning and lights are turned off when not in use.")
                 elif overall_util < 30.0:
                     total_campus_bill = floor_energy['energy_cost'].sum()
-                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only {overall_util:.1f}% utilized, yet electricity is running as if the building is \
-                             fully packed, costing RM {total_campus_bill:,.2f}.\n\n"
+                    st.error(f"**ENERGY WASTAGE:** The campus is practically empty with only **{overall_util:.1f}%** utilized, yet electricity is running as if the building is \
+                             fully packed, costing **RM {total_campus_bill:,.2f}**.\n\n"
                              f"**Action:** Consider overriding the centralized Building Management System (BMS). It should have an override mode for low-occupancy periods. \
                              Use it to set a more energy-efficient schedule that matches actual student presence."
                              f"\n\n**Pro Tip:** If you don't have a BMS, this is a strong signal to invest in one, as it can automatically adjust energy usage\
@@ -252,7 +273,7 @@ with st.spinner("Loading page...", show_time=True):
             except Exception as e:
                 st.warning(f"Electrical audit could not be completed: {e}")
         else:
-            st.info("Please upload Classroom and Energy data for optimization audit.")
+            st.info("Please upload Classroom and Energy data for energy optimization audit.")
 
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
         st.subheader("🟢 Check Room Utilization")
@@ -263,7 +284,7 @@ with st.spinner("Loading page...", show_time=True):
         )
         if not class_df.empty:
             try:
-                r_avg = class_df.groupby('classroom_id').agg(
+                r_avg = class_df.groupby('classroom_name').agg(
                     Percent_Utilize=('Percent_Utilize', 'mean'),
                     Avg_Students=('actual_occupancy', 'mean'),
                     Room_Size=('capacity', 'first') 
@@ -282,19 +303,21 @@ with st.spinner("Loading page...", show_time=True):
                 if len(low_util_rooms) >= 3:
                     b_room = low_util_rooms.sort_values(by='Percent_Utilize').iloc[-1]
                     room_list = ", ".join(
-                                    low_util_rooms['classroom_id'].astype(str)
+                                    low_util_rooms['classroom_name'].astype(str)
                                 )
                     st.error(f"**SPACE WASTAGE:** {len(low_util_rooms)} rooms are consistently empty.\n\n"
                              f"**Underutilized Rooms:** {room_list}\n\n"
-                             f"**Reality:** For example, room {w_room['classroom_id']} and room {b_room['classroom_id']} has **{int(w_room['Room_Size'])} \
+                             f"**Reality:** For example, room {w_room['classroom_name']} and room {b_room['classroom_name']} has **{int(w_room['Room_Size'])} \
                              seats** and **{int(b_room['Room_Size'])} seats**, but is usually occupied by only **{int(w_room['Avg_Students'])} students** \
                              (**{w_room['Percent_Utilize']:.1f}%** full) and **{int(b_room['Avg_Students'])} students** (**{b_room['Percent_Utilize']:.1f}%** full), respectively.\n\n"
                              f"**Action:** Consider moving the lectures in these rooms to smaller rooms or combining them to reduce electricity and lighting load.")
                 elif len(low_util_rooms) > 0:
-                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_id']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
+                    st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_name']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students** (**{w_room['Percent_Utilize']:.1f}%** full).\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
                 else:
                     st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
+        else:
+            st.info("Please upload Classroom data for classroom optimization audit.")
