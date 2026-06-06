@@ -208,7 +208,7 @@ with st.spinner("Loading page...", show_time=True):
 
                 with chart_col2:
                     pred_energy = model_e.predict(pd.DataFrame({"Actual_Occupancy": [pred_occ]}))[0]
-                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if occupancy is {pred_occ:.0f}.")
+                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if attendance is {pred_occ:.0f}.")
 
                     occ_range = np.arange(
                         int(e_model_df["Actual_Occupancy"].min()),

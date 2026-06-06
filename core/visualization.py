@@ -95,7 +95,7 @@ def plot_monthly_cost(df):
         hovertemplate=
             "<b>%{fullData.name}</b><br>" +
             "Month: %{x}<br>" +
-            "Cost: RM %{y:.2f}%<extra></extra>"
+            "Cost: RM %{y:.2f}<extra></extra>"
     )
     return style_chart(fig, 0.35)
 
