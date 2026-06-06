@@ -104,7 +104,7 @@ with st.spinner("Loading page...", show_time=True):
                 f"- Dropped rows with non-numeric values in **'Capacity'**, **'Number_of_Students'**, **'Actual_Occupancy'**, and **'Energy_Cost'**.\n"
                 f"- Dropped rows where **'Capacity'** is negative or 0.\n"
                 f"- Dropped rows where **'Number_of_Students'** is negative or greater than **'Capacity'**.\n"
-                f"- Dropped rows where **'Actual_Occupancy'** is negative or greater than **'Capacity'** or **'Number_of_Students'**.\n"
+                f"- Dropped rows where **'Actual_Occupancy'** is negative or greater than **'Capacity'**.\n"
                 f"- Standardized **'Day'** to 3-letter format and dropped invalid days.\n"
                 f"- Dropped rows with invalid time slot format (e.g., not like '10:00-12:00').\n"
                 f"- Dropped rows with invalid week numbers (not between 1-16).\n"
@@ -237,8 +237,8 @@ with st.spinner("Loading page...", show_time=True):
         class_df['Capacity_invalid'] = (class_df['Capacity_clean'] < 0) | (class_df["Capacity_clean"] == 0)  
         # Flag rows where Number of Students is invalid (negative or greater than capacity)
         class_df['Number_of_Students_invalid'] = (class_df['Number_of_Students_clean'] < 0) | (class_df["Number_of_Students_clean"] > class_df["Capacity_clean"])
-        # Flag rows where Actual Occupancy is invalid (negative or greater than capacity or number of students)
-        class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean']) | (class_df['ActOccu_clean'] > class_df['Number_of_Students_clean'])
+        # Flag rows where Actual Occupancy is invalid (negative or greater than capacity)
+        class_df['ActOccu_invalid'] = (class_df['ActOccu_clean'] < 0) | (class_df['ActOccu_clean'] > class_df['Capacity_clean'])
 
         # Flag rows duplicate of same data during the same time period
         class_df['Duplicate_class'] = class_df.duplicated(subset=["Classroom_Name", "Week", "Day", "Time_Slot"], keep="first")
