@@ -85,7 +85,7 @@ def plot_monthly_cost(df):
         x="month",
         y="energy_cost",
         color="floor",
-        labels={"energy_cost": "Energy Cost (RM)"},
+        labels={"energy_cost": "Energy Cost (RM)", "month": "Month", "floor": "Floor"},
         title="Floor Energy Cost by Month",
         category_orders=get_category_orders(df),
         markers=True
@@ -94,7 +94,7 @@ def plot_monthly_cost(df):
         hovertemplate=
             "<b>%{fullData.name}</b><br>" +
             "Month: %{x}<br>" +
-            "Cost: RM %{y:.2f}%<extra></extra>"
+            "Cost: RM %{y:.2f}<extra></extra>"
     )
     return style_chart(fig, 0.35)
 
@@ -105,7 +105,7 @@ def plot_pie(df):
         names="floor",
         values="energy_cost",
         title="Energy Cost (RM) Contribution by Floor to Total Energy Cost",
-        labels={"energy_cost": "Energy Cost (RM)"},
+        labels={"energy_cost": "Energy Cost (RM)", "floor": "Floor"},
         category_orders=get_category_orders(df)
     )
     fig.update_traces(

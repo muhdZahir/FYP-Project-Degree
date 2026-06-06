@@ -137,7 +137,16 @@ def run_energy_analysis(energy_df):
             > 🧮 **Audit Rule:** Tracks the total electric bill for each floor across different months to catch unusual spending spikes. *(Formula: Sum of
             Energy Cost per Floor per Month)*
             """)
-    
+    month_order = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ]
+    df["month"] = pd.Categorical(
+        df["month"],
+        categories=month_order,
+        ordered=True
+    )
+    df = df.sort_values("month")
 
     # Visualize monthly energy cost line chart
     line_fig = plot_monthly_cost(df)
@@ -211,7 +220,7 @@ def run_correlation_analysis(class_df):
 
     model = LinearRegression()
     model.fit(X, y)
-    correlation_df["Predicted_Cost"] = model.predict(X)
+    correlation_df["predicted_cost"] = model.predict(X)
 
     # Visualize correlation scatter plot
     corr_fig = plot_correlation(correlation_df,)
