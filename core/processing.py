@@ -1,5 +1,5 @@
 # Data cleaning & aggregation
-from core.imports import st, pd, np, calendar
+from core.imports import st, pd, np, calendar, re
 
 def require_role(allowed_roles):
     role = st.session_state.get("user_role")
@@ -64,6 +64,14 @@ def normalize_month(val):
     if s_lower in month_abbr_map:
         return month_abbr_map[s_lower]
     return s  # fallback: keep as-is
+
+def batch_sort_key(batch_name):
+    match = re.match(r"Sem\s+(\d+)\s+(\d+)", batch_name)
+    if match:
+        semester = int(match.group(1))
+        year = int(match.group(2))
+        return (year, semester)
+    return (9999, 9999)  # invalid names go to end
 
 def center_button():
     col1, col2, col3 = st.columns([0.25, 1, 0.3])

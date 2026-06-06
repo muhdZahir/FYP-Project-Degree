@@ -1,4 +1,5 @@
 from core.imports import os, st, pd, db #to open streamlit, run 'python -m streamlit run main.py'. to close, press 'ctrl + c' at terminal
+from core.processing import batch_sort_key
 
 db.init_db()
 
@@ -29,7 +30,12 @@ css_path = os.path.join("assets", "style.css")
 # Inject the CSS
 inject_custom_css(css_path)
 
-available_batches = db.get_unique_batches()            
+available_batches = db.get_unique_batches()
+available_batches = sorted(
+    available_batches,
+    key=batch_sort_key,
+    reverse=True
+) 
 
 # Define all the pages
 login_page = st.Page("pages/login.py", title="Log in", icon=":material/login:")
