@@ -1,5 +1,5 @@
 from core.imports import st, pd, time, db, datetime, re
-from core.processing import require_role
+from core.processing import batch_sort_key, require_role
 
 require_role(["IT Staff"])
 
@@ -121,6 +121,11 @@ with st.spinner("Loading page...", show_time=True):
     st.write("")
 
     available_batches = db.get_unique_batches()
+    available_batches = sorted(
+        available_batches,
+        key=batch_sort_key,
+        reverse=True
+    )  
 
     if available_batches:
         if (
