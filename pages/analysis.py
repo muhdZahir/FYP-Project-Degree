@@ -19,19 +19,16 @@ def run_classroom_analysis(class_df):
     # Bar Chart: Worst Utilized Rooms
     # ------------------------------------------
     st.subheader("Worst Utilized Rooms")
-    with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
+    with st.expander("🔍 How this analysis works"):
             st.markdown("""
             **📉 The 'Ghost Rooms' (Highest Wasted Space)** 
                         
-            💡 **What this means:** These are rooms that are ranked lowest in terms of utilization. If we move these classes, we can turn off the electric power
-            in those large rooms entirely.  
+            💡 **What this means:** These are the used classrooms with too many empty seats than the actual number of students. If we move these small classes to smaller rooms, we can turn off the lights and AC in these large halls entirely.  
             
-            > 📂 **Data Source:** Classroom Data *(Columns: Classroom_Name, Capacity, Actual_Occupancy)*  
-            > 📊 **Chart Selection:** Bar Chart  
-            > 💡 **Why this Chart:** It makes it incredibly easy to compare rooms side-by-side. The tallest bar instantly shows you the biggest space-waster
-            without needing to read a single number.  
-            > 🧮 **Audit Rule:** Scans all rooms and flags the ones that are consistently almost empty. *(Formula: [Average Students Present ÷ Physical Seats]
-            × 100)*
+            > 📂 **Where the data comes from:** Classroom Data *(Columns: Classroom Name, Capacity, Actual Occupancy)*  
+            > 📊 **Chart used:** Bar Chart  
+            > 💡 **Why this Chart:** It makes it easy to compare rooms side-by-side. Because it tracks utilization, the **lowest** bar shows you the biggest space-waster instantly.  
+            > 🧮 **How it is calculated:** We check all rooms and flag the ones that are mostly empty. *(Calculation: [Average Students Present ÷ Total Seats] × 100)*
             """)
     # added an interactive slider to let users choose how many underutilized rooms they want to view
     max_rooms = df["classroom_name"].nunique()
@@ -75,18 +72,16 @@ def run_classroom_analysis(class_df):
     # Heatmap: Floor vs Time Slot
     # ------------------------------------------
     st.subheader("Utilization Heatmap (Floor vs Time)")
-    with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
+    with st.expander("🔍 How this analysis works"):
             st.markdown("""
             **🔥 Busiest Zones vs ❄️ Wasted Zones**         
                 
-            💡 **What this means:** Red areas show packed schedules. White areas mean we are burning electricity for empty floors.  
+            💡 **What this means:** Darker areas show packed schedules. Lighter areas mean the floor is mostly empty, but we might still be running electricity there.  
             
-            > 📂 **Data Source:** Classroom Data *(Columns: Floor, Time_Slot, Percent_Utilize)*  
-            > 📊 **Chart Selection:** Color-Coded Heatmap  
-            > 💡 **Why this Chart:** It acts like a thermal camera for the building. Red means busy, white means quiet. It lets you spot completely empty
-            floors that are still running electricity at a single glance.  
-            > 🧮 **Audit Rule:** Groups student attendance by floor and time to find "dead zones" where the building is open but nobody is there.
-            *(Formula: Total Students grouped by Floor and Time Slot)*
+            > 📂 **Where the data comes from:** Classroom Data *(Columns: Floor, Time Slot, Utilization Rate)*  
+            > 📊 **Chart used:** Color-Coded Heatmap  
+            > 💡 **Why this Chart:** It acts like a thermal camera for the building. It lets you easily spot "dead zones" where electricity is running for an empty floor.  
+            > 🧮 **How it is calculated:** We group student attendance by floor and time to find periods where the floor is used but nobody is around.
             """)
     # Pivot data for heatmap
     heatmap_data = get_heatmap_data(df)
@@ -123,20 +118,18 @@ def run_energy_analysis(energy_df):
     # Line chart: Monthly Energy Cost Per Floor
     # ------------------------------------------
     st.subheader("Monthly Energy Cost per Floor")
-    with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
+    with st.expander("🔍 How this analysis works"):
             st.markdown("""
             **⚡ Monthly Energy Cost per Floor**
                         
-            💡 **What this means:** This chart tracks your electricity spending over time. A flat line means stable usage, but a sudden jump means a floor suddenly
-            started to consume more power.  
+            💡 **What this means:** This chart tracks electricity spending over time. A flat line means normal usage, but a sudden jump means a floor started to use much more power.  
             
-            > 📂 **Data Source:** Energy Data *(Columns: Month, Floor, Energy_Cost)*  
-            > 📊 **Chart Selection:** Line Chart  
-            > 💡 **Why this Chart:** It shows the timeline of your spending. It helps you quickly see if your bills are staying flat, spiking during certain
-            months, or slowly creeping up over time.  
-            > 🧮 **Audit Rule:** Tracks the total electric bill for each floor across different months to catch unusual spending spikes. *(Formula: Sum of
-            Energy Cost per Floor per Month)*
+            > 📂 **Where the data comes from:** Energy Data *(Columns: Month, Floor, Energy Cost)*  
+            > 📊 **Chart used:** Line Chart  
+            > 💡 **Why this Chart:** It shows your spending over time. It helps you quickly see if your bills are staying flat, spiking during certain months, or slowly creeping up.  
+            > 🧮 **How it is calculated:** We track the total electric bill for each floor across different months to spot unusual spending.
             """)
+    
     month_order = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -166,19 +159,16 @@ def run_energy_analysis(energy_df):
     # Pie chart: Percentage Contribution
     # ------------------------------------------
     st.subheader("Energy Cost Contribution by Floor")
-    with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
+    with st.expander("🔍 How this analysis works"):
             st.markdown("""
             **🍰 Energy Cost Contribution by Floor** 
                         
-            💡 **What this means:** This shows exactly who is eating the biggest slice of your budget. If a floor with very few students takes up a huge
-            chunk, you have a major leak.  
+            💡 **What this means:** This shows which floor is using the biggest slice of your budget. If a floor with very few students takes up a huge chunk, energy is being wasted.  
             
-            > 📂 **Data Source:** Energy Data *(Columns: Floor, Energy_Cost)*   
-            > 📊 **Chart Selection:** Pie Chart  
-            > 💡 **Why this Chart:** It visually divides the budget. If one floor takes up half the pie but only has a few classes, you know exactly where to
-            send maintenance.  
-            > 🧮 **Audit Rule:** Calculates the total energy cost and splits it by floor to show each floor's percentage of the total bill. *(Formula: Floor
-            Energy Cost ÷ Total Campus Energy Cost)*
+            > 📂 **Where the data comes from:** Energy Data *(Columns: Floor, Energy Cost)*   
+            > 📊 **Chart used:** Pie Chart  
+            > 💡 **Why this Chart:** It visually splits the budget. If one floor takes up half the pie but only has a few classes, you will know where the electricity is being wasted.  
+            > 🧮 **How it is calculated:** We calculate the total energy cost and split it by floor to show each floor's percentage of the total bill.
             """)
 
     # Calculate total energy cost of the whole floor
@@ -299,19 +289,16 @@ with st.spinner("Loading page...", show_time=True):
         # ==========================================
         if not class_df.empty:
             st.subheader("Correlation Analysis")
-            with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
+            with st.expander("🔍 How this analysis works"):
                 st.markdown("""
-                **📈 Alignment Test: Bill (Energy Cost) vs. Students (Occupancy)** 
+                **📈 Alignment Test: Electric Bill vs. Student Attendance** 
                                 
-                💡 **What this means:** We want these dots to go up in a straight line. If the data is scattered everywhere, it means the electricity
-                is running blindly in empty rooms.  
+                💡 **What this means:** We want the dots to go up in a straight line as more students attend. If the dots are scattered everywhere, it means electricity is running blindly even when rooms are empty.  
                 
-                > 📂 **Data Source:** Combined Classroom & Energy Data *(Columns: Actual_Occupancy, Energy_Cost)*  
-                > 📊 **Chart Selection:** Scatter Plot with a Trendline  
-                > 💡 **Why this Chart:** It proves if your electric bill is actually following your students. Dots lined up straight mean your building is smart;
-                scattered dots mean your building is wasting money.  
-                > 🧮 **Audit Rule:** Measures if electric bills go up and down based on actual human traffic, or if they stay high even when the campus is empty.
-                *(Formula: Correlation between Energy Cost and Actual Student Count)*
+                > 📂 **Where the data comes from:** Combined Classroom & Energy Data *(Columns: Actual Occupancy, Energy Cost)*  
+                > 📊 **Chart used:** Scatter Plot with a Trendline  
+                > 💡 **Why this Chart:** It checks if your electric bill makes sense based on student numbers. A straight line means your building is efficient; scattered dots mean money is being wasted.  
+                > 🧮 **How it is calculated:** We measure if the electric bills go up and down based on actual human traffic, or if they stay high even when the campus is empty.
                 """)
 
             with st.spinner("Analyzing data...", show_time=True):
