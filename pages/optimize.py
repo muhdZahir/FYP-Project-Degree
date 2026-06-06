@@ -37,24 +37,24 @@ with st.spinner("Loading page...", show_time=True):
     if not energy_df.empty and not class_df.empty:
         try:
             # Energy
-            energy_df["Month_Num"] = energy_df["month"].apply(normalize_month)
+            energy_df["month_num"] = energy_df["month"].apply(normalize_month)
 
-            monthly_cost = (energy_df.groupby("Month_Num")["energy_cost"].sum().reset_index())
+            monthly_cost = (energy_df.groupby("month_num")["energy_cost"].sum().reset_index())
 
             # Occupancy
-            class_df["Month_Num"] = class_df["week"].apply(map_week_to_month)
-            monthly_occ = (class_df.groupby("Month_Num")["actual_occupancy"].sum().reset_index())
+            class_df["month_num"] = class_df["week"].apply(map_week_to_month)
+            monthly_occ = (class_df.groupby("month_num")["actual_occupancy"].sum().reset_index())
 
             # Merge
             monthly_plot = pd.merge(
                 monthly_cost,
                 monthly_occ,
-                on="Month_Num",
+                on="month_num",
                 how="inner"
             )
 
-            monthly_plot["Month_Num"] = pd.to_numeric(monthly_plot["Month_Num"], errors="coerce")
-            monthly_plot = (monthly_plot.sort_values("Month_Num").reset_index(drop=True))
+            monthly_plot["month_num"] = pd.to_numeric(monthly_plot["month_num"], errors="coerce")
+            monthly_plot = (monthly_plot.sort_values("month_num").reset_index(drop=True))
 
             e_model_df = class_df[
                 ["actual_occupancy", "energy_cost"]
@@ -106,7 +106,7 @@ with st.spinner("Loading page...", show_time=True):
         if not class_df.empty:
             try:
                 historical = class_df.groupby("week").agg(
-                    Actual_Occupancy=("actual_occupancy", "mean")
+                    actual_occupancy=("actual_occupancy", "mean")
                 ).reset_index()
 
                 historical["Type"] = "Historical"
@@ -172,7 +172,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     pred_curve = pd.DataFrame({
                         "number_of_students": student_range,
-                        "Predicted_Occupancy": model_d.predict(
+                        "predicted_occupancy": model_d.predict(
                             pd.DataFrame({"number_of_students": student_range})
                         )
                     })
@@ -207,7 +207,7 @@ with st.spinner("Loading page...", show_time=True):
 
                     curve_df = pd.DataFrame({"actual_occupancy": occ_range})
 
-                    curve_df["Predicted_Energy_Cost"] = model_e.predict(curve_df[["actual_occupancy"]])
+                    curve_df["predicted_energy_cost"] = model_e.predict(curve_df[["actual_occupancy"]])
                 
                     cost_fig = plot_cost_prediction(curve_df, pred_occ, pred_energy)
                     st.plotly_chart(cost_fig, width='stretch')

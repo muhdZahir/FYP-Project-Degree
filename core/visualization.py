@@ -133,7 +133,7 @@ def plot_correlation(corr_df):
 
     # Add trendline trace
     line_data = corr_df.sort_values("actual_occupancy")
-    fig.add_traces(px.line(line_data, x="actual_occupancy", y="Predicted_Cost").data[0])
+    fig.add_traces(px.line(line_data, x="actual_occupancy", y="predicted_energy_cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
     
     fig.update_traces(
@@ -166,9 +166,9 @@ def plot_classroom_occupancy(df):
 def plot_attendance_prediction(df, student_input, pred_occ):
     fig = px.line(
         df,
-        x="Number_of_Students",
-        y="Predicted_Occupancy",
-        labels={"Number_of_Students": "Number of Students Enrolled", "Predicted_Occupancy": "Predicted Attendance"},
+        x="number_of_students",
+        y="predicted_occupancy",
+        labels={"number_of_students": "Number of Students Enrolled", "predicted_occupancy": "Predicted Attendance"},
         markers=True
     )
     fig.update_traces(
@@ -196,15 +196,15 @@ def plot_attendance_prediction(df, student_input, pred_occ):
     )
     return style_chart(fig, 0.2)
 
-# plot next month energy cost
-def plot_next_energy_cost(df):
+# plot monthly energy cost
+def plot_monthly_energy_cost(df):
     fig = px.line(
         df,
-        x="Month_Num",
+        x="month_num",
         y="energy_cost",
         color="Type", 
-        labels={"Month_Num": "Month", "energy_cost": "Energy Cost (RM)"},
-        title="Energy Cost Trend",
+        labels={"month_num": "Month", "energy_cost": "Energy Cost (RM)"},
+        title="Monthly Energy Cost Trend",
         markers=True
     )
     fig.update_traces(
@@ -212,31 +212,18 @@ def plot_next_energy_cost(df):
             "Month: %{x}<br>" +
             "Cost: RM %{y:,.2f}<extra></extra>"
     )
-    return style_chart(fig, 0.2)
-
-# plot monthly energy cost
-def plot_monthly_energy_cost(df):
-    fig = px.line(
-        df,
-        x="Month_Num",
-        y="Energy_Cost",
-        color="Type", 
-        labels={"Month_Num": "Month", "Energy_Cost": "Total Energy Cost (RM)"},
-        title="Energy Cost Trend",
-        markers=True
-    )
     return style_chart(fig, 0.3)
 
 # plot energy cost prediction
 def plot_cost_prediction(df, pred_occ, pred_energy):
     fig = px.line(
         df,
-        x="Actual_Occupancy",
-        y="Predicted_Energy_Cost",
+        x="actual_occupancy",
+        y="predicted_energy_cost",
         title="Energy Cost Prediction Model",
         labels={
-            "Actual_Occupancy": "Student Attendance",
-            "Predicted_Energy_Cost": "Predicted Energy Cost (RM)"
+            "actual_occupancy": "Student Attendance",
+            "predicted_energy_cost": "Predicted Energy Cost (RM)"
         }
     )
     fig.update_traces(
