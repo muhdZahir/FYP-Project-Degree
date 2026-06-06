@@ -79,24 +79,20 @@ with st.spinner("Loading page...", show_time=True):
         # ---------------------------------------------------------
         st.header("Executive Forecasts")
         
-        # --- Glass Box Transparency Header ---
-        with st.expander("🔍 View AI Forecasting Logic (Data Sources, Models & Math)"):
+        # --- Transparency Header ---
+        with st.expander("🔍 How we predict these numbers"):
             st.markdown("""
-            **1. Next Semester Demand**
-            > 📂 **Data Source:** Classroom Data *(Columns: Number_of_Students, Actual_Occupancy)*  
-            > ⚙️ **AI Engine:** Linear Regression Model  
-            > 💡 **Why This Engine:** It is the industry standard for tracking straightforward trends over time, making it highly reliable for predicting
-            steady student growth or decline without overfitting the data.  
-            > 🧮 **AI Audit Rule:** Analyzes past attendance patterns using linear regression to predict how full the campus will be next cycle. *(Formula:
-            Linear Regression Projection on Avg Fullness %)*
+            **1. Predicting Next Semester's Attendance**
+            > 📂 **Where the data comes from:** Classroom Data *(Columns: Number of Students, Actual Occupancy)*  
+            > ⚙️ **How we predict it:** We look at past trends to guess future attendance.  
+            > 💡 **Why we do it this way:** It's a reliable way to see if student numbers are generally going up or down over time.  
+            > 🧮 **The calculation:** We track past attendance patterns to guess how full the campus will be next cycle.
             
-            **2. Next Month Est. Cost**
-            > 📂 **Data Source:** Energy Data *(Columns: Occupancy, Energy_Cost)*
-            > ⚙️ **AI Engine:** Linear Regression Model  
-            > 💡 **Why This Engine:** It prevents wild financial guessing by strictly anchoring future cost predictions to your actual historical billing
-            patterns. It calculates the realistic financial baseline.  
-            > 🧮 **AI Audit Rule:** Uses linear regression on past electric bills to estimate what you will have to pay next month if nothing changes.
-            *(Formula: Linear Regression Trend × Expected Operating Days)*
+            **2. Estimating Next Month's Electric Bill**
+            > 📂 **Where the data comes from:** Energy Data *(Columns: Occupancy, Energy Cost)*
+            > ⚙️ **How we predict it:** We match past electric bills with past student numbers.  
+            > 💡 **Why we do it this way:** It stops us from guessing blindly. It anchors future cost guesses to what you actually paid in the past.  
+            > 🧮 **The calculation:** We see how your bills changed as student numbers changed, and use that pattern to guess next month's bill.
             """)
 
         col1, col2 = st.columns(2)
@@ -240,9 +236,9 @@ with st.spinner("Loading page...", show_time=True):
         # --- STEP 1: ENERGY OPTIMIZATION ---
         st.subheader("🔴 Check Electricity Bill Matching")
         st.markdown(
-            "> 📂 **Data Source:** Classroom + Energy Data  \n"
-            "> 🧮 **Audit Rule:** Compares electric bills against student attendance. If a floor eats a massive budget but has very few students, the " \
-            "system triggers an alert. *(Formula: % of Total Bill vs % of Total Students)*"
+            "> 📂 **Where the data comes from:** Classroom + Energy Data  \n"
+            "> 🧮 **How we check:** We compare electric bills against student attendance. If a floor takes up a huge chunk of the budget but has very few students, the " \
+            "system triggers an alert."
         )
         if not class_df.empty and not energy_df.empty:
             try:
@@ -291,8 +287,8 @@ with st.spinner("Loading page...", show_time=True):
         # --- STEP 2: CLASSROOM OPTIMIZATION ---
         st.subheader("🟢 Check Room Utilization")
         st.markdown(
-            "> 📂 **Data Source:** Classroom Data only  \n"
-            "> 🧮 **Audit Rule:** Checks if classrooms are consistently used for small group of students and below 60% utilization rate. *(Formula: Average " \
+            "> 📂 **Where the data comes from:** Classroom Data only  \n"
+            "> 🧮 **How we check:** We look for rooms that are mostly empty (used less than 60% of their seating capacity). *(Calculation: Average " \
             "Students Present ÷ Maximum Physical Seats)*"
         )
         if not class_df.empty:
