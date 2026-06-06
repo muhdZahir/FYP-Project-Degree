@@ -225,9 +225,9 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     st.markdown(f"""
     ### **Observation: Monthly Bill Summary**
 
-    - The **most expensive month** was **{high_month['month']}**, costing **RM {high_month['Energy_Cost']:,.2f}**.
-    - The **second most expensive** was **{second_high_month['month']}**, costing **RM {second_high_month['Energy_Cost']:,.2f}**.
-    - The **cheapest month** was **{low_month['month']}**, costing just **RM {low_month['Energy_Cost']:,.2f}**.
+    - The **most expensive month** was **{high_month['month']}**, costing **RM {high_month['energy_cost']:,.2f}**.
+    - The **second most expensive** was **{second_high_month['month']}**, costing **RM {second_high_month['energy_cost']:,.2f}**.
+    - The **cheapest month** was **{low_month['month']}**, costing just **RM {low_month['energy_cost']:,.2f}**.
 
     **The Spike**
     - The difference between our worst and second-worst month is **RM {difference:,.2f}**.
@@ -235,16 +235,16 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     #### **Who Spent the Most?**
 
     **{high_month['month']} (Most Expensive Month)**
-    - Top Spender: **{high_floor_name_high}** (RM {high_floor_high_month['Energy_Cost']:,.2f})
-    - Lowest Spender: **{low_floor_name_high}** (RM {low_floor_high_month['Energy_Cost']:,.2f})
+    - Top Spender: **{high_floor_name_high}** (RM {high_floor_high_month['energy_cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_high}** (RM {low_floor_high_month['energy_cost']:,.2f})
 
     **{second_high_month['month']}**
-    - Top Spender: **{high_floor_name_second}** (RM {high_floor_second_month['Energy_Cost']:,.2f})
-    - Lowest Spender: **{low_floor_name_second}** (RM {low_floor_second_month['Energy_Cost']:,.2f})
+    - Top Spender: **{high_floor_name_second}** (RM {high_floor_second_month['energy_cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_second}** (RM {low_floor_second_month['energy_cost']:,.2f})
 
     **{low_month['month']} (Cheapest Month)**
-    - Top Spender: **{high_floor_name_low}** (RM {high_floor_low_month['Energy_Cost']:,.2f})
-    - Lowest Spender: **{low_floor_name_low}** (RM {low_floor_low_month['Energy_Cost']:,.2f})
+    - Top Spender: **{high_floor_name_low}** (RM {high_floor_low_month['energy_cost']:,.2f})
+    - Lowest Spender: **{low_floor_name_low}** (RM {low_floor_low_month['energy_cost']:,.2f})
 
     **What this means**
     - This shows that certain months and floors are eating way more of the budget than others. We need to check what appliances (like heavy lab equipment) or behaviors (like leaving ACs on overnight) are driving up the bills on those specific floors.
