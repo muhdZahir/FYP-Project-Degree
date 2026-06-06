@@ -1,5 +1,5 @@
 from core.imports import st, pd, LinearRegression
-from core.processing import compute_utilization, compute_contribution, get_room_stats, get_heatmap_data, get_heatmap_pivot, get_monthly_energy, get_total_energy_cost, ensure_months, center_button, require_role
+from core.processing import compute_utilization, compute_contribution, get_room_stats, get_heatmap_data, get_heatmap_pivot, get_monthly_energy, get_total_energy_cost, center_button, require_role
 from core.visualization import plot_underutilized_rooms, plot_heatmap, plot_monthly_cost, plot_pie, plot_correlation
 from core.insights import underutilized_rooms_findings, heatmap_findings, monthly_energy_cost_findings, pie_findings, correlation_findings
 
@@ -200,84 +200,45 @@ def run_energy_analysis(energy_df):
 
         pie_findings(floor_energy_cost)
 
-def run_correlation_analysis(class_df, energy_df):
-    corr_class, corr_energy = ensure_months(class_df, energy_df)
+def run_correlation_analysis(class_df):
+    correlation_df = class_df[["Classroom_Name", "Actual_Occupancy", "Energy_Cost"]].copy()
+    
+    # Linear Regression for Trendline
+    # We will fit a simple linear regression model to the data to get the trendline.
+    # This will help us understand the overall relationship between occupancy and energy cost.
+    # ==============================================================================
+    # PENJELASAN (Untuk Supervisor):
+    # Isu Data Science: "Kenapa tajuk Correlation tapi guna graf Linear Regression?"
+    # JAWAPAN: Kedua-dua metrik digunakan serentak.
+    # - Correlation (r): Mengira 'Kekuatan Hubungan' antara bilangan pelajar & kos elektrik.
+    # - Linear Regression: Digunakan untuk visualisasi (trendline) dan mencari nilai 
+    #   'Base Autopilot Cost' (Y-Intercept) serta pertambahan kos untuk 1 orang pelajar (Slope).
+    # ==============================================================================
+    X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
+    y = correlation_df["Energy_Cost"].values
 
-    # At this point we attempt to aggregate and merge. Preferred: by Floor+Month
-    grouped_occupancy = corr_class.groupby([col for col in ["Floor", "Month"] if col in corr_class.columns])["Actual_Occupancy"].sum().reset_index()
-    grouped_energy = corr_energy.groupby([col for col in ["Floor", "Month"] if col in corr_energy.columns])["Energy_Cost"].sum().reset_index()
+    model = LinearRegression()
+    model.fit(X, y)
+    correlation_df["Predicted_Cost"] = model.predict(X)
 
-    # Try merge by Floor+Month if both have Month and Floor
-    if set(["Floor", "Month"]).issubset(grouped_occupancy.columns) and set(["Floor", "Month"]).issubset(grouped_energy.columns):
-        correlation_df = pd.merge(grouped_occupancy, grouped_energy, on=["Floor", "Month"], how="inner")
-    else:
-        correlation_df = pd.DataFrame()
+    # Visualize correlation scatter plot
+    corr_fig = plot_correlation(correlation_df)
+    st.plotly_chart(corr_fig, width="stretch")
+    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
 
-    # Fallback: if no Floor+Month overlap, try aggregating by Month only (sum across floors)
-    if correlation_df.empty:
-        if "Month" in grouped_occupancy.columns and "Month" in grouped_energy.columns:
-            occ_total = grouped_occupancy.groupby("Month")["Actual_Occupancy"].sum().reset_index()
-            energy_total = grouped_energy.groupby("Month")["Energy_Cost"].sum().reset_index()
-            correlation_df = pd.merge(occ_total, energy_total, on="Month", how="inner")
-        else:
-            correlation_df = pd.DataFrame()
+    # ==========================================
+    # Findings: Correlation Analysis
+    # ==========================================
+    st.write("#### Findings: Occupancy vs Energy Cost Correlation")
+    with st.expander("Show details"):
+        # Statistical Calculations
+        r2_score = model.score(X, y)
+        corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
+        slope = model.coef_[0]
+        # Added y-intercept to calculate the Base Autopilot Cost at 0 students
+        y_intercept = model.intercept_
 
-    # If still empty, show helpful diagnostics
-    if correlation_df.empty:
-        occ_months = sorted(list(set(corr_class["Month"].dropna().astype(str).unique()))) if "Month" in corr_class.columns else []
-        eng_months = sorted(list(set(corr_energy["Month"].dropna().astype(str).unique()))) if "Month" in corr_energy.columns else []
-        st.warning("Insufficient overlapping data (Months) to plot correlation.")
-        st.info(f"Classroom months found: {occ_months}")
-        st.info(f"Energy months found: {eng_months}")
-        st.write("Suggestion: Ensure both files contain a compatible `Month` column (numeric 1-12, month name, or derived from `Week`) covering at least one common month.")
-    elif len(correlation_df) < 2:
-        st.warning("Not enough data points to plot correlation (need at least 2).")
-        st.write(f"Data points found: {len(correlation_df)}. Please ensure both datasets have overlapping months with valid occupancy and energy cost values.")
-    else:
-        # 2. Linear Regression for Trendline
-        # We will fit a simple linear regression model to the data to get the trendline.
-        # This will help us understand the overall relationship between occupancy and energy cost.
-        # ==============================================================================
-        # PENJELASAN (Untuk Supervisor):
-        # Isu Data Science: "Kenapa tajuk Correlation tapi guna graf Linear Regression?"
-        # JAWAPAN: Kedua-dua metrik digunakan serentak.
-        # - Correlation (r): Mengira 'Kekuatan Hubungan' antara bilangan pelajar & kos elektrik.
-        # - Linear Regression: Digunakan untuk visualisasi (trendline) dan mencari nilai 
-        #   'Base Autopilot Cost' (Y-Intercept) serta pertambahan kos untuk 1 orang pelajar (Slope).
-        # ==============================================================================
-        X = correlation_df["Actual_Occupancy"].values.reshape(-1, 1)
-        y = correlation_df["Energy_Cost"].values
-
-        model = LinearRegression()
-        model.fit(X, y)
-        correlation_df["Predicted_Cost"] = model.predict(X)
-
-        # 3. Plot Scatter with Trendline
-        if "Floor" in correlation_df.columns:
-            color_arg = "Floor"
-            title_text = "Correlation: Occupancy vs Energy Cost (Monthly per Floor)"
-        else:
-            color_arg = None
-            title_text = "Correlation: Occupancy vs Energy Cost (Monthly)"
-
-        # Visualize correlation scatter plot
-        corr_fig = plot_correlation(correlation_df, color_arg, title_text)
-        st.plotly_chart(corr_fig, width="stretch")
-        st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
-
-        # ==========================================
-        # Findings: Correlation Analysis
-        # ==========================================
-        st.write("#### Findings: Occupancy vs Energy Cost Correlation")
-        with st.expander("Show details"):
-            # Statistical Calculations
-            r2_score = model.score(X, y)
-            corr_coef = correlation_df['Actual_Occupancy'].corr(correlation_df['Energy_Cost'])
-            slope = model.coef_[0]
-            # Added y-intercept to calculate the Base Autopilot Cost at 0 students
-            y_intercept = model.intercept_
-
-            correlation_findings(corr_coef, slope, r2_score, y_intercept, correlation_df)
+        correlation_findings(corr_coef, slope, r2_score, y_intercept, correlation_df)
 
 # Initialize data containers (Empty at start)
 class_df = pd.DataFrame()
@@ -333,7 +294,7 @@ with st.spinner("Loading page...", show_time=True):
         # ==========================================
         # CORRELATION ANALYSIS
         # ==========================================
-        if not class_df.empty and not energy_df.empty:
+        if not class_df.empty:
             st.subheader("Correlation Analysis")
             with st.expander("🔍 View Analysis Logic (Data Sources, Charts & Math)"):
                 st.markdown("""
@@ -351,9 +312,8 @@ with st.spinner("Loading page...", show_time=True):
                 """)
 
             with st.spinner("Analyzing data...", show_time=True):
-                run_correlation_analysis(class_df, energy_df)
+                run_correlation_analysis(class_df)
         elif class_df.empty or energy_df.empty:
-            st.divider()
             if class_df.empty:
                 st.info(f"No classroom data available for batch {batch_name} to correlate.")
             elif energy_df.empty:

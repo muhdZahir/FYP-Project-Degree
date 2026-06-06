@@ -118,31 +118,30 @@ def plot_pie(df):
     return style_chart(fig, 0.2)
 
 # plot correlation
-def plot_correlation(corr_df, color, text):
+def plot_correlation(corr_df):
     fig = px.scatter(
         corr_df,
         x="Actual_Occupancy",
         y="Energy_Cost",
-        color=color,
-        labels={"Actual_Occupancy": "Occupancy", "Energy_Cost": "Energy Cost (RM)"},
+        color="Classroom_Name",
+        labels={"Classroom_Name": "Classroom", "Actual_Occupancy": "Occupancy", "Energy_Cost": "Energy Cost (RM)"},
         size="Energy_Cost",
-        title=text,
-        hover_data=[c for c in ["Month", "Floor"] if c in corr_df.columns],
+        title="Correlation: Occupancy vs Energy Cost",
         category_orders=get_category_orders(corr_df)
     )
-    fig.update_traces(
-        hovertemplate=
-            "Month: %{customdata[0]}<br>" +
-            "Floor: %{customdata[1]}<br>" +
-            "Occupancy: %{x:.0f}<br>" +
-            "Energy Cost: RM %{y:,.2f}<extra></extra>"
-    )
-    fig = style_chart(fig, 0.2)
+    fig = style_chart(fig, 0.3)
 
     # Add trendline trace
     line_data = corr_df.sort_values("Actual_Occupancy")
     fig.add_traces(px.line(line_data, x="Actual_Occupancy", y="Predicted_Cost").data[0])
     fig.data[-1].update(line=dict(color='black', width=3, dash='dash'), name='Trendline')
+    
+    fig.update_traces(
+        hovertemplate=
+            "<b>%{fullData.name}</b><br>" +
+            "Occupancy: %{x:.0f}<br>" +
+            "Energy Cost: RM %{y:,.2f}<extra></extra>"
+    )
     return fig
 
 # plot classroom occupancy
