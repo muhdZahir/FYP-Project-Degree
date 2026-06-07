@@ -1,6 +1,6 @@
 from core.imports import st, pd, np, LinearRegression
 from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button, require_role
-from core.visualization import plot_attendance_prediction, plot_classroom_occupancy, plot_cost_prediction, plot_monthly_energy_cost
+from core.visualization import plot_classroom_occupancy, plot_cost_prediction, plot_monthly_energy_cost
 
 require_role(["Manager"])
 
@@ -96,7 +96,7 @@ with st.spinner("Loading page...", show_time=True):
             > 🧮 **The calculation:** We see how your bills changed as student numbers changed, and use that pattern to guess next month's bill.
             """)
 
-        col1, col2 = st.columns(2)
+        chart_col1, chart_col2 = st.columns(2)
         
         # Visualization 1: Weekly Classroom Occupancy
         if not class_df.empty:
@@ -108,13 +108,13 @@ with st.spinner("Loading page...", show_time=True):
                 historical["Type"] = "Historical"
                 
                 fig1 = plot_classroom_occupancy(historical)
-                with col1:
+                with chart_col1:
                     st.plotly_chart(fig1, width='stretch')
                     st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                col1.error(f"Chart Error: {e}")
+                chart_col1.error(f"Chart Error: {e}")
         else:
-            col1.info("No classroom data available to visualize weekly occupancy.")          
+            chart_col1.info("No classroom data available to visualize weekly occupancy.")          
         
         # Visualization 2: Monthly Energy Cost
         if not energy_df.empty and not class_df.empty and len(monthly_plot) >= 2:
@@ -122,69 +122,29 @@ with st.spinner("Loading page...", show_time=True):
                 monthly_plot["Type"] = "Historical"
 
                 fig2 = plot_monthly_energy_cost(monthly_plot)
-                with col2:
+                with chart_col2:
                     st.plotly_chart(fig2, width='stretch')
                     st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                col2.error(f"Chart Error: {e}")
+                chart_col2.error(f"Chart Error: {e}")
         else:
-            col2.info("No classroom or energy data available to visualize monthly cost.")
+            chart_col2.info("No classroom or energy data available to visualize monthly cost.")
 
         if not class_df.empty:
             st.divider()
-            st.info("Use the slider below to adjust the expected number of students. " \
-            "The system will then predict how many students will actually attend and how much you can expect to pay in electricity costs next month based on that attendance.")
+            st.info("Use the slider below to adjust the expected number of students attendance. " \
+            "The system will then predict how much you can expect to pay in electricity costs next month based on that attendance.")
             
             student_input = st.slider(
-                "Expected Number of Students",
+                "Expected Number of Students Attendance",
                 min_value=int(class_df["number_of_students"].min()),
                 max_value=int(class_df["number_of_students"].max()),
                 value=int(class_df["number_of_students"].mean())
             )
 
-        # Prediction 1: Attendance
         st.write("")
-        chart_col1, chart_col2 = st.columns(2)
-        if not class_df.empty and len(c_model_df) >= 2:
-            try:
-                X_d = c_model_df[["number_of_students"]]
-                y_d = c_model_df["actual_occupancy"]
-
-                model_d = LinearRegression().fit(X_d, y_d)
-                with chart_col1:
-                    pred_occ = model_d.predict(
-                        pd.DataFrame({
-                            "number_of_students": [student_input]
-                        })
-                    )[0]
-
-                    pred_occ = max(0, pred_occ)
-                    st.metric("Predicted Attendance", f"{pred_occ:.0f} students", help=f"How many numbers of students are expected to attend when expected number of students is {student_input}.")
-
-                    student_range = np.arange(
-                        class_df["number_of_students"].min(),
-                        class_df["number_of_students"].max() + 1
-                    )
-
-                    pred_curve = pd.DataFrame({
-                        "number_of_students": student_range,
-                        "predicted_occupancy": model_d.predict(
-                            pd.DataFrame({"number_of_students": student_range})
-                        )
-                    })
-
-                    attend_fig = plot_attendance_prediction(pred_curve, student_input, pred_occ)
-                    st.plotly_chart(attend_fig, width='stretch')
-                    st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
-            except Exception as e:
-                with chart_col1:
-                    st.metric("Predicted Attendance", "Error")
-                    st.warning(f"Unable to estimate attendance: {e}")
-        else:
-            with chart_col1:
-                st.metric(label="Predicted Attendance", value="N/A", help="No classroom data available.")
-
-        # Prediction 2: Energy Cost
+        col1, col2, col3 = st.columns([0.25, 1, 0.3])
+        # Prediction: Energy Cost
         if not class_df.empty and not energy_df.empty and len(e_model_df) >= 2:
             try:
                 X_e = e_model_df[["actual_occupancy"]]
@@ -192,9 +152,9 @@ with st.spinner("Loading page...", show_time=True):
 
                 model_e = LinearRegression().fit(X_e, y_e)
 
-                with chart_col2:
-                    pred_energy = model_e.predict(pd.DataFrame({"actual_occupancy": [pred_occ]}))[0]
-                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if attendance is {pred_occ:.0f}.")
+                with col2:
+                    pred_energy = model_e.predict(pd.DataFrame({"actual_occupancy": [student_input]}))[0]
+                    st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if attendance is {student_input}.")
 
                     occ_range = np.arange(
                         int(e_model_df["actual_occupancy"].min()),
@@ -205,15 +165,15 @@ with st.spinner("Loading page...", show_time=True):
 
                     curve_df["predicted_energy_cost"] = model_e.predict(curve_df[["actual_occupancy"]])
                 
-                    cost_fig = plot_cost_prediction(curve_df, pred_occ, pred_energy)
+                    cost_fig = plot_cost_prediction(curve_df, student_input, pred_energy)
                     st.plotly_chart(cost_fig, width='stretch')
                     st.caption("💡 **Pro Tip:** Hover your mouse over the graphs for more information.")
             except Exception as e:
-                with chart_col2:
+                with col2:
                     st.metric("Predicted Cost", "Error")
                     st.warning(f"Unable to estimate energy cost: {e}")
         else:
-            with chart_col2:
+            with col2:
                 st.metric(label="Predicted Cost", value="N/A", help="No energy data available.")
 
         # ---------------------------------------------------------
