@@ -312,17 +312,6 @@ def pie_findings(floor_energy_cost):
 
 # Display correlation findings
 def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
-    avg_cost = corr_df["Energy_Cost"].mean() if not corr_df.empty else 0.0
-    min_actual_cost = corr_df["Energy_Cost"].min() if not corr_df.empty else 0.0
-
-    # Minimum Observed Cost proxy if intercept is negative or unrealistically low (< 1% of average cost)
-    if y_intercept < 0.01 * avg_cost:
-        displayed_base_cost = max(0.0, min_actual_cost)
-        is_proxied = True
-    else:
-        displayed_base_cost = y_intercept
-        is_proxied = False
-
     # Metric Columns
     # Changed 4 columns to a 2-column layout to create a spacious 2x2 grid
     col1, col2 = st.columns(2)
@@ -346,16 +335,14 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
             help="Percentage of energy cost explained by student occupancy."
         )
         # Stacked the 4th metric inside the 2nd column
-        help_msg = "The 'Autopilot Cost'. The estimated electricity bill even if the building is completely empty."
-        if is_proxied:
-            help_msg += " (Estimated using the minimum observed cost because the linear model extrapolation was unrealistic)."
         st.metric(
             label="Base Cost (0 Students)",
-            value=f"RM {displayed_base_cost:,.2f}",
-            help=help_msg
+            value=f"RM {y_intercept:,.2f}",
+            help="The 'Autopilot Cost'. The estimated electricity bill even if the building is completely empty."
         )
 
-    baseline_ratio = displayed_base_cost / avg_cost if avg_cost != 0 else 0
+    avg_cost = corr_df["Energy_Cost"].mean()
+    baseline_ratio = y_intercept / avg_cost if avg_cost != 0 else 0
     unexplained = 100 - (r2_score * 100)
 
     headline, strength_text, slope_text, baseline_text, insight_extra = classify_correlation(r2_score, baseline_ratio, slope)
@@ -369,7 +356,7 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
     The other **{unexplained:.1f}%** is "blind spending" caused by things running in the background (e.g., central air conditioning left on, hallway lights, or heavy lab equipment operating 24/7).
 
     - {slope_text}
-    - Even if the campus is completely empty (0 students), our base 'Ghost Bill' is estimated at **RM {displayed_base_cost:,.2f}**, which means {baseline_text}.
+    - Even if the campus is completely empty (0 students), our base 'Ghost Bill' is still **RM {y_intercept:,.2f}**, which means {baseline_text}.
 
     {insight_extra}
     """)
