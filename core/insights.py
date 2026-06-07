@@ -338,7 +338,7 @@ def correlation_findings(corr_coef, slope, r2_score, y_intercept, corr_df):
         st.metric(
             label="Base Cost (0 Students)",
             value=f"RM {y_intercept:,.2f}",
-            help="The 'Autopilot Cost'. The estimated electricity bill even if the building is completely empty."
+            help="The 'Autopilot Cost'. The estimated electricity bill when there is no student in the campus."
         )
 
     avg_cost = corr_df["Energy_Cost"].mean()
