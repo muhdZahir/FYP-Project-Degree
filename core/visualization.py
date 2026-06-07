@@ -170,7 +170,7 @@ def plot_monthly_energy_cost(df):
         y="Energy_Cost",
         color="Type",
         labels={"Month_Num": "Month", "Energy_Cost": "Energy Cost (RM)"},
-        title="Energy Cost Trend",
+        title="Monthly Energy Cost",
         markers=True
     )
     fig.update_traces(
