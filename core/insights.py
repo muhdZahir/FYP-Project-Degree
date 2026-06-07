@@ -44,7 +44,7 @@ def classify_correlation(r2_score, baseline, slope):
         insight_extra = "💡 **Tip:** Something else is eating your electricity budget. You have 'blind spending' going on."
     elif baseline > 0.5:
         headline = "### **Observation: Very high baseline cost detected**"
-        insight_extra = "⚠️ **Warning:** A huge chunk of your bill is fixed. You are paying heavily even when the campus is completely empty."
+        insight_extra = "⚠️ **Warning:** A huge chunk of your bill is fixed. You are paying heavily even when the campus has no students."
     else:
         headline = "### **Observation: Bills are safely following student traffic**"
         insight_extra = "✅ **Good News:** Your energy consumption scales nicely when students enter and leave."
@@ -117,7 +117,6 @@ def underutilized_rooms_findings(worst, second, best, avg):
 
     **What this means**
     - There is a **{best_util - worst_util:.1f}%** gap in how efficiently we pack our classes.
-    - We could easily move the classes from the mostly-empty rooms into smaller ones, and completely shut off the power to the large halls.
     """)
 
 # Display floor x time findings
@@ -156,7 +155,6 @@ def heatmap_findings(peak, lowest):
 
     **What this means**
     - The gap between our busiest and quietest times is **{util_gap:.2f}%**.
-    - This shows empty gaps in our timetable. Moving a few scattered classes closer together could let us completely shut down power to entire floors during quiet hours.
     """)
 
 # Display monthly energy cost findings
@@ -217,9 +215,7 @@ def monthly_energy_cost_findings(monthly_sorted,df):
         )
 
     difference = high_month["Energy_Cost"] - second_high_month["Energy_Cost"]
-
-    st.metric("Difference of Costs Between 1st and 2nd Highest Energy Cost Month", f"RM {difference:,.2f}")
-
+    
     # Text Findings based on monthly energy cost
     # The text findings will explain the energy cost patterns and the contributing floors during those months.
     st.markdown(f"""
@@ -247,8 +243,7 @@ def monthly_energy_cost_findings(monthly_sorted,df):
     - Lowest Spender: **{low_floor_name_low}** (RM {low_floor_low_month['Energy_Cost']:,.2f})
 
     **What this means**
-    - This shows that certain months and floors are eating way more of the budget than others. We need to check what appliances 
-    (like heavy lab equipment) or behaviors (like leaving ACs on overnight) are driving up the bills on those specific floors.
+    - This shows that certain months and floors are eating way more of the budget than others.
     """)
 
 # Display energy cost contribution findings
@@ -306,7 +301,7 @@ def pie_findings(floor_energy_cost):
 
     **What this means**
     - The billing shows **{interpret_cv(cv)}** across floors.
-    - This proves some floors are energy drainers compared to the rest of the campus. 
+    - Some floors could be the energy drainers compared to the rest of the campus. 
     - If the most expensive floor doesn't have the most students, we have a major electricity leak.
     """)
 

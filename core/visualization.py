@@ -127,6 +127,7 @@ def plot_correlation(corr_df):
         labels={"Classroom_Name": "Classroom", "Actual_Occupancy": "Occupancy", "Energy_Cost": "Energy Cost (RM)"},
         size="Energy_Cost",
         title="Correlation: Occupancy vs Energy Cost",
+        render_mode="svg",
         category_orders=get_category_orders(corr_df)
     )
     fig = style_chart(fig, 0.3)

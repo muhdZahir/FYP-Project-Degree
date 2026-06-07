@@ -23,7 +23,8 @@ def run_classroom_analysis(class_df):
             st.markdown("""
             **📉 The 'Ghost Rooms' (Highest Wasted Space)** 
                         
-            💡 **What this means:** These are the used classrooms with too many empty seats than the actual number of students. If we move these small classes to smaller rooms, we can turn off the lights and AC in these large halls entirely.  
+            💡 **What this means:** These are the used classrooms with too many empty seats than the actual student attendance.
+            If we move these small classes to smaller rooms, we can turn off the lights and AC in these large classroom halls entirely.  
             
             > 📂 **Where the data comes from:** Classroom Data *(Columns: Classroom Name, Capacity, Actual Occupancy)*  
             > 📊 **Chart used:** Bar Chart  
@@ -300,7 +301,7 @@ with st.spinner("Loading page...", show_time=True):
                                 
                 💡 **What this means:** We want the dots to go up in a straight line as more students attend. If the dots are scattered everywhere, it means electricity is running blindly even when rooms are empty.  
                 
-                > 📂 **Where the data comes from:** Combined Classroom & Energy Data *(Columns: Actual Occupancy, Energy Cost)*  
+                > 📂 **Where the data comes from:** Classroom Data *(Columns: Actual Occupancy, Energy Cost)*  
                 > 📊 **Chart used:** Scatter Plot with a Trendline  
                 > 💡 **Why this Chart:** It checks if your electric bill makes sense based on student numbers. A straight line means your building is efficient; scattered dots mean money is being wasted.  
                 > 🧮 **How it is calculated:** We measure if the electric bills go up and down based on actual human traffic, or if they stay high even when the campus is empty.
