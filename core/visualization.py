@@ -162,40 +162,6 @@ def plot_classroom_occupancy(df):
     )
     return style_chart(fig, 0.2)
 
-# plot attendance prediction
-def plot_attendance_prediction(df, student_input, pred_occ):
-    fig = px.line(
-        df,
-        x="Number_of_Students",
-        y="Predicted_Occupancy",
-        labels={"Number_of_Students": "Students Enrolled", "Predicted_Occupancy": "Predicted Attendance"},
-        title="Attendance Prediction Model",
-        markers=True
-    )
-    fig.update_traces(
-        hovertemplate=
-            "Students Enrolled: %{x:.0f}<br>" +
-            "Predicted Attendance: %{y:.0f} students<extra></extra>",
-    )
-
-    fig.add_scatter(
-        x=[student_input],
-        y=[pred_occ],
-        mode="markers",
-        name="Selected Prediction",
-        marker=dict(
-            color="red",
-            size=8,
-            symbol="diamond"
-        ),
-        hovertemplate=(
-            "Students Enrolled: %{x:.0f}<br>"
-            "Predicted Attendance: %{y:.0f}"
-            "<extra></extra>"
-        )
-    )
-    return style_chart(fig, 0.2)
-
 # plot monthly energy cost
 def plot_monthly_energy_cost(df):
     fig = px.line(
@@ -215,7 +181,7 @@ def plot_monthly_energy_cost(df):
     return style_chart(fig, 0.3)
 
 # plot energy cost prediction
-def plot_cost_prediction(df, pred_occ, pred_energy):
+def plot_cost_prediction(df, occ, pred_energy):
     fig = px.line(
         df,
         x="Actual_Occupancy",
@@ -234,7 +200,7 @@ def plot_cost_prediction(df, pred_occ, pred_energy):
     )
 
     fig.add_scatter(
-        x=[pred_occ], # from attendance model
+        x=[occ], # from attendance model
         y=[pred_energy],
         mode="markers",
         name="Selected Prediction",
