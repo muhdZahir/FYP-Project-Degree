@@ -34,6 +34,7 @@ def plot_underutilized_rooms(df, n):
         y="Percent_Utilize",
         color="Percent_Utilize",
         color_continuous_scale="Reds",
+        labels={"Percent_Utilize": "Utilization (%)", "classroom_name": "Classroom"},
         range_color=[0, 100],
         title=f"Top {n} Rooms with Lowest Utilization Rate (%)",
         text_auto='.1f',
