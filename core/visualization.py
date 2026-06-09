@@ -138,7 +138,6 @@ def plot_correlation(corr_df):
     
     fig.update_traces(
         hovertemplate=
-            "<b>%{fullData.name}</b><br>" +
             "Occupancy: %{x:.0f}<br>" +
             "Energy Cost: RM %{y:,.2f}<extra></extra>"
     )
