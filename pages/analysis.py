@@ -200,7 +200,7 @@ def run_energy_analysis(energy_df):
         pie_findings(floor_energy_cost)
 
 def run_correlation_analysis(class_df):
-    correlation_df = class_df[["Classroom_Name", "Actual_Occupancy", "Energy_Cost"]].copy()
+    correlation_df = class_df[["Actual_Occupancy", "Energy_Cost"]].copy()
     
     # Linear Regression for Trendline
     # We will fit a simple linear regression model to the data to get the trendline.
