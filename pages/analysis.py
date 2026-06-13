@@ -194,7 +194,7 @@ def run_energy_analysis(energy_df):
         cost_sorted = floor_energy_cost.sort_values(by="Energy_Cost", ascending=False, ignore_index=True)
         cost_sorted = cost_sorted.rename(columns=lambda x: x.replace("_", " ").title())
 
-        st.markdown("Top Energy Cost Contributor by Floor:")
+        st.markdown("Top 5 Energy Cost Contributor by Floor:")
         st.dataframe(cost_sorted.head(5).style.format({"Energy Cost": "RM {:,.2f}", "Contribution (%)": "{:.2f}%"}))
 
         pie_findings(floor_energy_cost)
