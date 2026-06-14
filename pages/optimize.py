@@ -139,7 +139,7 @@ with st.spinner("Loading page...", show_time=True):
                 "Expected Number of Students Attendance",
                 min_value=int(class_df["number_of_students"].min()),
                 max_value=int(class_df["number_of_students"].max()),
-                value=int(class_df["Number_of_Students"].mean()),
+                value=int(class_df["number_of_students"].mean()),
                 help="This slider lets you simulate different attendance scenarios. " \
                 "Move it left or right to see how changes in student numbers could impact your energy costs next month."
             )
