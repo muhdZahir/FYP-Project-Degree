@@ -137,8 +137,8 @@ with st.spinner("Loading page...", show_time=True):
             
             student_input = st.slider(
                 "Expected Number of Students Attendance",
-                min_value=int(class_df["number_of_students"].min()),
-                max_value=int(class_df["number_of_students"].max()),
+                min_value=int(0),
+                max_value=int(200),
                 value=int(class_df["number_of_students"].mean()),
                 help="This slider lets you simulate different attendance scenarios. " \
                 "Move it left or right to see how changes in student numbers could impact your energy costs next month."
@@ -211,7 +211,7 @@ with st.spinner("Loading page...", show_time=True):
                     actual_cost = w_leak['energy_cost']
                     floor_students = int(w_leak['actual_occupancy'])
                     
-                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['Floor'])} costs **RM {actual_cost:,.2f}**, \
+                    st.error(f"**BUDGET IMBALANCE:** Floor {int(w_leak['floor'])} costs **RM {actual_cost:,.2f}**, \
                              but only accounts for **{floor_students:,} students**.\n\n"
                              f"**Action:** Consider sending maintenance to Floor {int(w_leak['floor'])}. The electricity is running at maximum capacity for \
                              a nearly empty floor. If this floor has labs or special equipment, check if they are being left on 24/7. If it's just classrooms, \
