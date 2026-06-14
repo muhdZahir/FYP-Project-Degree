@@ -146,8 +146,8 @@ with st.spinner("Loading page...", show_time=True):
             "The system will then predict how much you can expect to pay in electricity costs next month based on that attendance.")
             student_input = st.slider(
                 "Expected Number of Students Attendance",
-                min_value=int(class_df["Number_of_Students"].min()),
-                max_value=int(class_df["Number_of_Students"].max()),
+                min_value=int(0),
+                max_value=int(200),
                 value=int(class_df["Number_of_Students"].mean()),
                 help="This slider lets you simulate different attendance scenarios. " \
                 "Move it left or right to see how changes in student numbers could impact your energy costs next month."
@@ -166,11 +166,7 @@ with st.spinner("Loading page...", show_time=True):
                     pred_energy = model_e.predict(pd.DataFrame({"Actual_Occupancy": [student_input]}))[0]
                     st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if attendance is {student_input}.")
 
-                    occ_range = np.arange(
-                        int(e_model_df["Actual_Occupancy"].min()),
-                        int(e_model_df["Actual_Occupancy"].max()) + 1
-                    )
-
+                    occ_range = np.arange(int(0), int(200))
                     curve_df = pd.DataFrame({"Actual_Occupancy": occ_range})
                     curve_df["Predicted_Energy_Cost"] = model_e.predict(curve_df[["Actual_Occupancy"]])
                 
