@@ -1,5 +1,5 @@
 from core.imports import st, pd, np, LinearRegression
-from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button, require_role
+from core.processing import map_week_to_month, normalize_month, compute_utilization, center_button, require_role, recommend_room
 from core.visualization import plot_classroom_occupancy, plot_cost_prediction, plot_monthly_energy_cost
 
 require_role(["Manager"])
@@ -139,7 +139,9 @@ with st.spinner("Loading page...", show_time=True):
                 "Expected Number of Students Attendance",
                 min_value=int(class_df["number_of_students"].min()),
                 max_value=int(class_df["number_of_students"].max()),
-                value=int(class_df["number_of_students"].mean())
+                value=int(class_df["Number_of_Students"].mean()),
+                help="This slider lets you simulate different attendance scenarios. " \
+                "Move it left or right to see how changes in student numbers could impact your energy costs next month."
             )
 
         st.write("")
@@ -271,6 +273,49 @@ with st.spinner("Loading page...", show_time=True):
                     st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_name']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students**.\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
+                    
+                st.markdown("#### Classroom Scheduling Simulation")
+                num_stud = st.number_input("Number of Students", min_value=int(class_df["capacity"].min()-10), max_value=int(class_df["capacity"].max()), width=int(200))
+                
+                if st.button("Recommend Room", width=int(200)):
+                    OVERFLOW_MARGIN = 2
+                    all_rooms = r_avg.copy()
+                    capacities = sorted(r_avg["Room_Size"].unique())
+                    suitable_capacities = sorted(capacities)
+
+                    for cap in suitable_capacities:
+                        if cap >= num_stud:
+                            target_capacity = cap
+                            break
+
+                    smaller_caps = [c for c in capacities if c < target_capacity]
+                    if smaller_caps:
+                        prev_cap = max(smaller_caps)
+
+                        if (num_stud - prev_cap) <= OVERFLOW_MARGIN:
+                            target_capacity = prev_cap
+
+                    projected_util = (num_stud / target_capacity) * 100
+
+                    if not low_util_rooms.empty:
+                        suitable_rooms = low_util_rooms[
+                            low_util_rooms['Room_Size'] == target_capacity
+                        ]
+
+                        if not suitable_rooms.empty:
+                            recommend_room(suitable_rooms, num_stud, projected_util, target_capacity, capacities, all_rooms)
+                        else:
+                            st.info("No suitable underutilized room found. Showing best available room.")
+                            general_candidates = all_rooms[
+                                all_rooms["Room_Size"] == target_capacity
+                            ]
+                            recommend_room(general_candidates, num_stud, projected_util, target_capacity, capacities, all_rooms)
+                    else:
+                        general_candidates = all_rooms[
+                            all_rooms["Room_Size"] == target_capacity
+                        ]
+                        recommend_room(general_candidates, num_stud, projected_util, target_capacity, capacities, all_rooms)
+
                 else:
                     st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:

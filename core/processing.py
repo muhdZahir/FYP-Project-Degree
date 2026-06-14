@@ -152,3 +152,49 @@ def get_total_energy_cost(df):
         .sum()
         .reset_index()
     )
+
+# Recommend room
+def recommend_room(df, stud, util, target, capacity, all): 
+    recommended_rooms = df[df["Room_Size"] == target]
+
+    rooms = ", ".join(
+            recommended_rooms['classroom_name'].astype(str)
+        )
+    st.text(f"Nearest Seat Capacity:  {target}")
+    st.text(f"Recommended Rooms:  {rooms}")
+    st.write(f"Estimated utilization: {util:.1f}%")
+
+    overflow = stud - target
+    if 0 < overflow <= 2:
+        next_caps = [c for c in capacity if c > target]
+
+        if next_caps:
+            next_cap = min(next_caps)
+
+            st.markdown(
+                f"The entered class size ({stud} students) exceeds the recommended {target}-seat classroom by {stud - target} student(s). "
+                f"The next available capacity category is {next_cap} seats. Consider either reducing the class size to fit the **{target}-seat** classroom "
+                f"or increasing students and allocating a larger classroom with **{next_cap} seats**."
+            )
+    elif util < 60:
+        available_rooms = all.sort_values("Room_Size")
+
+        selected_rooms = []
+        total_capacity = 0
+
+        for _, room in available_rooms.iterrows():
+            selected_rooms.append(room["classroom_name"])
+            total_capacity += room["Room_Size"]
+
+            if total_capacity >= stud:
+                break
+        st.text(total_capacity)
+        st.text(stud)
+        multi_util = (stud / total_capacity) * 100
+        optimal_students = int(target * 0.60)
+        st.markdown(
+            f"The selected room would operate at approximately **{util:.1f}%** utilization. A class size of around "
+            f"**{optimal_students}** students would achieve the target utilization level of **60%** for this room.\n\n"
+            f"Alternatively, add more students and splitting the class into {len(selected_rooms)} rooms with the combined capacity of "
+            f"{total_capacity} seats would increase estimated utilization to **{multi_util:.1f}%**."
+        )
