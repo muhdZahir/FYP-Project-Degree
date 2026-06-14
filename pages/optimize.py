@@ -273,7 +273,9 @@ with st.spinner("Loading page...", show_time=True):
                     st.warning(f"**INEFFICIENT SPACE:** Room {w_room['classroom_name']} has **{int(w_room['Room_Size'])} seats**, but is usually occupied \
                                by only **{int(w_room['Avg_Students'])} students**.\n\n"
                                f"**Action:** Consider scheduling this room for a lecture with an appropriate number of students next semester.")
-                    
+                else:
+                    st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
+
                 st.markdown("#### Classroom Scheduling Simulation")
                 num_stud = st.number_input("Number of Students", min_value=int(class_df["capacity"].min()-10), max_value=int(class_df["capacity"].max()), width=int(200))
                 
@@ -315,9 +317,6 @@ with st.spinner("Loading page...", show_time=True):
                             all_rooms["Room_Size"] == target_capacity
                         ]
                         recommend_room(general_candidates, num_stud, projected_util, target_capacity, capacities, all_rooms)
-
-                else:
-                    st.success("**EFFICIENT:** All lectures are placed in appropriately sized rooms. No space wastage.")
             except Exception as e:
                 st.warning(f"Room sizing check could not be completed: {e}")
         else:
