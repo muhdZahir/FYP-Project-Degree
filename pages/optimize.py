@@ -158,13 +158,8 @@ with st.spinner("Loading page...", show_time=True):
                     pred_energy = model_e.predict(pd.DataFrame({"actual_occupancy": [student_input]}))[0]
                     st.metric("Predicted Cost", f"RM {pred_energy:,.2f}", help=f"How much you can expect to pay in electricity costs next month if attendance is {student_input}.")
 
-                    occ_range = np.arange(
-                        int(e_model_df["actual_occupancy"].min()),
-                        int(e_model_df["actual_occupancy"].max()) + 1
-                    )
-
+                    occ_range = np.arange(int(0), int(200))
                     curve_df = pd.DataFrame({"actual_occupancy": occ_range})
-
                     curve_df["predicted_energy_cost"] = model_e.predict(curve_df[["actual_occupancy"]])
                 
                     cost_fig = plot_cost_prediction(curve_df, student_input, pred_energy)
