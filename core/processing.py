@@ -188,8 +188,7 @@ def recommend_room(df, stud, util, target, capacity, all):
 
             if total_capacity >= stud:
                 break
-        st.text(total_capacity)
-        st.text(stud)
+
         multi_util = (stud / total_capacity) * 100
         optimal_students = int(target * 0.60)
         st.markdown(
